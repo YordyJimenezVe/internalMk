@@ -1,0 +1,1 @@
+Get-ChildItem -Path "c:\Users\yordy\OneDrive\Documentos\internal maikel cars" -Exclude 'node_modules', '.git', '.env' | Compress-Archive -DestinationPath "c:\Users\yordy\OneDrive\Documentos\internal_maikel_cars_deploy.zip" -Force
