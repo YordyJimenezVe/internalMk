@@ -1,0 +1,5 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/maikelca/internal.maikelcars.com/
+    - /bin/cp -R * $DEPLOYPATH
