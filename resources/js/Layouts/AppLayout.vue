@@ -138,12 +138,7 @@ onMounted(() => {
                                     Mantenimiento
                                 </NavLink>
                             </div>
-                            <!-- Facuración Link -->
-                            <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                                <NavLink :href="route('billing')" :active="route().current('billing')">
-                                    Facturación
-                                </NavLink>
-                            </div>
+
                             <!-- Solicitudes Facturación Link -->
                             <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
                                 <NavLink :href="route('billing.requests.index')" :active="route().current('billing.requests.index')">

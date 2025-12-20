@@ -33,5 +33,10 @@ class Billing extends Model
         return $this->belongsTo(Partida::class, 'partida_id');
     }
 
+    public function partida()
+    {
+        return $this->belongsTo(Partida::class, 'partida_id');
+    }
+
 
 }

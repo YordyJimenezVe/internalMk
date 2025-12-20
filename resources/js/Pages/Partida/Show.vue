@@ -18,9 +18,17 @@ const form = useForm({
 });
 
 const submitBilling = () => {
-    form.post(route('billing.requests.store'), {
+    form.transform((data) => ({
+        ...data,
+        client_name: data.client_name ? data.client_name.toUpperCase() : '',
+        client_cedula: data.client_cedula ? data.client_cedula.toUpperCase() : '',
+        price: data.price.toString().replace(/\./g, '').replace(',', '.')
+    })).post(route('billing.requests.store'), {
         preserveScroll: true,
-        onSuccess: () => form.reset('client_name', 'quantity'),
+        onSuccess: () => {
+            form.reset('client_name', 'quantity');
+            form.defaults({ client_name: '', client_cedula: '' }); // Ensure clear state
+        },
     });
 };
 </script>
@@ -100,8 +108,8 @@ const submitBilling = () => {
                                         <label class="block text-sm font-bold mb-2">Precio Unitario ($)</label>
                                         <input 
                                             v-model="form.price" 
-                                            type="number" 
-                                            step="0.01" 
+                                            type="text" 
+                                            placeholder="Ej: 1.400" 
                                             class="shadow appearance-none border border-gray-600 rounded w-full py-2 px-3 text-white bg-gray-700 leading-tight focus:outline-none focus:shadow-outline" 
                                             required
                                         >

@@ -62,6 +62,7 @@ Route::post('/billing-requests/store', 'App\Http\Controllers\BillingRequestContr
 Route::post('/billing-requests/process', 'App\Http\Controllers\BillingRequestController@process')->name('billing.requests.process');
 Route::put('/billing-requests/update/{id}', 'App\Http\Controllers\BillingRequestController@update')->name('billing.requests.update');
 Route::delete('/billing-requests/delete/{id}', 'App\Http\Controllers\BillingRequestController@destroy')->name('billing.requests.destroy');
+Route::get('/billing/pdf/{id}', 'App\Http\Controllers\BillingsController@pdf')->name('billing.pdf');
 
 Route::get('/autopart', 'App\Http\Controllers\AutopartsController@index')->name('autopart');
 Route::get('/autopart/add', 'App\Http\Controllers\PartidasController@create')->name('createAutopart');

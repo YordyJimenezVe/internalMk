@@ -12,17 +12,17 @@ use Illuminate\Support\Facades\Auth;
 class BillingsController extends Controller
 {
 
-    private function createBitacoraEntry($action,$billingId, $field='', $oldValue='', $newValue='')
+    private function createBitacoraEntry($action, $billingId, $field = '', $oldValue = '', $newValue = '')
     {
-        if($action=='UPDATE'){
-            $action='UPDATE';
-            $descrip="Factura: $billingId, $field: $oldValue, $newValue";
-        }else if($action=='DELETE'){
-            $action='DELETE';
-            $descrip="Factura: $billingId";
-        }else if($action=='REVERSE'){
-            $action='REVERSE';
-            $descrip="Factura: $billingId";
+        if ($action == 'UPDATE') {
+            $action = 'UPDATE';
+            $descrip = "Factura: $billingId, $field: $oldValue, $newValue";
+        } else if ($action == 'DELETE') {
+            $action = 'DELETE';
+            $descrip = "Factura: $billingId";
+        } else if ($action == 'REVERSE') {
+            $action = 'REVERSE';
+            $descrip = "Factura: $billingId";
         }
         Bitacora::create([
             'users_id' => Auth::user()->id,
@@ -35,9 +35,9 @@ class BillingsController extends Controller
      */
     public function index()
     {
-        $billings=Billing::with('partidas')->get();
-        return inertia('Bill/Index',[
-            'Facturas'=>$billings
+        $billings = Billing::with('partidas')->get();
+        return inertia('Bill/Index', [
+            'Facturas' => $billings
         ]);
     }
 
@@ -46,7 +46,7 @@ class BillingsController extends Controller
      */
     public function create($id)
     {
-        $billing=Partida::findOrFail($id)->with('bill')->first();
+        $billing = Partida::findOrFail($id)->with('bill')->first();
         // Crear un cliente HTTP
         $client = new \GuzzleHttp\Client();
 
@@ -56,9 +56,10 @@ class BillingsController extends Controller
         // Decodificar la respuesta JSON
         $response = json_decode($request->getBody()->getContents());
         return inertia(
-            'Bill/Create',[
-                'data'=>$billing,
-                'tasa_bcv'=>$response->monitors->usd->price,
+            'Bill/Create',
+            [
+                'data' => $billing,
+                'tasa_bcv' => $response->monitors->usd->price,
             ]
         );
     }
@@ -68,10 +69,10 @@ class BillingsController extends Controller
      */
     public function store(Request $request)
     {
-        $bs=$request->input('bs');
+        $bs = $request->input('bs');
         $valorD = $request->input('divisa');
         $bsCodificado = str_replace(array(",", "."), "", $bs);
-        $iva=16*$bsCodificado/100;
+        $iva = 16 * $bsCodificado / 100;
         $partida = new Billing();
         $partida->fill($request->all());
         $valor = number_format($iva);
@@ -107,7 +108,7 @@ class BillingsController extends Controller
     {
         $billing = Billing::findOrFail($id);
         $originalValues = $billing->getOriginal();
-        $campos=$request->all();
+        $campos = $request->all();
         $coleccionA = collect($originalValues);
         $coleccionB = collect($campos);
         $indicesComunes = $coleccionA->intersectByKeys($coleccionB)->keys();
@@ -115,9 +116,9 @@ class BillingsController extends Controller
             $original = $coleccionA[$value];
             $campos = $coleccionB[$value];
             if ($original != $campos) {
-              $this->createBitacoraEntry('UPDATE',$billing->numero_factura, $indicesComunes[$indice], 'Valor Original: '.$original, 'Valor Nuevo: '.$campos);
-            } 
-        } 
+                $this->createBitacoraEntry('UPDATE', $billing->numero_factura, $indicesComunes[$indice], 'Valor Original: ' . $original, 'Valor Nuevo: ' . $campos);
+            }
+        }
         $billing->fill($request->all());
         $billing->save();
         return redirect()->route('billing');
@@ -129,15 +130,16 @@ class BillingsController extends Controller
     public function destroy(Request $request, int $id)
     {
         //$billing = Billing::findOrFail($id);
-        $billing=Billing::findOrFail($id)->with('partidas')->first();
+        $billing = Billing::findOrFail($id)->with('partidas')->first();
         $marca = $billing->partidas->first()->marca;
         $modelo = $billing->partidas->first()->modelo;
         $billing->delete();
-        $this->createBitacoraEntry('DELETE',$billing->numero_factura." ".$marca." ".$modelo);
+        $this->createBitacoraEntry('DELETE', $billing->numero_factura . " " . $marca . " " . $modelo);
         return redirect()->route('billing');
     }
 
-    public function return (Billing $partida, $id){
+    public function return(Billing $partida, $id)
+    {
         $data = Billing::findOrFail($id);
         return inertia('Bill/Return', [
             'bill' => $data,
@@ -157,8 +159,19 @@ class BillingsController extends Controller
             'numero_nota_credito' => $request->input('numero_nota_credito'),
             'numero_factura_afect' => $request->input('numero_factura_afect'),
         ]);
-        $this->createBitacoraEntry('REVERSE',$billing->numero_factura." Control n°: ".$billing->numero_control." Nota Crédito n°: ".$request->input('numero_nota_credito')." Factura Afectada n°: ".$request->input('numero_factura_afect'));
+        $this->createBitacoraEntry('REVERSE', $billing->numero_factura . " Control n°: " . $billing->numero_control . " Nota Crédito n°: " . $request->input('numero_nota_credito') . " Factura Afectada n°: " . $request->input('numero_factura_afect'));
         $billing->delete();
         return redirect()->route('billing');
+    }
+    public function pdf($id)
+    {
+        $bill = Billing::with('partida')->findOrFail($id);
+
+        $pdf = \PDF::loadView('reports.invoice', compact('bill'));
+
+        // Define paper size and orientation (optional, already set in view or config)
+        $pdf->setPaper('letter', 'portrait');
+
+        return $pdf->stream('Factura-' . str_pad($bill->id, 6, '0', STR_PAD_LEFT) . '.pdf');
     }
 }

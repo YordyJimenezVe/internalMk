@@ -58,7 +58,7 @@ class BillingRequestController extends Controller
 
             // 1. Create Billing Record (Sale Log)
             // Mapping fields from request/partida to Billing
-            \App\Models\Billing::create([
+            $newBill = \App\Models\Billing::create([
                 'fecha' => now()->format('Y-m-d'),
                 'hora' => now()->format('H:i:s'),
                 'partida_id' => $partida->id,
@@ -88,9 +88,12 @@ class BillingRequestController extends Controller
 
             // 3. Mark Request as Processed
             $billingRequest->update(['status' => 'processed']);
+
+            // Collect ID
+            $createdBillingIds[] = $newBill->id;
         }
 
-        return redirect()->back()->with('success', 'Solicitudes procesadas y ventas registradas.');
+        return redirect()->back()->with('success', 'Solicitudes procesadas y ventas registradas.')->with('billing_ids', $createdBillingIds ?? []);
     }
 
     public function update(Request $request, $id)

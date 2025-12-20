@@ -15,7 +15,16 @@ const processRequest = (id) => {
     form.request_ids = [id];
     form.post(route('billing.requests.process'), {
         preserveScroll: true,
-        onSuccess: () => form.reset(),
+        onSuccess: (page) => {
+            form.reset();
+            // Check for billing_ids in flash messages and open PDFs
+            const billingIds = page.props.flash.billing_ids || [];
+            if (billingIds.length > 0) {
+                billingIds.forEach(id => {
+                     window.open(route('billing.pdf', id), '_blank');
+                });
+            }
+        },
     });
 };
 
