@@ -13,12 +13,20 @@ jobs:
       - name: 🚚 Get latest code
         uses: actions/checkout@v4
 
+      - name: 🛠️ Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: 📦 Install Composer dependencies
+        run: composer install --no-dev --optimize-autoloader
+
       - name: 🛠️ Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: 📦 Install dependencies
+      - name: 📦 Install JS dependencies
         run: npm install
 
       - name: 🚀 Build assets
@@ -31,11 +39,19 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           port: 21
+          # Se excluyen archivos de desarrollo y git
           exclude: |
             **/.git*
             **/.git*/**
             **/node_modules/**
+            **/tests/**
             .env
             .env.example
-            tests/
             phpunit.xml
+            vite.config.js
+            tailwind.config.js
+            postcss.config.js
+            composer.json
+            composer.lock
+            package.json
+            package-lock.json
