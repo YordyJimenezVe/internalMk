@@ -34,20 +34,20 @@ class BitacoraExports implements FromCollection, WithHeadings, ShouldAutoSize, W
     {
         $termino = $this->termino;
         // Define la colección de datos para exportar
-        $response = Bitacora::select('users.name', 'action', 'description', DB::raw('DATE_FORMAT(bitacoras.created_at, "%Y-%m-%d-%H:%i") as created_at'))
+        $response = Bitacora::select('users.name', 'action', 'description', 'bitacoras.created_at')
             ->join('users', 'bitacoras.users_id', '=', 'users.id')
-            ->where(function ($query) use ($termino) {
-                $query->where('bitacoras.id', 'like', "%{$termino}%")
-                    ->orWhere('bitacoras.action', 'like', "%{$termino}%")
+            ->when($termino, function ($query, $termino) {
+                $query->where('bitacoras.action', 'like', "%{$termino}%")
                     ->orWhere('bitacoras.description', 'like', "%{$termino}%")
-                    ->orWhere('bitacoras.created_at', 'like', "%{$termino}%");
+                    ->orWhere('users.name', 'like', "%{$termino}%");
             })
+            ->latest()
             ->get();
         return $response;
     }
+
     public function headings(): array
     {
-        // Define los encabezados de las columnas
         return [
             'Usuario',
             'Acción',
@@ -59,14 +59,17 @@ class BitacoraExports implements FromCollection, WithHeadings, ShouldAutoSize, W
     public function columnFormats(): array
     {
         return [
-            'D' => NumberFormat::FORMAT_DATE_TIME4,
+            'D' => NumberFormat::FORMAT_DATE_DATETIME,
         ];
     }
 
     public function map($row): array
     {
         return [
-            $row->created_at->format('Y/m/d'),
+            $row->name,
+            $row->action,
+            $row->description,
+            $row->created_at ? Carbon::parse($row->created_at)->format('Y-m-d H:i:s') : '',
         ];
     }
 

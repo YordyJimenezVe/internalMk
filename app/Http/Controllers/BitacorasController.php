@@ -11,12 +11,25 @@ class BitacorasController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $bitacoras=Bitacora::with('users')
-        ->get();
-        return inertia('Bitacora/Index',[
-            'bitacoras'=>$bitacoras
+        $search = $request->input('search');
+
+        $bitacoras = Bitacora::with('users')
+            ->when($search, function ($query, $search) {
+                $query->where('action', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhereHas('users', function ($q) use ($search) {
+                        $q->where('name', 'like', "%{$search}%");
+                    });
+            })
+            ->latest()
+            ->paginate(15)
+            ->withQueryString();
+
+        return inertia('Bitacora/Index', [
+            'bitacoras' => $bitacoras,
+            'filters' => $request->only(['search'])
         ]);
     }
 }

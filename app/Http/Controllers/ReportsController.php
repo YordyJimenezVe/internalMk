@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Partida;
+use App\Models\Inventario;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\PartidasExports;
 use App\Exports\BillsExports;
 use App\Exports\BitacoraExports;
 use App\Exports\HistoryExports;
+
+use App\Exports\MaintenanceExports;
 
 class ReportsController extends Controller
 {
@@ -86,6 +88,8 @@ class ReportsController extends Controller
             return Excel::download(new BitacoraExports($caso, $termino), $tipo . '.xlsx');
         } else if ($tipo == 'history') {
             return Excel::download(new HistoryExports($caso, $termino), $tipo . '.xlsx');
+        } else if ($tipo == 'maintenance') {
+            return Excel::download(new MaintenanceExports($caso, $termino, $startDate, $endDate, $status), $tipo . '.xlsx');
         }
     }
     public function exportPdf(Request $request, $tipo, $caso, $termino = null)
@@ -103,12 +107,19 @@ class ReportsController extends Controller
 
         if ($tipo == 'partidas') {
             $export = new PartidasExports($caso, $termino, $startDate, $endDate, $status);
+            $data = $export->getCollection();
+            $pdfContent = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.partidas', ['partidas' => $data])
+                ->setPaper('a4', 'landscape')
+                ->output();
+            return response($pdfContent, 200, $headers);
         } else if ($tipo == 'facturas') {
             $export = new BillsExports($caso, $termino, $startDate, $endDate);
         } else if ($tipo == 'bitacora') {
             $export = new BitacoraExports($caso, $termino);
         } else if ($tipo == 'history') {
             $export = new HistoryExports($caso, $termino);
+        } else if ($tipo == 'maintenance') {
+            $export = new MaintenanceExports($caso, $termino, $startDate, $endDate, $status);
         }
 
         if ($export) {

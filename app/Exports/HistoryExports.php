@@ -7,7 +7,7 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithDrawings;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
-use App\Models\Partida;
+use App\Models\Inventario;
 use DB;
 
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
@@ -29,7 +29,7 @@ class HistoryExports implements FromCollection, WithHeadings, ShouldAutoSize, Wi
     {
         $termino = $this->termino;
         // Define la colección de datos para exportar
-        $response = Partida::with('container')
+        $response = Inventario::with('container')
             ->select('tipo', 'marca', 'modelo', 'año', 'codInv', 'expediente', 'status', DB::raw('DATE_FORMAT(created_at, "%d/%m/%Y") as fecha_creacion'))
             ->where(function ($query) use ($termino) {
                 // Filtrar por múltiples campos

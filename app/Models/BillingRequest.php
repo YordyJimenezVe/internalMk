@@ -14,12 +14,29 @@ class BillingRequest extends Model
         'price',
         'client_name',
         'client_cedula',
+        'client_phone',
+        'client_address',
         'status',
     ];
 
+    public function inventario()
+    {
+        return $this->belongsTo(Inventario::class, 'partida_id');
+    }
+
+    public function inventarios()
+    {
+        return $this->belongsTo(Inventario::class, 'partida_id');
+    }
+
     public function partida()
     {
-        return $this->belongsTo(Partida::class);
+        return $this->belongsTo(Inventario::class, 'partida_id');
+    }
+
+    public function partidas()
+    {
+        return $this->belongsTo(Inventario::class, 'partida_id');
     }
 
     public function user()

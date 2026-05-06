@@ -9,118 +9,215 @@ const props = defineProps({
 });
 </script>
 
-<template >
-    <AppLayout title="Facturación">
+<template>
+    <AppLayout title="Registro de Facturación">
         <template #header>
-            <h1 class="text-center">
-                Registrar Facturación 
-            </h1>
+            <h2 class="font-bold text-2xl text-gray-800 dark:text-white leading-tight flex items-center">
+                <i class="fa-solid fa-file-invoice-dollar mr-2 text-indigo-500"></i>Registrar Factura
+            </h2>
         </template>
 
-        <div class="bg-white">
-            <form ref="form" @submit.prevent="submitForm" class="w-full max-w-lg mx-auto" method="post">
-                <div class="flex flex-wrap mx-3 mb-6">
-                    <div class="w-full md:w-1/2 px-3">
-                        <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="fecha">
-                            Fecha
-                        </label>
-                        <input class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" name="fecha" type="date" placeholder="Fecha" required>
-                    </div>
-                    <div class="w-full md:w-1/2 px-3">
-                        <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="hora">
-                            Hora
-                        </label>
-                        <input class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" name="hora" type="time"  placeholder="Hora" required>
-                    </div>
+        <div class="py-12 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
+            <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
+                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-2xl rounded-3xl border border-gray-100 dark:border-gray-700/50 p-8">
+                    <form ref="form" @submit.prevent="submitForm" class="space-y-8">
+                        
+                        <!-- Metadata and Inventory Section -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 pb-8 border-b border-gray-100 dark:border-gray-700">
+                            <div class="space-y-6">
+                                <h3 class="font-black text-xs uppercase tracking-[0.2em] text-gray-400 dark:text-gray-500 mb-4 flex items-center">
+                                    <i class="fa-solid fa-clock mr-2"></i>Fecha y Hora
+                                </h3>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1 ml-1" for="fecha">Fecha</label>
+                                        <input class="appearance-none block w-full bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-xl py-3 px-4 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-sm" name="fecha" type="date" v-model="fecha" required>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1 ml-1" for="hora">Hora</label>
+                                        <input class="appearance-none block w-full bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-xl py-3 px-4 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-semibold text-sm" name="hora" type="time" v-model="hora" required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-6">
+                                <h3 class="font-black text-xs uppercase tracking-[0.2em] text-gray-400 dark:text-gray-500 mb-4 flex items-center">
+                                    <i class="fa-solid fa-box-open mr-2 text-indigo-500"></i>Ítem de Inventario
+                                </h3>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-1 ml-1" for="partida_id">Referencia de Producto</label>
+                                    <div class="relative">
+                                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                            <i class="fa-solid fa-barcode text-indigo-400"></i>
+                                        </div>
+                                        <select disabled class="appearance-none block w-full bg-indigo-50/50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800 rounded-xl py-3 pl-11 pr-4 leading-tight font-black uppercase text-sm" id="partida_id" v-model="partida" required>
+                                            <option :key="data.id" :value="data.id">{{data.tipo}} - {{data.marca}} {{data.modelo}} ({{data.codInv}})</option>
+                                        </select>
+                                    </div>
+                                    <input type="hidden" name="partida_id" :value="data.id">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Financial Calculations Section -->
+                        <div class="space-y-6">
+                            <h3 class="font-black text-xs uppercase tracking-[0.2em] text-gray-400 dark:text-gray-500 mb-4 flex items-center">
+                                <i class="fa-solid fa-calculator mr-2 text-emerald-500"></i>Detalles Financieros
+                            </h3>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                <!-- Producto Divisas -->
+                                <div class="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-gray-700/50 space-y-2">
+                                    <label class="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest flex items-center gap-1">
+                                        <i class="fa-solid fa-tag"></i> Precio Divisa
+                                    </label>
+                                    <input class="w-full bg-transparent text-gray-900 dark:text-white text-xl font-black border-none focus:ring-0 p-0" name="priceDivisa" type="text" v-model="priceDivisa" readonly required>
+                                </div>
+
+                                <!-- Valor Tasa -->
+                                <div class="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-gray-700/50 space-y-2">
+                                    <label class="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest flex items-center gap-1">
+                                        <i class="fa-solid fa-earth-americas"></i> Tasa BCV
+                                    </label>
+                                    <input class="w-full bg-transparent text-emerald-600 dark:text-emerald-400 text-xl font-black border-none focus:ring-0 p-0" name="value_divisa" type="text" v-model="valueDivisa" placeholder="0.00" required>
+                                </div>
+
+                                <!-- Big (Base) -->
+                                <div class="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-gray-700/50 space-y-2">
+                                    <label class="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest flex items-center gap-1">
+                                        <i class="fa-solid fa-coins"></i> Base Imponible
+                                    </label>
+                                    <input class="w-full bg-transparent text-gray-900 dark:text-white text-xl font-black border-none focus:ring-0 p-0" name="big" type="text" v-model="big" readonly required>
+                                </div>
+
+                                <!-- Iva -->
+                                <div class="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-gray-700/50 space-y-2">
+                                    <label class="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest flex items-center gap-1">
+                                        <i class="fa-solid fa-percent"></i> IVA (16%)
+                                    </label>
+                                    <input class="w-full bg-transparent text-rose-500 text-xl font-black border-none focus:ring-0 p-0" name="iva" type="text" v-model="iva" readonly required>
+                                </div>
+                            </div>
+
+                            <!-- Payment Breakdown -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 p-8 bg-indigo-50/30 dark:bg-indigo-900/10 rounded-[2.5rem] border border-indigo-100/50 dark:border-indigo-500/10">
+                                <!-- Pago Bs -->
+                                <div>
+                                    <label class="block text-xs font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-widest mb-3" for="bs">
+                                        <i class="fa-solid fa-wallet mr-1"></i>Pago en Bs
+                                    </label>
+                                    <div class="relative">
+                                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400 font-bold">Bs.</span>
+                                        <input class="appearance-none block w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-indigo-100 dark:border-indigo-800 rounded-2xl py-4 pl-12 pr-4 leading-tight focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all text-xl font-black" name="bs" type="text" placeholder="0,00" v-model="bsAmount">
+                                    </div>
+                                </div>
+
+                                <!-- Pago Divisas -->
+                                <div>
+                                    <label class="block text-xs font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-widest mb-3" for="divisa">
+                                        <i class="fa-solid fa-dollar-sign mr-1"></i>Pago en Divisas
+                                    </label>
+                                    <div class="relative">
+                                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400 font-bold">$</span>
+                                        <input class="appearance-none block w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-indigo-100 dark:border-indigo-800 rounded-2xl py-4 pl-8 pr-4 leading-tight focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all text-xl font-black" name="divisa" type="text" v-model="pagoDivisa" placeholder="0,00" required>
+                                    </div>
+                                </div>
+
+                                <!-- IGTF -->
+                                <div>
+                                    <label class="block text-xs font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-widest mb-3" for="igtf">
+                                        <i class="fa-solid fa-money-bill-wave mr-1"></i>IGTF (3%)
+                                    </label>
+                                    <div class="relative">
+                                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400 font-bold">Bs.</span>
+                                        <input class="appearance-none block w-full bg-white dark:bg-gray-800 text-rose-500 border border-indigo-100 dark:border-indigo-800 rounded-2xl py-4 pl-12 pr-4 leading-tight font-black text-xl" name="igtf" type="text" v-model="igtf" readonly required>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Totals Banner -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                                <div class="bg-gradient-to-br from-indigo-500 to-purple-600 p-8 rounded-[2rem] text-white shadow-xl shadow-indigo-500/20">
+                                    <span class="text-[10px] font-black uppercase tracking-[0.3em] opacity-80">Monto Total Facturado</span>
+                                    <div class="text-4xl font-black mt-2 flex items-baseline gap-2">
+                                        {{ totalAmount }} <span class="text-lg opacity-80">Bs</span>
+                                    </div>
+                                    <input type="hidden" name="precio_total" v-model="totalAmount">
+                                </div>
+                                <div class="bg-gray-900 dark:bg-black p-8 rounded-[2rem] text-white shadow-xl">
+                                    <span class="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400">Total a Cancelar (incl. IGTF)</span>
+                                    <div class="text-4xl font-black mt-2 text-indigo-400 flex items-baseline gap-2">
+                                        {{ montoCancelado }} <span class="text-lg opacity-80">Bs</span>
+                                    </div>
+                                    <input type="hidden" name="monto_cancelado" v-model="montoCancelado">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Client and Logistics Section -->
+                        <div class="space-y-6 pt-8 border-t border-gray-100 dark:border-gray-700">
+                             <h3 class="font-black text-xs uppercase tracking-[0.2em] text-gray-400 dark:text-gray-500 mb-4 flex items-center">
+                                <i class="fa-solid fa-user-tag mr-2 text-indigo-500"></i>Información del Cliente y Control
+                            </h3>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div class="space-y-4">
+                                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="client_name">Nombre de Cliente</label>
+                                            <input class="appearance-none block w-full bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 transition-all font-bold" name="client_name" type="text" v-model="clientName" placeholder="EJ: JUAN PÉREZ">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="client_cedula">Cédula / RIF</label>
+                                            <input class="appearance-none block w-full bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 transition-all font-bold" name="client_cedula" type="text" v-model="clientCedula" placeholder="EJ: V-12345678">
+                                        </div>
+                                    </div>
+                                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="client_phone">Teléfono</label>
+                                            <input class="appearance-none block w-full bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 transition-all font-bold" name="client_phone" type="text" v-model="clientPhone" placeholder="EJ: 0412-1234567">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="client_address">Dirección</label>
+                                            <input class="appearance-none block w-full bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 transition-all font-bold" name="client_address" type="text" v-model="clientAddress" placeholder="Dirección del cliente">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-4">
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1 text-indigo-600 dark:text-indigo-400" for="numero_factura">Nro. de Factura</label>
+                                            <input class="appearance-none block w-full bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 rounded-xl py-3 px-4 shadow-sm focus:ring-2 focus:ring-indigo-500 transition-all font-black text-sm" name="numero_factura" type="text" placeholder="0001">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="numero_control">Nro. de Control</label>
+                                            <input class="appearance-none block w-full bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-sm" name="numero_control" type="text" placeholder="CONT-001">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hidden Inputs and Submit -->
+                        <div class="pt-10 flex flex-col md:flex-row items-center justify-between gap-6 border-t border-gray-100 dark:border-gray-700">
+                            <div class="flex items-center gap-2 text-gray-400 dark:text-gray-500 text-xs">
+                                <i class="fa-solid fa-shield-halved"></i>
+                                <span>Verifique todos los montos antes de proceder</span>
+                            </div>
+                            
+                            <input type="hidden" v-model="pagoDivisaHidden">
+                            <input type="hidden" v-model="pagoBsHidden">
+                            <input type="hidden" name="billing_request_id" :value="data.billing_request_id">
+                            
+                            <button type="submit" class="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 px-12 rounded-[2rem] shadow-2xl shadow-indigo-600/30 transition-all transform hover:scale-[1.03] active:scale-95 flex items-center justify-center gap-3">
+                                <i class="fa-solid fa-floppy-disk text-xl"></i>
+                                PROCESAR FACTURACIÓN
+                            </button>
+                        </div>
+                    </form>
                 </div>
-                <div class="flex flex-wrap mx-3 mb-6">
-                    <div class="w-full md:w px-3 mb-6 md:mb-0">
-                        <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="partida_id">
-                            Partida
-                        </label>
-                        <select class="appearance-none block w-full bg-gray-200 text-gray-700 border border-red-500 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white" id="partida_id" v-model="partida" name="partida_id"  required>
-                            <option :key="data.id" :value="data.id">{{data.id}}-{{data.tipo}}-{{data.marca}}-{{data.modelo}}-{{data.codInv}}</option>
-                        </select>
-                    </div>
-                    <div class="w-full md:w-1/2 px-3">
-                        <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="priceDivisa">
-                            Precio del Producto en Divisas
-                        </label>
-                        <input class="bsAmount appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" name="priceDivisa" type="text" placeholder="Precio en Divisas" v-model="priceDivisa" readonly required>
-                    </div>
-                    <div class="w-full md:w-1/2 px-3">
-                        <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="bs">
-                            Pago en Bs
-                        </label>
-                        <input class="bsAmount appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" name="bs" type="text" placeholder="Bs" v-model="bsAmount" required>
-                    </div>
-                    <div class="w-full md:w-1/2 px-3">
-                        <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="value_divisa">
-                            Valor Divisa BCV
-                        </label>
-                        <input class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" name="value_divisa" type="text" v-model="valueDivisa" placeholder="Valor Divisa BCV" required>
-                    </div>
-                    <div class="w-full md:w-1/2 px-3">
-                        <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="divisa">
-                            Pago en Divisas
-                        </label>
-                        <input class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" name="divisa" type="text" v-model="pagoDivisa" placeholder="Pago en Divisas" required>
-                    </div>
-                    <div class="w-full md:w-1/2 px-3">
-                        <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="big">
-                            Big
-                        </label>
-                        <input class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" name="big" type="text" v-model="big" placeholder="Big" readonly required>
-                    </div>
-                    <div class="w-full md:w-1/2 px-3">
-                        <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="iva">
-                            Iva
-                        </label>
-                        <input class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" name="iva" type="text" v-model="iva" placeholder="Iva" readonly required>
-                    </div>
-                    <div class="w-full md:w-1/2 px-3">
-                        <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="igtf">
-                            IGTF
-                        </label>
-                        <input class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" name="igtf" type="text" v-model="igtf" placeholder="IGTF" readonly required>
-                    </div>
-                    <div class="w-full md:w-1/2 px-3">
-                        <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="precio_total">
-                            Precio Total
-                        </label>
-                        <input class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" name="precio_total" type="text" v-model="totalAmount" placeholder="Precio Total" readonly required>
-                    </div>
-                    <div class="w-full md:w-1/2 px-3">
-                        <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="monto_cancelado">
-                            Monto Cancelado
-                        </label>
-                        <input class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" name="monto_cancelado" type="text" v-model="montoCancelado" placeholder="Monto Cancelado" readonly required>
-                    </div>
-                    <div class="w-full md:w-1/2 px-3">
-                        <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="numero_factura">
-                            Número de Factura
-                        </label>
-                        <input class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" name="numero_factura" type="text" placeholder="Número de Factura" required>
-                    </div>
-                    <div class="w-full md:w-1/2 px-3">
-                        <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="numero_control">
-                            Número de Control
-                        </label>
-                        <input class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" name="numero_control" type="text" placeholder="Número de Control" required>
-                    </div>
-                    <!-- <div class="w-full md:w-1/2 px-3">
-                        <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="numero_nota_credito">
-                            Número Nota de Crédito
-                        </label>
-                        <input class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" name="numero_nota_credito" type="text" placeholder="Número Nota de Crédito" required>
-                    </div> -->
-                    <input type="hidden" v-model="pagoDivisaHidden">
-                    <input type="hidden" v-model="pagoBsHidden">
-                </div>
-                <div class="flex flex-wrap mx-3 mb-6">
-                    <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mx-2 mx-auto">Registrar</button>
-                </div>
-            </form>
+            </div>
         </div>
     </AppLayout>
 </template>
@@ -141,6 +238,12 @@ export default {
             partida:'',
             big: '',
             totalAmount: '',
+            clientName: '',
+            clientCedula: '',
+            clientPhone: '',
+            clientAddress: '',
+            fecha: '',
+            hora: '',
             formData: {
                 partida: {
                     value: '0',
@@ -161,52 +264,74 @@ export default {
         bsAmount(newValue){
             this.bsAmount=this.thousandsSeparator(newValue)
         },
-        valueDivisa(newValue){
-            const value = (String(newValue)).replace(/[,.]/g, "");
-            this.valueDivisa=this.thousandsSeparator(value)
-        },
+       
+// Resultado: 370,25
         priceDivisa(newValue) {
             var valor=newValue
         },
         pagoDivisa(newValue) {
             //Sacar Igtf
-            var valueDivisaSinCaracter = (String(this.valueDivisa)).replace(/[,.]/g, "");
-            var newValueSinCaracter=newValue.replace(/[,.]/g, "");
-            var pre=valueDivisaSinCaracter*newValueSinCaracter
-            var igtf=3*pre
-            var igtf1=parseInt(igtf/100)
-            this.igtf=this.thousandsSeparator(String(igtf1))
-
+            // valueDivisa represents cents (e.g., "36.50" -> "3650")
+            // newValue (pagoDivisa) represents cents (e.g., "10.00" -> "1000")
+            const valueDivisaSinCaracter = (String(this.valueDivisa)).replace(/[,.]/g, "");
+            const newValueSinCaracter = newValue.replace(/[,.]/g, "");
             
+            // pre = Bs * 10000 (multiplication of two cent values)
+            const pre = parseInt(valueDivisaSinCaracter) * parseInt(newValueSinCaracter);
+            
+            // igtf = 3% of pre = (3 * pre) / 100
+            // To get igtf in cents (Bs * 100), we need to divide by 10000
+            const igtfCents = Math.round((3 * pre) / 10000);
+            
+            this.igtf = this.thousandsSeparator(String(igtfCents));
+
             //Monto Cancelado
-            var precioTotal = (String(this.totalAmount)).replace(/[,.]/g, "");
-            var total=parseInt(precioTotal)+parseInt(igtf1)
-            this.montoCancelado=this.thousandsSeparator(String(total))
+            const precioTotalCents = parseInt((String(this.totalAmount)).replace(/[,.]/g, ""));
+            const totalCents = precioTotalCents + igtfCents;
+            this.montoCancelado = this.thousandsSeparator(String(totalCents));
         },
     },
     mounted() {
-            this.valueDivisa=this.tasa_bcv
-        
-            this.priceDivisa = this.data['price'];
-            var priceDivisaSinCracter=(String(this.priceDivisa)).replace(/[,.]/g, "");
+    // Convertimos a número, redondeamos a 2 decimales y aseguramos que sea string para tus regex
+    this.valueDivisa = parseFloat(this.tasa_bcv).toFixed(2);
 
-            //Big
-            const valueDivisaSinCaracter = (String(this.valueDivisa)).replace(/[,.]/g, "");
-            const general=priceDivisaSinCracter*valueDivisaSinCaracter
-            const big=general/1.16
-            const bigInt=parseInt(big)
-            this.big=this.thousandsSeparator(String(bigInt))
+    this.priceDivisa = this.data['price'];
+    var priceDivisaSinCracter = (String(this.priceDivisa)).replace(/[,.]/g, "");
 
-            //Iva
-            const iva=priceDivisaSinCracter*valueDivisaSinCaracter
-            const iva1=iva*16
-            const iva2=iva1/100
-            this.iva=this.thousandsSeparator(String(iva2))
+    // Cents-to-cents multiplication results in scale 10,000 (cents squared)
+    const valueDivisaSinCaracter = (String(this.valueDivisa)).replace(/[,.]/g, "");
+    const generalScale10000 = parseInt(priceDivisaSinCracter) * parseInt(valueDivisaSinCaracter);
+    
+    // Convert to scale 100 (cents) by dividing by 100
+    const generalCents = Math.round(generalScale10000 / 100);
 
-            //Precio Total
-            const total=bigInt+iva2 
-            this.totalAmount=this.thousandsSeparator(String(total))
-    },
+    // Big (Base Imponible)
+    const bigCents = Math.round(generalCents / 1.16);
+    this.big = this.thousandsSeparator(String(bigCents));
+
+    // Iva (16%)
+    const ivaCents = Math.round(generalCents - bigCents); // Difference ensures precision
+    this.iva = this.thousandsSeparator(String(ivaCents));
+
+    // Precio Total
+    this.totalAmount = this.thousandsSeparator(String(generalCents));
+
+    this.clientName = this.data['client_name'] || '';
+    this.clientCedula = this.data['client_cedula'] || '';
+    this.clientPhone = this.data['client_phone'] || '';
+    this.clientAddress = this.data['client_address'] || '';
+    this.partida = this.data.id;
+    this.pagoDivisa = this.data['price'] || ''; // Auto-fill payment amount
+
+
+    // Set current date and time
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    this.fecha = `${year}-${month}-${day}`;
+    this.hora = now.toTimeString().split(' ')[0].substring(0, 5);
+},
     methods: {
         submitForm() {
             const data = {};

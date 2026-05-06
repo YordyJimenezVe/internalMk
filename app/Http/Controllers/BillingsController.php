@@ -4,10 +4,15 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Billing;
-use App\Models\Partida;
+use App\Models\Inventario;
 use App\Models\Bitacora;
 use App\Models\ReverseBill;
 use Illuminate\Support\Facades\Auth;
+use GuzzleHttp\Client;
+use Symfony\Component\DomCrawler\Crawler;
+use App\Models\ExchangeRate;
+use App\Models\BillingRequest;
+use Carbon\Carbon;
 
 class BillingsController extends Controller
 {
@@ -35,7 +40,9 @@ class BillingsController extends Controller
      */
     public function index()
     {
-        $billings = Billing::with('partidas')->get();
+        $billings = Billing::with(['partida', 'inventario', 'partidas', 'inventarios'])
+            ->orderBy('id', 'desc')
+            ->get();
         return inertia('Bill/Index', [
             'Facturas' => $billings
         ]);
@@ -44,24 +51,77 @@ class BillingsController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create($id)
+    public function create(Request $request, $id)
     {
-        $billing = Partida::findOrFail($id)->with('bill')->first();
-        // Crear un cliente HTTP
-        $client = new \GuzzleHttp\Client();
+        $requestId = $request->input('request_id');
+        $billing = Inventario::findOrFail($id);
 
-        // Configurar la solicitud
-        $request = $client->request('GET', 'https://pydolarve.org/api/v1/dollar?page=bcv');
+        if ($requestId) {
+            $billingRequest = BillingRequest::find($requestId);
+            if ($billingRequest) {
+                $billing->price = $billingRequest->price;
+                $billing->client_name = $billingRequest->client_name;
+                $billing->client_cedula = $billingRequest->client_cedula;
+                $billing->client_phone = $billingRequest->client_phone;
+                $billing->client_address = $billingRequest->client_address;
+                $billing->billing_request_id = $requestId;
+            }
+        }
 
-        // Decodificar la respuesta JSON
-        $response = json_decode($request->getBody()->getContents());
-        return inertia(
-            'Bill/Create',
-            [
-                'data' => $billing,
-                'tasa_bcv' => $response->monitors->usd->price,
-            ]
-        );
+        $now = Carbon::now();
+        $today = Carbon::today();
+        $nineAm = $today->copy()->setHour(9)->setMinute(0);
+        $twoPm = $today->copy()->setHour(14)->setMinute(0);
+
+        $latestRate = ExchangeRate::where('source', 'BCV')->latest()->first();
+        $tasa = $latestRate ? (float) $latestRate->rate : 0;
+        $shouldFetch = false;
+
+        if (!$latestRate) {
+            $shouldFetch = true;
+        } else {
+            $lastUpdate = $latestRate->created_at;
+            if ($now->greaterThanOrEqualTo($twoPm)) {
+                if ($lastUpdate->lessThan($twoPm))
+                    $shouldFetch = true;
+            } elseif ($now->greaterThanOrEqualTo($nineAm)) {
+                if ($lastUpdate->lessThan($nineAm))
+                    $shouldFetch = true;
+            }
+            // Antes de las 9 AM usamos la última que tengamos (usualmente la de ayer tarde)
+        }
+
+        if ($shouldFetch) {
+            try {
+                $client = new Client([
+                    'verify' => false,
+                    'timeout' => 5,
+                    'connect_timeout' => 5,
+                    'headers' => [
+                        'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                        'Accept' => 'text/html,application/xhtml+xml,xml;q=0.9,image/webp,*/*;q=0.8',
+                    ]
+                ]);
+
+                $response = $client->request('GET', 'https://www.bcv.org.ve/');
+                $html = $response->getBody()->getContents();
+                $crawler = new Crawler($html);
+                $tasaRaw = $crawler->filter('#dolar strong')->text();
+                $newTasa = (float) str_replace(',', '.', trim($tasaRaw));
+
+                if ($newTasa > 0) {
+                    ExchangeRate::create(['rate' => $newTasa, 'source' => 'BCV']);
+                    $tasa = $newTasa;
+                }
+            } catch (\Exception $e) {
+                // Si falla, mantenemos la $tasa previa (la última en DB) o 0 si no había nada
+            }
+        }
+
+        return inertia('Bill/Create', [
+            'data' => $billing,
+            'tasa_bcv' => $tasa,
+        ]);
     }
 
     /**
@@ -69,18 +129,68 @@ class BillingsController extends Controller
      */
     public function store(Request $request)
     {
-        $bs = $request->input('bs');
         $valorD = $request->input('divisa');
-        $bsCodificado = str_replace(array(",", "."), "", $bs);
-        $iva = 16 * $bsCodificado / 100;
+
+        // Helper function to clean numeric input
+        $cleanNumeric = function ($value) {
+            if (empty($value))
+                return 0;
+            // If it has both , and . the last one is the decimal
+            if (strpos($value, '.') !== false && strpos($value, ',') !== false) {
+                if (strrpos($value, '.') > strrpos($value, ',')) {
+                    return (float) str_replace(',', '', $value);
+                } else {
+                    return (float) str_replace(['.', ','], ['', '.'], $value);
+                }
+            }
+            // If it only has one separator
+            if (strpos($value, ',') !== false) {
+                // If there are exactly 2 digits after comma, it's a decimal
+                if (preg_match('/,\d{2}$/', $value)) {
+                    return (float) str_replace(['.', ','], ['', '.'], $value);
+                }
+                return (float) str_replace(',', '', $value);
+            }
+            if (strpos($value, '.') !== false) {
+                // If there are exactly 2 digits after dot, it's a decimal
+                if (preg_match('/\.\d{2}$/', $value)) {
+                    return (float) $value;
+                }
+                return (float) str_replace('.', '', $value);
+            }
+            return (float) $value;
+        };
+
         $partida = new Billing();
         $partida->fill($request->all());
-        $valor = number_format($iva);
-        $partida->iva = str_replace(',', '.', $valor);
-        $partida->divisa = str_replace(',', '.', $valorD);
+
+        $numericDivisa = $cleanNumeric($valorD);
+        $partida->divisa = $numericDivisa;
+
+        // Use the full sale price for the dashboard total
+        $salePrice = $cleanNumeric($request->input('priceDivisa'));
+        $partida->total = $salePrice > 0 ? $salePrice : $numericDivisa;
+
+        $partida->user_id = Auth::id(); // Assign current user
         $partida->save();
 
-        return redirect()->route('billing');
+        // 1. Update Inventario Status and Record the actual sale price
+        $inventario = Inventario::findOrFail($request->partida_id);
+        $inventario->update([
+            'status' => 'VENDIDO',
+            'price_sale' => $partida->total
+        ]);
+
+        // 2. Handle Billing Request
+        $requestId = $request->input('billing_request_id');
+        if ($requestId) {
+            $billingRequest = \App\Models\BillingRequest::find($requestId);
+            if ($billingRequest) {
+                $billingRequest->update(['status' => 'processed']);
+            }
+        }
+
+        return redirect()->route('billing')->with('success', 'Factura registrada con éxito.')->with('billing_ids', [$partida->id]);
     }
 
     /**
@@ -130,7 +240,7 @@ class BillingsController extends Controller
     public function destroy(Request $request, int $id)
     {
         //$billing = Billing::findOrFail($id);
-        $billing = Billing::findOrFail($id)->with('partidas')->first();
+        $billing = Billing::with(['partida', 'partidas'])->findOrFail($id);
         $marca = $billing->partidas->first()->marca;
         $modelo = $billing->partidas->first()->modelo;
         $billing->delete();
@@ -150,8 +260,28 @@ class BillingsController extends Controller
      */
     public function returnSubmit(Request $request, int $id)
     {
-        $billing = Billing::findOrFail($id);
-        //dd($request);
+        $billing = Billing::with('partida')->findOrFail($id);
+        $returnType = $request->input('return_type', 'TOTAL');
+        $inventario = $billing->partida;
+
+        // 1. Determine new status for inventory
+        $newStatus = 'DISPONIBLE';
+        $actionVerb = 'DEVOLUCIÓN TOTAL';
+
+        if ($returnType === 'TEMPORAL') {
+            $newStatus = 'DEVUELTO';
+            $actionVerb = 'DEVOLUCIÓN TEMPORAL';
+        } elseif ($returnType === 'DESINCORPORACION') {
+            $newStatus = 'DESINCORPORADO';
+            $actionVerb = 'DESINCORPORACIÓN';
+        }
+
+        // 2. Update Inventario
+        if ($inventario) {
+            $inventario->update(['status' => $newStatus]);
+        }
+
+        // 3. Register Reverse Bill
         ReverseBill::create([
             'users_id' => Auth::user()->id,
             'numero_factura' => $request->input('numero_factura'),
@@ -159,9 +289,22 @@ class BillingsController extends Controller
             'numero_nota_credito' => $request->input('numero_nota_credito'),
             'numero_factura_afect' => $request->input('numero_factura_afect'),
         ]);
-        $this->createBitacoraEntry('REVERSE', $billing->numero_factura . " Control n°: " . $billing->numero_control . " Nota Crédito n°: " . $request->input('numero_nota_credito') . " Factura Afectada n°: " . $request->input('numero_factura_afect'));
+
+        // 4. Bitácora Entry
+        $descLog = mb_strtoupper("{$actionVerb} DE FACTURA: {$billing->numero_factura}. " .
+            "NOTA CRÉDITO: " . $request->input('numero_nota_credito') . ". " .
+            "ESTADO DE ITEM (#{$inventario->id}): {$newStatus}");
+
+        Bitacora::create([
+            'users_id' => Auth::user()->id,
+            'action' => mb_strtoupper($actionVerb),
+            'description' => $descLog,
+        ]);
+
+        // 5. Delete Billing (This automatically discounts from dashboard sales)
         $billing->delete();
-        return redirect()->route('billing');
+
+        return redirect()->route('billing')->with('success', "{$actionVerb} procesada con éxito.");
     }
     public function pdf($id)
     {

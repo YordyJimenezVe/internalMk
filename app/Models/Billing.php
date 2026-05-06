@@ -4,7 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Partida;
+use App\Models\Inventario;
+use App\Models\User;
 
 class Billing extends Model
 {
@@ -26,16 +27,34 @@ class Billing extends Model
         'numero_factura_afect',
         'client_name',
         'client_cedula',
+        'client_phone',
+        'client_address',
+        'total',
     ];
 
-    public function partidas()
+    public function inventario()
     {
-        return $this->belongsTo(Partida::class, 'partida_id');
+        return $this->belongsTo(Inventario::class, 'partida_id');
+    }
+
+    public function inventarios()
+    {
+        return $this->belongsTo(Inventario::class, 'partida_id');
     }
 
     public function partida()
     {
-        return $this->belongsTo(Partida::class, 'partida_id');
+        return $this->belongsTo(Inventario::class, 'partida_id');
+    }
+
+    public function partidas()
+    {
+        return $this->belongsTo(Inventario::class, 'partida_id');
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
     }
 
 

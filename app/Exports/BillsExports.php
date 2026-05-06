@@ -35,8 +35,8 @@ class BillsExports implements FromView, ShouldAutoSize, WithEvents
     {
         $termino = $this->termino;
 
-        $query = Billing::select('partida_id', 'partidas.tipo', 'partidas.marca', 'partidas.modelo', 'billings.fecha', 'numero_factura', 'numero_control', 'billings.divisa')
-            ->join('partidas', 'billings.partida_id', '=', 'partidas.id');
+        $query = Billing::select('partida_id', 'inventarios.tipo', 'inventarios.marca', 'inventarios.modelo', 'billings.fecha', 'numero_factura', 'numero_control', 'billings.divisa')
+            ->join('inventarios', 'billings.partida_id', '=', 'inventarios.id');
 
         // Date Filter
         if ($this->startDate && $this->endDate) {
@@ -44,9 +44,9 @@ class BillsExports implements FromView, ShouldAutoSize, WithEvents
         }
 
         $query->where(function ($query) use ($termino) {
-            $query->where('partidas.id', 'like', "%{$termino}%")
-                ->orWhere('partidas.marca', 'like', "%{$termino}%")
-                ->orWhere('partidas.modelo', 'like', "%{$termino}%");
+            $query->where('inventarios.id', 'like', "%{$termino}%")
+                ->orWhere('inventarios.marca', 'like', "%{$termino}%")
+                ->orWhere('inventarios.modelo', 'like', "%{$termino}%");
         });
 
         return $query->get();

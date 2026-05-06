@@ -10,7 +10,7 @@ class BillingRequestController extends Controller
 {
     public function index()
     {
-        $requests = BillingRequest::with(['partida', 'user'])
+        $requests = BillingRequest::with(['inventario', 'partida', 'user'])
             ->where('status', 'pending')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -23,7 +23,7 @@ class BillingRequestController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'partida_id' => 'required|exists:partidas,id',
+            'partida_id' => 'required|exists:inventarios,id',
             'quantity' => 'required|integer|min:1',
             'price' => 'required|numeric',
         ]);
@@ -35,6 +35,8 @@ class BillingRequestController extends Controller
             'price' => $request->price,
             'client_name' => $request->client_name,
             'client_cedula' => $request->client_cedula,
+            'client_phone' => $request->client_phone,
+            'client_address' => $request->client_address,
             'status' => 'pending',
         ]);
 
@@ -49,8 +51,8 @@ class BillingRequestController extends Controller
         ]);
 
         foreach ($request->request_ids as $id) {
-            $billingRequest = BillingRequest::with('partida')->find($id);
-            $partida = $billingRequest->partida;
+            $billingRequest = BillingRequest::with(['inventario', 'partida'])->find($id);
+            $partida = $billingRequest->inventario;
 
             if ($partida->status === 'VENDIDO') {
                 continue; // Skip if already sold
@@ -66,6 +68,8 @@ class BillingRequestController extends Controller
                 'user_id' => auth()->id(), // Processed by current user (Accountant)
                 'client_name' => $billingRequest->client_name,
                 'client_cedula' => $billingRequest->client_cedula,
+                'client_phone' => $billingRequest->client_phone,
+                'client_address' => $billingRequest->client_address,
                 'bs' => 0, // Default values if needed
                 'divisa' => $billingRequest->price * $billingRequest->quantity, // Total amount
             ]);

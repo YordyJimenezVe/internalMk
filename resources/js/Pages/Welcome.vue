@@ -25,7 +25,7 @@ defineProps({
 
         <div class="max-w-7xl mx-auto p-6 lg:p-8">
             <div class="flex justify-center">  
-                <img src="/storage/images/logo.png" alt="Logo" width="80%" style="text-align: center;" />
+                <img src="/storage/images/logo.png" alt="Logo" class="max-w-md w-full h-auto object-contain shadow-lg rounded-xl transition-transform hover:scale-105 duration-300" />
             </div>
 
             <div class="mt-16">

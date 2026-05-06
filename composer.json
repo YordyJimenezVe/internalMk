@@ -2,7 +2,10 @@
     "name": "vendor/inventarymaikelcars",
     "type": "project",
     "description": "the skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
+    "keywords": [
+        "laravel",
+        "framework"
+    ],
     "license": "MIT",
     "require": {
         "php": "^8.1",
@@ -17,6 +20,10 @@
         "phpoffice/phpspreadsheet": "^1.18",
         "picqer/php-barcode-generator": "^3.2",
         "psr/simple-cache": "2.0",
+        "spatie/laravel-backup": "^9.3",
+        "spatie/laravel-permission": "^6.24",
+        "symfony/css-selector": "^7.4",
+        "symfony/dom-crawler": "^7.4",
         "tightenco/ziggy": "^1.0"
     },
     "require-dev": {
@@ -32,7 +39,8 @@
         "psr-4": {
             "App\\": "app/",
             "Database\\Factories\\": "database/factories/",
-            "Database\\Seeders\\": "database/seeders/"
+            "Database\\Seeders\\": "database/seeders/",
+            "Psr\\Cache\\": "psr_stubs/Psr/Cache/"
         }
     },
     "autoload-dev": {

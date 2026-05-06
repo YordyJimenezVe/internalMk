@@ -1,1 +1,1 @@
-Get-ChildItem -Path "c:\Users\yordy\OneDrive\Documentos\internal maikel cars" -Exclude 'node_modules', '.git', '.env' | Compress-Archive -DestinationPath "c:\Users\yordy\OneDrive\Documentos\internal_maikel_cars_deploy.zip" -Force
+$source = "\\wsl.localhost\Ubuntu\home\yordy\internal"; $destination = "C:\Users\yordy\Downloads\maikel_cars_proyecto.zip"; $exclude = @("node_modules", "vendor", ".git", "docker", ".env"); Get-ChildItem -Path $source -Exclude $exclude | Compress-Archive -DestinationPath $destination -Force; Write-Host "Zip creado exitosamente en: $destination"

@@ -1,102 +1,87 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { defineProps } from 'vue';
-import { ref, computed  } from 'vue'; // Import watch function
-/* import the fontawesome core */
-import { library } from '@fortawesome/fontawesome-svg-core'
- 
-/* import the fontawesome icon component */
-import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
-import { fas } from '@fortawesome/free-solid-svg-icons';
-
-library.add(fas)
+import DataTable from '@/Components/DataTable.vue';
+import { Head } from '@inertiajs/vue3';
 
 const props = defineProps({
-  bitacoras: Array,
+    bitacoras: Object, // Paginator
+    filters: Object,
 });
 
-let termino = 'aloja'; 
-
-const searchQuery = ref(''); //Should really load it from the query string
-
-const filteredBitacora = computed(() => {
-  const searchTerms = searchQuery.value.toLowerCase();
-  termino=searchQuery.value.toLowerCase();
-
-  return props.bitacoras.filter((bitacora) => {
-    // Iterar a través de todas las propiedades del objeto
-    for (const key in bitacora) {
-      // Omita las propiedades que no sean cadenas y el campo "id" (opcional)
-      if (typeof bitacora[key] !== 'string' || key === 'id') {
-        continue;
-      }
-
-      if (bitacora[key].toLowerCase().includes(searchTerms)) {
-        return true; // Found a match in any string property
-      }
-    }
-
-    return false; // No match found in any string property
-  });
-});
+const columns = [
+    { key: 'id', label: 'ID', sortable: false, class: 'w-20' },
+    { key: 'user_name', label: 'Usuario', sortable: false, class: 'w-48' },
+    { key: 'action', label: 'Acción', sortable: false, class: 'min-w-[150px] max-w-[250px] !whitespace-normal' },
+    { key: 'description', label: 'Descripción', sortable: false, class: 'min-w-[250px] max-w-[400px] !whitespace-normal' },
+    { key: 'created_at', label: 'Fecha', sortable: false, class: 'w-48' },
+];
 </script>
 
-
 <template>
-    <AppLayout title="Bitacora">
+    <AppLayout title="Bitácora">
         <template #header>
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                Bitacora
+            <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
+                Bitácora de Actividades
             </h2>
         </template>
 
         <div class="py-12">
-           
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <div class="bg-white">
-                    <div class="flex justify-end mb-6">
-                        <input type="search" v-model="searchQuery" class="mt-6" placeholder="Buscar Término">
-                    </div>
-                    <table width="100%">
-                        <thead>
-                            <tr>
-                                <th>Id</th>
-                                <th>Usuario</th>
-                                <th>Acción</th>
-                                <th>Descripción</th>
-                                <th>fecha</th>
-                            </tr>
-                        </thead>
-                        <tbody style="text-align: center;">
-                          <tr v-for="bitacora in filteredBitacora" :key="bitacora.id"> 
-                                <td> {{ bitacora.id }}</td>
-                                <td> {{ bitacora.users.name }}</td>
-                                <td> {{ bitacora.action }}</td>
-                                <td> {{ bitacora.description }}</td>
-                                <td> {{ bitacora.created_at }}</td>
-                            </tr> 
-                        </tbody>
-                    </table>
-                    <div class="mb-6">
-                        <a @click="exportExcel(termino)" class="px-2 py-1 bg-indigo-600 text-white rounded-md mx-2">ExportExcel</a>
-                      
-                        <a @click="exportPdf(termino)" class="px-2 py-1 bg-red-600 text-white rounded-md mx-2">ExportPdf</a>
-                  </div>
-                </div>
+                <DataTable 
+                    :rows="bitacoras" 
+                    :columns="columns" 
+                    :filters="filters" 
+                    routeName="bitacora.index"
+                    title="Registros de Actividad"
+                    exportType="bitacora"
+                >
+                    <!-- Custom cell for Usuario -->
+                    <template #cell-user_name="{ row }">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-8 w-8">
+                                <span class="inline-flex items-center justify-center h-8 w-8 rounded-full bg-indigo-100 text-indigo-700 font-bold text-xs uppercase">
+                                    {{ row.users?.name?.substring(0, 2) || '??' }}
+                                </span>
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    {{ row.users?.name || 'Sistema' }}
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Custom cell for Acción -->
+                    <template #cell-action="{ row }">
+                        <span 
+                            class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full whitespace-normal text-center"
+                            :class="{
+                                'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400': row.action.toUpperCase().includes('CREA'),
+                                'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400': row.action.toUpperCase().includes('ACTUALIZA'),
+                                'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400': row.action.toUpperCase().includes('ELIMINA'),
+                                'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400': row.action.toUpperCase().includes('RESTAURA'),
+                                'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400': !['CREA', 'ACTUALIZA', 'ELIMINA', 'RESTAURA'].some(a => row.action.toUpperCase().includes(a))
+                            }"
+                        >
+                            {{ row.action }}
+                        </span>
+                    </template>
+
+                    <!-- Custom cell for Descripción -->
+                    <template #cell-description="{ row }">
+                        <div class="text-sm text-gray-900 dark:text-gray-100 whitespace-normal break-words py-1">
+                            {{ row.description }}
+                        </div>
+                    </template>
+
+                    <!-- Custom cell for Fecha -->
+                    <template #cell-created_at="{ row }">
+                        <div class="text-sm text-gray-500 dark:text-gray-400">
+                            {{ new Date(row.created_at).toLocaleString('es-ES', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) }}
+                        </div>
+                    </template>
+                </DataTable>
             </div>
         </div>
     </AppLayout>
 </template>
-
-<script>
-export default {
-    methods: {
-        exportExcel(termino) {
-          window.location.href= '/report/reporteExcel/bitacora/'+termino;
-        },
-        exportPdf(termino) {
-          window.location.href= '/report/reportePdf/bitacora/'+termino;
-        },
-    },
-};
-  </script>

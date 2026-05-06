@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Partida;
+use App\Models\Inventario;
 
 class AutopartsController extends Controller
 {
@@ -14,33 +14,53 @@ class AutopartsController extends Controller
     {
         $search = $request->input('search', '');
 
-        $tipos = Partida::whereDoesntHave('bill')
-        ->selectRaw('
+        $tipos = Inventario::whereDoesntHave('bill')
+            ->selectRaw('
             SUM(CASE WHEN tipo LIKE "%motor%" THEN 1 ELSE 0 END) AS motores,
             SUM(CASE WHEN tipo = "CAJA AUTOMÁTICA" THEN 1 ELSE 0 END) AS cajas_automaticas,
             SUM(CASE WHEN tipo = "AUTOPARTE" THEN 1 ELSE 0 END) AS autopartes
         ')
-        ->get();
+            ->get();
 
-        $partidas = Partida::with('container')
-        ->where('tipo', 'AUTOPARTE')
-        ->whereDoesntHave('bill');
+        $statusFilter = $request->input('status', 'DISPONIBLE'); // Default
+
+        $partidas = Inventario::with('container')
+            ->where('tipo', 'AUTOPARTE');
+
+        // Status Filter
+        if ($statusFilter === 'DISPONIBLE') {
+            $partidas->whereDoesntHave('bill')->where('status', '!=', 'VENDIDO');
+        } elseif ($statusFilter === 'VENDIDO') {
+            $partidas->where(function ($q) {
+                $q->has('bill')->orWhere('status', 'VENDIDO');
+            });
+        }
+
         if ($search) {
             // Add search conditions for each column you want to search in
             $partidas->where(function ($query) use ($search) {
-                $query->whereRaw('LOWER(marca) LIKE ?', ['%'.strtolower($search).'%'])
-                    ->orWhereRaw('LOWER(modelo) LIKE ?', ['%'.strtolower($search).'%'])
-                    ->orWhereRaw('LOWER(codInv) LIKE ?', ['%'.strtolower($search).'%']);
+                $query->whereRaw('LOWER(marca) LIKE ?', ['%' . strtolower($search) . '%'])
+                    ->orWhereRaw('LOWER(modelo) LIKE ?', ['%' . strtolower($search) . '%'])
+                    ->orWhereRaw('LOWER(codInv) LIKE ?', ['%' . strtolower($search) . '%']);
             });
         }
-        $response=$partidas->paginate(15)->withQueryString();
-        
-        return inertia('Partida/Index',[
-            'partidas'=>$response,
+
+        // Sorting
+        $sort = $request->input('sort', 'created_at');
+        $direction = $request->input('direction', 'desc');
+        $partidas->orderBy($sort, $direction);
+
+        $response = $partidas->paginate(15)->appends($request->query());
+
+        return inertia('Inventario/Index', [
+            'partidas' => $response,
             "filters" => [
-                'search' => $search, // Pass the search query to the view
+                'search' => $search,
+                'status' => $statusFilter,
+                'sort' => $sort,
+                'direction' => $direction,
             ],
-            'tipos'=>$tipos,
+            'tipos' => $tipos,
         ]);
     }
 

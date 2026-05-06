@@ -12,19 +12,17 @@ class MaintenanceBill extends Model
     protected $fillable = [
         'maintenances_id',
         'multi_tools',
-        'multi_equipament',
         'mechanic',
         'mechanic_assistant',
         'seller',
         'seller_assistant',
         'cleaning',
-        'drinking_water',
         'consumables',
         'camera_technician',
         'camera_technical_assistant',
-        'forklift_driver',
+        'forklift',
     ];
-    
+
     public function maintenance()
     {
         return $this->belongsTo(Maintenance::class, 'maintenances_id', 'id');

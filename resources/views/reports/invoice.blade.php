@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Factura de Venta</title>
+    <title>Nota de Entrega</title>
 </head>
 
 <body style="font-family: Arial, sans-serif; font-size: 12px; color: #333;">
@@ -17,7 +17,7 @@
                 <p style="margin: 0; color: #555;">Dirección: Calle 51 con Av. Libertador, frente al CC Babilon</p>
             </td>
             <td style="width: 40%; vertical-align: top; text-align: right;">
-                <h2 style="color: #DC2626; margin: 0;">FACTURA</h2>
+                <h2 style="color: #DC2626; margin: 0;">NOTA DE ENTREGA</h2>
                 <p style="font-size: 14px; font-weight: bold; margin: 5px 0;">N°:
                     {{ str_pad($bill->id, 6, '0', STR_PAD_LEFT) }}
                 </p>
@@ -37,6 +37,14 @@
             <tr>
                 <td style="font-weight: bold;">Cédula/RIF:</td>
                 <td>{{ $bill->client_cedula ?? 'N/A' }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: bold;">Teléfono:</td>
+                <td>{{ $bill->client_phone ?? 'N/A' }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: bold;">Dirección:</td>
+                <td>{{ $bill->client_address ?? 'N/A' }}</td>
             </tr>
         </table>
     </div>
