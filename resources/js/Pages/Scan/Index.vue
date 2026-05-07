@@ -90,7 +90,7 @@ onMounted(() => {
                         </form>
                         <div class="mt-6 flex items-center justify-center gap-4 text-sm text-gray-400 dark:text-gray-500">
                             <div class="flex items-center gap-1">
-                                <kbd class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 font-sans">Enter</svg>
+                                <kbd class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 font-sans">Enter</kbd>
                                 <span>para procesar</span>
                             </div>
                             <span>•</span>
