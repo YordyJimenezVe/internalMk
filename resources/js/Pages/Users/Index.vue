@@ -372,3 +372,4 @@ const assignPermission = () => {
 
     </AppLayout>
 </template>
+// Force rebuild
