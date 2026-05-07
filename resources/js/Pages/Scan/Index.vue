@@ -90,12 +90,12 @@ onMounted(() => {
                         </form>
                         <div class="mt-6 flex items-center justify-center gap-4 text-sm text-gray-400 dark:text-gray-500">
                             <div class="flex items-center gap-1">
-                                <kbd class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 font-sans">Enter</kbd>
+                                <kbd class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 font-sans">Enter</svg>
                                 <span>para procesar</span>
                             </div>
                             <span>•</span>
                             <div class="flex items-center gap-1">
-                                <svg class="w-4 h-4 text-indigo-400" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm1 11H9v-2h2v2zm0-4H9V7h2v2z"/></kbd>
+                                <svg class="w-4 h-4 text-indigo-400" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm1 11H9v-2h2v2zm0-4H9V7h2v2z"/></svg>
                                 <span>Foco automático activo</span>
                             </div>
                         </div>
