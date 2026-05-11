@@ -18,8 +18,8 @@ class InventarioController extends Controller
         $user = auth()->user();
         $isMechanic = $user && $user->hasAnyRole(['MECANICO', 'Tecnico', 'Mecanico', 'TECNICO']);
 
-        // --- Smart Redirect Logic for Mechanics ---
-        if ($isMechanic && $searchRaw) {
+        // --- Smart Redirect Logic (Global) ---
+        if ($searchRaw) {
             // 1. Try exact match
             $partida = Inventario::where('id', $searchRaw)
                 ->orWhere('codInv', $searchRaw)
@@ -35,7 +35,10 @@ class InventarioController extends Controller
             }
             
             if ($partida) {
-                return app(\App\Http\Controllers\ScanController::class)->directToMaintenance($partida->id);
+                if ($isMechanic) {
+                    return app(\App\Http\Controllers\ScanController::class)->directToMaintenance($partida->id);
+                }
+                return redirect()->route('showInventario', $partida->id);
             }
         }
 
