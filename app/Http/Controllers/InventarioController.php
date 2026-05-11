@@ -15,10 +15,27 @@ class InventarioController extends Controller
     public function index(Request $request)
     {
         $searchRaw = $request->input('search', '');
+        $user = auth()->user();
+        $isMechanic = $user && $user->hasAnyRole(['MECANICO', 'Tecnico', 'Mecanico', 'TECNICO']);
 
-        // --- Smart Redirect Logic ---
-        // Detect corrupted URL pattern from scanner (US->ES keyboard mismatch)
-        // Expected: http://... -> Received: httpÑ--...
+        // --- Smart Redirect Logic for Mechanics ---
+        if ($isMechanic && $searchRaw) {
+            // Check if the search matches an ID or a codInv
+            $partida = Inventario::where('id', $searchRaw)
+                ->orWhere('codInv', $searchRaw)
+                ->first();
+            
+            if ($partida) {
+                return app(\App\Http\Controllers\ScanController::class)->directToMaintenance($partida->id);
+            }
+        }
+
+        // Final protection: If not a mechanic and doesn't have permission, block access
+        if (!$isMechanic && !$user->can('view partida')) {
+            abort(403);
+        }
+
+        // --- URL/Scanner Redirection (Existing logic) ---
         if (str_starts_with($searchRaw, 'http')) {
             // Attempt to restore valid characters
             // 'Ñ' might be ':'

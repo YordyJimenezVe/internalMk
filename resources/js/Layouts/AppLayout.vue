@@ -57,6 +57,7 @@ onMounted(() => {
 
         if (e.key === 'Enter') {
             if (scannerBuffer.length > 3) {
+                e.preventDefault(); // Stop any default form submission
                 let scannedData = scannerBuffer;
                 scannerBuffer = '';
 

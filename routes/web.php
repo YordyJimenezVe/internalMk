@@ -46,8 +46,9 @@ Route::middleware([
     // Inventario Read Access
     Route::get('/inventario/show/{id}', [\App\Http\Controllers\InventarioController::class, 'show'])->name('showInventario');
     Route::get('/inventario/print/{id}', [\App\Http\Controllers\InventarioController::class, 'printLabel'])->name('printInventario');
+    Route::get('/inventario', [\App\Http\Controllers\InventarioController::class, 'index'])->name('inventario');
+
     Route::group(['middleware' => ['can:view partida']], function () {
-        Route::get('/inventario', 'App\Http\Controllers\InventarioController@index')->name('inventario');
         Route::get('/autopart', 'App\Http\Controllers\AutopartsController@index')->name('autopart');
         Route::get('/camara', 'App\Http\Controllers\CamarasController@index')->name('camara');
     });
