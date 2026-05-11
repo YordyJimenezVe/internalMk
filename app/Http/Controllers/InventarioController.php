@@ -20,10 +20,19 @@ class InventarioController extends Controller
 
         // --- Smart Redirect Logic for Mechanics ---
         if ($isMechanic && $searchRaw) {
-            // Check if the search matches an ID or a codInv
+            // 1. Try exact match
             $partida = Inventario::where('id', $searchRaw)
                 ->orWhere('codInv', $searchRaw)
                 ->first();
+            
+            // 2. Try cleaning prefix if not found (e.g. CRSU-623-135 -> 623-135)
+            if (!$partida && str_contains($searchRaw, '-')) {
+                $parts = explode('-', $searchRaw);
+                if (count($parts) >= 2) {
+                    $strippedCode = implode('-', array_slice($parts, -2));
+                    $partida = Inventario::where('codInv', $strippedCode)->first();
+                }
+            }
             
             if ($partida) {
                 return app(\App\Http\Controllers\ScanController::class)->directToMaintenance($partida->id);
