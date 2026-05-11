@@ -126,7 +126,9 @@ class ReportsController extends Controller
             $pdf = Excel::raw($export, \Maatwebsite\Excel\Excel::DOMPDF);
             return response($pdf, 200, $headers);
         }
-        public function bulkPrintLabels(Request $request, $tipo)
+    }
+
+    public function bulkPrintLabels(Request $request, $tipo)
     {
         $query = Inventario::with('container')->whereIn('status', ['DISPONIBLE', 'DEVUELTO']);
 
