@@ -46,7 +46,7 @@ jobs:
 
       - name: 🚀 Deploy with rsync
         run: |
-          rsync -avz -e "ssh -p 22" \
+          rsync -avz -e "ssh -p 22 -o IdentitiesOnly=yes" \
             --exclude='.git*' \
             --exclude='node_modules' \
             --exclude='vendor' \
