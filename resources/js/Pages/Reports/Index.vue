@@ -145,8 +145,6 @@ import { router } from '@inertiajs/vue3'
                             </a>
                         </div>
                     </div>
-                    </div>
-
                 </div>
             </div>
         </div>
