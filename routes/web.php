@@ -45,6 +45,7 @@ Route::middleware([
 
     // Inventario Read Access
     Route::get('/inventario/show/{id}', [\App\Http\Controllers\InventarioController::class, 'show'])->name('showInventario');
+    Route::get('/inventario/print/{id}', [\App\Http\Controllers\InventarioController::class, 'printLabel'])->name('printInventario');
     Route::group(['middleware' => ['can:view partida']], function () {
         Route::get('/inventario', 'App\Http\Controllers\InventarioController@index')->name('inventario');
         Route::get('/autopart', 'App\Http\Controllers\AutopartsController@index')->name('autopart');
@@ -96,6 +97,7 @@ Route::middleware([
     Route::get('/reports', 'App\Http\Controllers\ReportsController@index')->name('reports');
     Route::get('/report/reporteExcel/{tipo}/{caso}/{termino?}', 'App\Http\Controllers\ReportsController@exportExcel')->name('reporteExcel');
     Route::get('/report/reportePdf/{tipo}/{caso}/{termino?}', 'App\Http\Controllers\ReportsController@exportPdf')->name('reportePdf');
+    Route::get('/report/print-labels/{tipo}', 'App\Http\Controllers\ReportsController@bulkPrintLabels')->name('printLabels');
 
     Route::get('/bitacora', 'App\Http\Controllers\BitacorasController@index')->name('bitacora.index');
 

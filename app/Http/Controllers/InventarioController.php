@@ -207,25 +207,57 @@ class InventarioController extends Controller
 
         $data = Inventario::with(['container', 'maintenances', 'bill', 'billingRequests'])->findOrFail($id);
 
-        // QR Code
+        // Barcode Data (Standardized internal code)
+        $containerCode = $data->container ? substr($data->container->cod, 0, 4) : 'MK';
+        $barcodeData = strtoupper($containerCode . '-' . $data->codInv);
+
+        // QR Code (Now using internal code instead of URL)
         $renderer = new \BaconQrCode\Renderer\ImageRenderer(
             new \BaconQrCode\Renderer\RendererStyle\RendererStyle(150),
             new \BaconQrCode\Renderer\Image\SvgImageBackEnd()
         );
         $writer = new \BaconQrCode\Writer($renderer);
-        $qrCode = $writer->writeString(route('showInventario', $data->id));
+        $qrCode = $writer->writeString($barcodeData);
 
         // Barcode
         $generator = new \Picqer\Barcode\BarcodeGeneratorSVG();
-        $containerCode = substr($data->container->cod, 0, 4);
-        $barcodeData = strtoupper($containerCode . '-' . $data->codInv);
-        // $barcodeData = $data->codInv && $data->codInv != '0' ? $data->codInv : str_pad($data->id, 8, '0', STR_PAD_LEFT);
         $barcode = $generator->getBarcode($barcodeData, $generator::TYPE_CODE_128, 1);
 
         return inertia('Inventario/Show', [
             'inventario' => $data,
             'qrCode' => (string) $qrCode,
             'barcode' => (string) $barcode,
+            'barcodeData' => $barcodeData,
+        ]);
+    }
+
+    /**
+     * Generate a printable label for a single item.
+     */
+    public function printLabel($id)
+    {
+        $data = Inventario::with(['container'])->findOrFail($id);
+
+        // Barcode Data
+        $containerCode = $data->container ? substr($data->container->cod, 0, 4) : 'MK';
+        $barcodeData = strtoupper($containerCode . '-' . $data->codInv);
+
+        // QR Code
+        $renderer = new \BaconQrCode\Renderer\ImageRenderer(
+            new \BaconQrCode\Renderer\RendererStyle\RendererStyle(150),
+            new \BaconQrCode\Renderer\Image\SvgImageBackEnd()
+        );
+        $writer = new \BaconQrCode\Writer($renderer);
+        $qrCode = base64_encode($writer->writeString($barcodeData)); // Using base64 for embedding in HTML/PDF
+
+        // Barcode
+        $generator = new \Picqer\Barcode\BarcodeGeneratorPNG();
+        $barcode = base64_encode($generator->getBarcode($barcodeData, $generator::TYPE_CODE_128, 2, 40));
+
+        return view('labels.single', [
+            'inventario' => $data,
+            'qrCode' => $qrCode,
+            'barcode' => $barcode,
             'barcodeData' => $barcodeData,
         ]);
     }

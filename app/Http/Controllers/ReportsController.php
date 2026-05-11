@@ -126,5 +126,46 @@ class ReportsController extends Controller
             $pdf = Excel::raw($export, \Maatwebsite\Excel\Excel::DOMPDF);
             return response($pdf, 200, $headers);
         }
+        public function bulkPrintLabels(Request $request, $tipo)
+    {
+        $query = Inventario::with('container')->whereIn('status', ['DISPONIBLE', 'DEVUELTO']);
+
+        if ($tipo === 'motores') {
+            $query->where('tipo', 'LIKE', '%MOTOR%');
+        } elseif ($tipo === 'cajas') {
+            $query->where('tipo', 'LIKE', '%CAJA%');
+        } elseif ($tipo === 'autopartes') {
+            $query->where('tipo', 'AUTOPARTE');
+        }
+
+        $items = $query->get();
+
+        $renderer = new \BaconQrCode\Renderer\ImageRenderer(
+            new \BaconQrCode\Renderer\RendererStyle\RendererStyle(100),
+            new \BaconQrCode\Renderer\Image\SvgImageBackEnd()
+        );
+        $writer = new \BaconQrCode\Writer($renderer);
+        $barcodeGenerator = new \Picqer\Barcode\BarcodeGeneratorPNG();
+
+        $labels = $items->map(function($item) use ($writer, $barcodeGenerator) {
+            $containerCode = $item->container ? substr($item->container->cod, 0, 4) : 'MK';
+            $barcodeData = strtoupper($containerCode . '-' . $item->codInv);
+            
+            return [
+                'inventario' => $item,
+                'barcodeData' => $barcodeData,
+                'qrCode' => base64_encode($writer->writeString($barcodeData)),
+                'barcode' => base64_encode($barcodeGenerator->getBarcode($barcodeData, $barcodeGenerator::TYPE_CODE_128, 2, 40)),
+            ];
+        });
+
+        $pdfContent = \Barryvdh\DomPDF\Facade\Pdf::loadView('labels.bulk', ['labels' => $labels])
+            ->setPaper('a4', 'portrait')
+            ->output();
+
+        return response($pdfContent, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="etiquetas-' . $tipo . '.pdf"'
+        ]);
     }
 }

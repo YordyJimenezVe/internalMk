@@ -154,6 +154,11 @@ const submitBilling = () => {
                                         <div v-html="props.barcode"></div>
                                         <p class="text-[10px] font-mono text-black mt-2 tracking-[0.2em]">{{ props.barcodeData }}</p>
                                     </div>
+                                    <div class="mt-6">
+                                        <a :href="route('printInventario', props.inventario.id)" target="_blank" class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl transition-all shadow-lg hover:shadow-indigo-500/30">
+                                            <i class="fa-solid fa-print mr-2"></i>Imprimir Etiqueta
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>

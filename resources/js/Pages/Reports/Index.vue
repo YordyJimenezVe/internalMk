@@ -101,6 +101,52 @@ import { router } from '@inertiajs/vue3'
                         </div>
                     </div>
 
+                    <!-- Etiquetas Section -->
+                    <div class="mt-12 border-t border-gray-100 dark:border-gray-700 pt-12">
+                        <h3 class="font-black text-2xl mb-8 text-gray-800 dark:text-white flex items-center">
+                            <i class="fa-solid fa-tags mr-3 text-indigo-500"></i>Gestión de Etiquetas (QR e Identificación)
+                        </h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <!-- Motores -->
+                            <a :href="route('printLabels', 'motores')" target="_blank" class="group bg-gradient-to-br from-indigo-50 to-white dark:from-gray-900 dark:to-gray-800 p-6 rounded-2xl border border-indigo-100 dark:border-gray-700 hover:border-indigo-500 transition-all shadow-sm hover:shadow-xl transform hover:-translate-y-1">
+                                <div class="w-12 h-12 bg-indigo-500 rounded-xl flex items-center justify-center mb-4 text-white shadow-lg shadow-indigo-200 dark:shadow-none">
+                                    <i class="fa-solid fa-engine text-xl"></i>
+                                </div>
+                                <h4 class="font-bold text-lg text-gray-800 dark:text-white mb-2">Etiquetas de Motores</h4>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Genera un PDF con etiquetas para todos los motores disponibles.</p>
+                                <div class="text-indigo-600 dark:text-indigo-400 font-bold text-sm flex items-center">
+                                    Generar PDF <i class="fa-solid fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+                                </div>
+                            </a>
+
+                            <!-- Cajas -->
+                            <a :href="route('printLabels', 'cajas')" target="_blank" class="group bg-gradient-to-br from-amber-50 to-white dark:from-gray-900 dark:to-gray-800 p-6 rounded-2xl border border-amber-100 dark:border-gray-700 hover:border-amber-500 transition-all shadow-sm hover:shadow-xl transform hover:-translate-y-1">
+                                <div class="w-12 h-12 bg-amber-500 rounded-xl flex items-center justify-center mb-4 text-white shadow-lg shadow-amber-200 dark:shadow-none">
+                                    <i class="fa-solid fa-gears text-xl"></i>
+                                </div>
+                                <h4 class="font-bold text-lg text-gray-800 dark:text-white mb-2">Etiquetas de Cajas</h4>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Genera etiquetas para cajas automáticas disponibles.</p>
+                                <div class="text-amber-600 dark:text-amber-400 font-bold text-sm flex items-center">
+                                    Generar PDF <i class="fa-solid fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+                                </div>
+                            </a>
+
+                            <!-- Autopartes -->
+                            <a :href="route('printLabels', 'autopartes')" target="_blank" class="group bg-gradient-to-br from-emerald-50 to-white dark:from-gray-900 dark:to-gray-800 p-6 rounded-2xl border border-emerald-100 dark:border-gray-700 hover:border-emerald-500 transition-all shadow-sm hover:shadow-xl transform hover:-translate-y-1">
+                                <div class="w-12 h-12 bg-emerald-500 rounded-xl flex items-center justify-center mb-4 text-white shadow-lg shadow-emerald-200 dark:shadow-none">
+                                    <i class="fa-solid fa-screwdriver-wrench text-xl"></i>
+                                </div>
+                                <h4 class="font-bold text-lg text-gray-800 dark:text-white mb-2">Etiquetas de Autopartes</h4>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Imprime etiquetas para repuestos y partes generales.</p>
+                                <div class="text-emerald-600 dark:text-emerald-400 font-bold text-sm flex items-center">
+                                    Generar PDF <i class="fa-solid fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                    </div>
+
                 </div>
             </div>
         </div>
