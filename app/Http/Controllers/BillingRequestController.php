@@ -26,7 +26,13 @@ class BillingRequestController extends Controller
             'partida_id' => 'required|exists:inventarios,id',
             'quantity' => 'required|integer|min:1',
             'price' => 'required|numeric',
+            'client_cedula_file' => 'nullable|image|max:2048',
         ]);
+
+        $cedulaFilePath = null;
+        if ($request->hasFile('client_cedula_file')) {
+            $cedulaFilePath = $request->file('client_cedula_file')->store('billing_captures', 'public');
+        }
 
         BillingRequest::create([
             'partida_id' => $request->partida_id,
@@ -35,6 +41,7 @@ class BillingRequestController extends Controller
             'price' => $request->price,
             'client_name' => $request->client_name,
             'client_cedula' => $request->client_cedula,
+            'client_cedula_file' => $cedulaFilePath,
             'client_phone' => $request->client_phone,
             'client_address' => $request->client_address,
             'status' => 'pending',

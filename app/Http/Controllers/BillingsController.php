@@ -53,6 +53,11 @@ class BillingsController extends Controller
      */
     public function create(Request $request, $id)
     {
+        $user = auth()->user();
+        if ($user->hasAnyRole(['MECANICO', 'Tecnico', 'Mecanico', 'TECNICO']) && !$user->hasAnyRole(['Superusuario', 'Administrador', 'SUPERUSUARIO', 'ADMINISTRADOR'])) {
+            return app(\App\Http\Controllers\ScanController::class)->directToMaintenance($id);
+        }
+
         $requestId = $request->input('request_id');
         $billing = Inventario::findOrFail($id);
 
@@ -65,6 +70,7 @@ class BillingsController extends Controller
                 $billing->client_phone = $billingRequest->client_phone;
                 $billing->client_address = $billingRequest->client_address;
                 $billing->billing_request_id = $requestId;
+                $billing->client_cedula_url = $billingRequest->client_cedula_file ? asset('storage/' . $billingRequest->client_cedula_file) : null;
             }
         }
 
@@ -269,8 +275,8 @@ class BillingsController extends Controller
         $actionVerb = 'DEVOLUCIÓN TOTAL';
 
         if ($returnType === 'TEMPORAL') {
-            $newStatus = 'DEVUELTO';
-            $actionVerb = 'DEVOLUCIÓN TEMPORAL';
+            $newStatus = 'GARANTIA';
+            $actionVerb = 'DEVOLUCIÓN POR GARANTÍA';
         } elseif ($returnType === 'DESINCORPORACION') {
             $newStatus = 'DESINCORPORADO';
             $actionVerb = 'DESINCORPORACIÓN';

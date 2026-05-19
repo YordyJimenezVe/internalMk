@@ -110,7 +110,19 @@ class ScanController extends Controller
 
         if ($partida) {
             // Check roles professionally (Spatie)
-            $isMechanic = $user->hasAnyRole(['MECANICO', 'Tecnico', 'Mecanico', 'TECNICO', 'Superusuario', 'Administrador']);
+            $isMechanic = $user->hasAnyRole(['MECANICO', 'Tecnico', 'Mecanico', 'TECNICO']);
+            $isBilling = $user->hasAnyRole(['FACTURACION', 'Facturacion', 'facturacion']) && !$user->hasAnyRole(['Superusuario', 'Administrador', 'SUPERUSUARIO', 'ADMINISTRADOR']);
+
+            if ($isBilling) {
+                $partida = \App\Models\Inventario::with('bill')->find($partida->id);
+                if ($partida->status === 'VENDIDO' || $partida->bill->count() > 0) {
+                    $bill = $partida->bill->last();
+                    if ($bill) {
+                        return redirect()->route('editBilling', $bill->id);
+                    }
+                }
+                return redirect()->route('createBilling', $partida->id);
+            }
 
             if ($isMechanic || $forceMaintenance) {
                 return $this->directToMaintenance($partida->id);

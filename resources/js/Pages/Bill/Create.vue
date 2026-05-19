@@ -1,20 +1,27 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
 import _ from 'lodash'; // Assuming lodash is installed
+import { ref } from 'vue';
 const props = defineProps({
   partidas: Object,
   data: Object,
   employee: Object,
   tasa_bcv: Number,
 });
+const showCedulaModal = ref(false);
 </script>
 
 <template>
     <AppLayout title="Registro de Facturación">
         <template #header>
-            <h2 class="font-bold text-2xl text-gray-800 dark:text-white leading-tight flex items-center">
-                <i class="fa-solid fa-file-invoice-dollar mr-2 text-indigo-500"></i>Registrar Factura
-            </h2>
+            <div class="flex items-center justify-between">
+                <h2 class="font-bold text-2xl text-gray-800 dark:text-white leading-tight flex items-center">
+                    <i class="fa-solid fa-file-invoice-dollar mr-2 text-indigo-500"></i>Registrar Factura
+                </h2>
+                <a :href="route('billing')" class="inline-flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-bold rounded-xl transition-all">
+                    <i class="fa-solid fa-list-check mr-2 text-indigo-500"></i>Ver Historial
+                </a>
+            </div>
         </template>
 
         <div class="py-12 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
@@ -195,6 +202,18 @@ const props = defineProps({
                                             <input class="appearance-none block w-full bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-sm" name="numero_control" type="text" placeholder="CONT-001">
                                         </div>
                                     </div>
+
+                                    <!-- Client ID Card Preview -->
+                                    <div v-if="data.client_cedula_url" class="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center gap-3">
+                                        <label class="block w-full text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest text-center">Documento de Identidad (Cédula)</label>
+                                        <div @click="showCedulaModal = true" class="relative group cursor-zoom-in w-full max-w-[200px] block">
+                                            <img :src="data.client_cedula_url" class="rounded-xl shadow-lg border-2 border-white dark:border-gray-800 transition-transform group-hover:scale-[1.02] w-full h-auto" alt="Cédula de Identidad">
+                                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-xl transition-opacity">
+                                                <i class="fa-solid fa-magnifying-glass-plus text-white text-2xl"></i>
+                                            </div>
+                                        </div>
+                                        <p class="text-[9px] text-gray-400 font-bold uppercase tracking-tighter italic">Haga clic para ampliar imagen</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -216,6 +235,22 @@ const props = defineProps({
                             </button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- ID Card Modal -->
+        <div v-if="showCedulaModal" class="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-10">
+            <div class="fixed inset-0 bg-gray-950/90 backdrop-blur-md transition-opacity" @click="showCedulaModal = false"></div>
+            
+            <div class="relative max-w-5xl w-full animate-in zoom-in-95 duration-300">
+                <button @click="showCedulaModal = false" class="absolute -top-16 right-0 text-white/70 hover:text-white transition-colors flex items-center gap-2 font-black uppercase tracking-widest text-xs">
+                    <span>Cerrar</span>
+                    <i class="fa-solid fa-circle-xmark text-3xl"></i>
+                </button>
+                
+                <div class="bg-white dark:bg-gray-900 p-3 rounded-[2.5rem] shadow-2xl border-4 border-white/10 overflow-hidden">
+                    <img :src="data.client_cedula_url" class="w-full h-auto rounded-[2rem] shadow-inner" alt="Cédula Ampliada">
                 </div>
             </div>
         </div>

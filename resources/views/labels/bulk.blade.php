@@ -7,119 +7,91 @@
         body {
             font-family: 'Arial', sans-serif;
             margin: 0;
-            padding: 10mm;
+            padding: 0;
             background-color: white;
-        }
-
-        .labels-grid {
-            width: 100%;
-            display: table;
-            border-collapse: separate;
-            border-spacing: 5mm;
-        }
-
-        .label-row {
-            display: table-row;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .label-cell {
-            display: table-cell;
-            width: 45%; /* 2 labels per row */
-            border: 1px dashed #ccc;
-            padding: 5mm;
+            width: 50mm;
+            height: 30mm;
             box-sizing: border-box;
             text-align: center;
-            vertical-align: top;
-            height: 60mm;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 1mm;
+            overflow: hidden;
+            page-break-after: always;
+            border: 1px dashed #ccc;
         }
 
-        .info-section {
-            border-bottom: 1px dashed #eee;
-            margin-bottom: 5px;
-            padding-bottom: 5px;
-        }
-
-        .info-title {
-            font-size: 8px;
-            font-weight: bold;
-            color: #666;
-            text-transform: uppercase;
+        .label-cell:last-child {
+            page-break-after: auto;
         }
 
         .info-value {
-            font-size: 10px;
+            font-size: 8px;
             font-weight: bold;
             color: #000;
-        }
-
-        .brand-logo {
-            font-size: 12px;
-            font-weight: 900;
-            color: #000;
-            margin-bottom: 5px;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
         }
 
         .qr-code {
-            margin-bottom: 5px;
+            margin-bottom: 2px;
         }
 
         .barcode {
-            margin-top: 5px;
+            margin-top: 2px;
         }
 
         .barcode-text {
             font-family: 'Courier New', Courier, monospace;
-            font-size: 10px;
+            font-size: 7px;
             font-weight: bold;
             letter-spacing: 1px;
+            margin-top: 1px;
         }
 
         @page {
-            size: a4 portrait;
-            margin: 0;
+            size: 50mm 30mm;
+            margin: 0mm !important;
         }
 
-        .page-break {
-            page-break-after: always;
+        @media print {
+            body {
+                padding: 0;
+                justify-content: flex-start;
+            }
+            .label-cell {
+                border: none;
+                margin: 0;
+                margin-bottom: 0;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="labels-grid">
-        @foreach($labels as $index => $label)
-            @if($index % 2 == 0)
-                <div class="label-row">
-            @endif
-
-            <div class="label-cell">
-                <!-- Parte Superior (Recortable) -->
-                <div class="info-section">
-                    <div class="info-title">Maikel Cars - Identificación</div>
-                    <div class="info-value">
-                        {{ $label['inventario']->marca }} {{ $label['inventario']->modelo }} <br>
-                        <span style="font-size: 9px;">Código: {{ $label['barcodeData'] }}</span>
-                    </div>
-                </div>
-
-                <!-- Parte Inferior -->
-                <div class="brand-logo">MAIKEL CARS</div>
-                <div class="qr-code">
-                    <img src="data:image/svg+xml;base64,{{ $label['qrCode'] }}" width="80" height="80">
-                </div>
-                <div class="barcode">
-                    <img src="data:image/png;base64,{{ $label['barcode'] }}" width="120">
-                    <div class="barcode-text">{{ $label['barcodeData'] }}</div>
-                </div>
+    @foreach($labels as $index => $label)
+        <div class="label-cell">
+            <div class="info-value">
+                {{ $label['inventario']->marca }} {{ $label['inventario']->modelo }}
             </div>
 
-            @if($index % 2 == 1 || $loop->last)
-                </div>
-            @endif
-
-            @if(($index + 1) % 8 == 0 && !$loop->last)
-                </div><div class="page-break"></div><div class="labels-grid">
-            @endif
-        @endforeach
-    </div>
+            <div class="qr-code">
+                <img src="data:image/svg+xml;base64,{{ $label['qrCode'] }}" width="45" height="45">
+            </div>
+            <div class="barcode">
+                <img src="data:image/png;base64,{{ $label['barcode'] }}" width="130" height="15">
+            </div>
+        </div>
+    @endforeach
 </body>
 </html>

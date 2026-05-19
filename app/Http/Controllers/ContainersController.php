@@ -45,9 +45,12 @@ class ContainersController extends Controller
      */
     public function store(Request $request)
     {
-        $partida = new Container();
-        $partida->fill($request->all());
-        $partida->save();
+        $container = new Container();
+        $container->fill($request->all());
+        $container->save();
+
+        $this->distributeCosts($container);
+
         return redirect()->route('container');
     }
 
@@ -96,7 +99,7 @@ class ContainersController extends Controller
 
         // Financials
         $totalSoldPrice = $soldItems->sum('price_sale');
-        $totalCostSold = $soldItems->sum('costo');
+        $totalCostSold = $soldItems->sum('costo') + $soldItems->sum('costo_importacion_unitario');
         $profit = $totalSoldPrice - $totalCostSold;
 
         // Percentages (relative to expected total)
@@ -121,7 +124,11 @@ class ContainersController extends Controller
             ],
             'financials' => [
                 'total_revenue' => $totalSoldPrice,
-                'total_profit' => $profit
+                'total_profit' => $profit,
+                'import_costs' => [
+                    'total' => (float) $container->costo_importacion_general,
+                    'aplicado' => (bool) $container->aplicar_costos
+                ]
             ],
             'categories' => [
                 'motores' => $items->filter(fn($item) => str_contains(strtolower($item->tipo), 'motor'))->count(),
@@ -154,7 +161,29 @@ class ContainersController extends Controller
         $container->fill($request->all());
         $container->save();
 
+        $this->distributeCosts($container);
+
         return redirect()->route('container');
+    }
+
+    private function distributeCosts(Container $container)
+    {
+        $items = \App\Models\Inventario::where('container_id', $container->id)->get();
+        $itemCount = $items->count();
+
+        if ($container->aplicar_costos && $itemCount > 0) {
+            $totalExtraCost = (float) $container->costo_importacion_general;
+            $costPerItem = $totalExtraCost / $itemCount;
+
+            foreach ($items as $item) {
+                $item->update(['costo_importacion_unitario' => $costPerItem]);
+            }
+        } else {
+            // Reset if disabled or no items
+            foreach ($items as $item) {
+                $item->update(['costo_importacion_unitario' => 0]);
+            }
+        }
     }
 
     /**

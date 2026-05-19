@@ -30,6 +30,7 @@ class Inventario extends Model
         'categorie',
         'item',
         'costo',
+        'costo_importacion_unitario',
         'origen',
     ];
 

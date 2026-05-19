@@ -5,7 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile
     image: laravel-app
-    container_name: laravel-app
+    container_name: internalmk-app
     restart: unless-stopped
     tty: true
     environment:
@@ -19,30 +19,30 @@ services:
   # MySQL Service
   db:
     image: mariadb:10.4
-    container_name: mysql-db
+    container_name: internalmk-db
     restart: unless-stopped
     tty: true
     ports:
-      - "3307:3306"
+      - "3309:3306"
     environment:
       MYSQL_DATABASE: maikelca_inventary
       MYSQL_ROOT_PASSWORD: root
       MYSQL_PASSWORD: root
       MYSQL_USER: user
     volumes:
-      - ./docker/mysql/data:/var/lib/mysql
+      - db-data:/var/lib/mysql
     networks:
       - app-network
 
   # Nginx Service
   webserver:
     image: nginx:alpine
-    container_name: nginx-server
+    container_name: internalmk-webserver
     restart: unless-stopped
     tty: true
     ports:
-      - "8085:80"
-      - "443:443"
+      - "8086:80"
+      - "4443:443"
     volumes:
       - .:/var/www
       - ./docker/nginx/conf.d/:/etc/nginx/conf.d/
@@ -52,7 +52,7 @@ services:
   # Redis Service
   redis:
     image: redis:alpine
-    container_name: redis-cache
+    container_name: internalmk-redis
     restart: unless-stopped
     networks:
       - app-network
@@ -60,3 +60,7 @@ services:
 networks:
   app-network:
     driver: bridge
+
+volumes:
+  db-data:
+

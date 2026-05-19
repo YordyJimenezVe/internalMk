@@ -18,5 +18,12 @@ class Container extends Model
         'cajas',
         'camaras',
         'accesorios',
+        'costo_importacion_general',
+        'aplicar_costos',
     ];
+
+    public function items()
+    {
+        return $this->hasMany(Inventario::class, 'container_id');
+    }
 }

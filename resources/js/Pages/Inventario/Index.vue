@@ -192,6 +192,7 @@ const confirmDelete = () => {
                         <select v-model="statusFilter" @change="fetchInventarios" class="w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold outline-none appearance-none cursor-pointer">
                             <option value="DISPONIBLE">DISPONIBLES</option>
                             <option value="VENDIDO">VENDIDOS</option>
+                            <option value="GARANTIA">GARANTÍAS</option>
                             <option value="ALL">LISTADO COMPLETO</option>
                         </select>
                     </div>

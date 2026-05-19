@@ -52,22 +52,38 @@ onMounted(() => {
 });
 
 const filteredFacturas = computed(() => {
-  const searchTerms = searchQuery.value.toLowerCase();
+  const searchTerms = searchQuery.value.toLowerCase().trim();
+  if (!searchTerms) return props.Facturas;
 
-  return props.Facturas.filter((Factura) => {
-    // Iterar a través de todas las propiedades del objeto
-    for (const key in Factura) {
-      // Omita las propiedades que no sean cadenas y el campo "id" (opcional)
-      if (typeof Factura[key] !== 'string' || key === 'id') {
-        continue;
-      }
+  return props.Facturas.filter((factura) => {
+    // Search in main factura fields
+    const mainFields = [
+      factura.numero_factura,
+      factura.numero_control,
+      factura.client_name,
+      factura.client_cedula,
+      String(factura.partida_id),
+      String(factura.id)
+    ];
 
-      if (Factura[key].toLowerCase().includes(searchTerms)) {
-        return true; // Found a match in any string property
-      }
+    if (mainFields.some(field => String(field).toLowerCase().includes(searchTerms))) {
+      return true;
     }
 
-    return false; // No match found in any string property
+    // Search in related item (partida) fields
+    if (factura.partidas) {
+        const itemFields = [
+            factura.partidas.marca,
+            factura.partidas.modelo,
+            factura.partidas.tipo,
+            factura.partidas.codInv
+        ];
+        if (itemFields.some(field => String(field).toLowerCase().includes(searchTerms))) {
+            return true;
+        }
+    }
+
+    return false;
   });
 });
 

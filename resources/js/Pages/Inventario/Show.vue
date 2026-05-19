@@ -23,6 +23,7 @@ const form = useForm({
     client_phone: '',
     client_address: '',
     quantity: 1,
+    client_cedula_file: null,
 });
 
 const submitBilling = () => {
@@ -33,8 +34,9 @@ const submitBilling = () => {
         price: data.price.toString().replace(/\./g, '').replace(',', '.')
     })).post(route('billing.requests.store'), {
         preserveScroll: true,
+        forceFormData: true,
         onSuccess: () => {
-            form.reset('client_name', 'quantity');
+            form.reset('client_name', 'client_cedula_file', 'quantity');
             router.visit(route('inventario'));
         },
     });
@@ -132,12 +134,26 @@ const submitBilling = () => {
                                         </span>
                                     </div>
                                 </div>
-                                 <div>
-                                    <label class="block uppercase tracking-wide text-gray-500 dark:text-gray-400 text-xs font-bold mb-2">
-                                        <i class="fa-solid fa-tag mr-1"></i>Precio Unitario
-                                    </label>
-                                    <div class="w-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 rounded-xl py-3 px-4 text-xl font-black border border-indigo-100 dark:border-indigo-900/30">
-                                        ${{ parseFloat(props.inventario.price_sale || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) }}
+                                 <div class="space-y-4">
+                                    <div>
+                                        <label class="block uppercase tracking-wide text-gray-500 dark:text-gray-400 text-xs font-bold mb-2">
+                                            <i class="fa-solid fa-money-bill-transfer mr-1"></i>Costo de Adquisición
+                                        </label>
+                                        <div class="w-full bg-gray-50 dark:bg-gray-700/50 text-gray-800 dark:text-gray-300 rounded-xl py-3 px-4 font-bold border border-gray-100 dark:border-gray-700 flex justify-between items-center">
+                                            <span>${{ parseFloat(props.inventario.costo || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) }}</span>
+                                            <div v-if="props.inventario.costo_importacion_unitario > 0" class="flex flex-col items-end">
+                                                <span class="text-[9px] text-indigo-500 dark:text-indigo-400 uppercase font-black">Importación</span>
+                                                <span class="text-xs font-black text-indigo-600 dark:text-indigo-400">+ ${{ parseFloat(props.inventario.costo_importacion_unitario).toLocaleString('en-US', {minimumFractionDigits: 2}) }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block uppercase tracking-wide text-gray-500 dark:text-gray-400 text-xs font-bold mb-2">
+                                            <i class="fa-solid fa-tag mr-1"></i>Precio de Venta Sugerido
+                                        </label>
+                                        <div class="w-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 rounded-xl py-3 px-4 text-xl font-black border border-indigo-100 dark:border-indigo-900/30">
+                                            ${{ parseFloat(props.inventario.price_sale || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) }}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -194,6 +210,12 @@ const submitBilling = () => {
                                             <label class="block text-xs font-bold mb-2 uppercase opacity-80">Razón Social / Nombre</label>
                                             <input v-model="form.client_name" type="text" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:ring-2 focus:ring-white outline-none" placeholder="Nombre completo">
                                         </div>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-xs font-bold mb-2 uppercase opacity-80">Capture de Cédula / RIF (Opcional)</label>
+                                        <input @input="form.client_cedula_file = $event.target.files[0]" type="file" accept="image/*" class="block w-full text-sm text-white/80 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-white/20 file:text-white hover:file:bg-white/30 border border-white/20 rounded-xl py-2 px-2 focus:outline-none bg-white/10">
+                                        <p class="mt-1 text-xs text-white/50">Formatos permitidos: JPG, PNG (Máx 2MB)</p>
                                     </div>
 
                                     <div class="grid grid-cols-1 gap-4">

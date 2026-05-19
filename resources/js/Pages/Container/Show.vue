@@ -271,19 +271,32 @@ const exportReport = (format) => {
                                 Análisis Financiero
                             </h3>
                             
-                            <div class="space-y-8">
-                                <div>
-                                    <p class="text-slate-400 text-xs font-bold uppercase tracking-[0.2em] mb-2">Total Ventas</p>
-                                    <p class="text-4xl font-black tracking-tight text-white">
-                                        <span class="text-indigo-500 text-2xl mr-1 font-bold">USD</span>{{ formatNumber(stats.financials.total_revenue) }}
-                                    </p>
+                            <div class="space-y-6">
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Ventas</p>
+                                        <p class="text-xl font-black text-white">
+                                            <span class="text-indigo-500 text-sm mr-1">$</span>{{ formatNumber(stats.financials.total_revenue) }}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <p class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Ganancia</p>
+                                        <p class="text-xl font-black text-green-400">
+                                            <span class="text-green-600 text-sm mr-1">$</span>{{ formatNumber(stats.financials.total_profit) }}
+                                        </p>
+                                    </div>
                                 </div>
-                                
-                                <div>
-                                    <p class="text-slate-400 text-xs font-bold uppercase tracking-[0.2em] mb-2">Ganancia Neta</p>
-                                    <p class="text-4xl font-black tracking-tight text-green-400">
-                                        <span class="text-green-600 text-2xl mr-1 font-bold">USD</span>{{ formatNumber(stats.financials.total_profit) }}
-                                    </p>
+
+                                <div class="p-4 bg-white/5 rounded-2xl border border-white/10 space-y-3">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Costos de Importación</span>
+                                        <span v-if="stats.financials.import_costs.aplicado" class="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-[9px] font-black rounded-full border border-emerald-500/20 uppercase tracking-tighter">Aplicado</span>
+                                        <span v-else class="px-2 py-0.5 bg-slate-500/20 text-slate-400 text-[9px] font-black rounded-full border border-slate-500/20 uppercase tracking-tighter">No Aplicado</span>
+                                    </div>
+                                    <div class="pt-2 border-t border-white/10 flex justify-between items-baseline">
+                                        <span class="text-xs font-bold text-indigo-300 uppercase">Costo Extra:</span>
+                                        <span class="text-lg font-black text-indigo-400">${{ formatNumber(stats.financials.import_costs.total) }}</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

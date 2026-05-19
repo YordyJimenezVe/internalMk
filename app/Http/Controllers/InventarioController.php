@@ -92,6 +92,8 @@ class InventarioController extends Controller
             $inventarios->where(function ($q) {
                 $q->has('bill')->orWhere('status', 'VENDIDO');
             });
+        } elseif ($statusFilter === 'GARANTIA') {
+            $inventarios->whereIn('status', ['GARANTIA', 'GARANTÍA']);
         }
         // If 'ALL', we don't filter by billing/status, just show everything.
 
@@ -228,7 +230,19 @@ class InventarioController extends Controller
     public function show($id)
     {
         $user = auth()->user();
-        $isMechanic = $user && $user->hasAnyRole(['MECANICO', 'Tecnico', 'Mecanico', 'TECNICO', 'Superusuario', 'Administrador']);
+        $isBilling = $user && $user->hasAnyRole(['FACTURACION', 'Facturacion', 'facturacion']) && !$user->hasAnyRole(['Superusuario', 'Administrador', 'SUPERUSUARIO', 'ADMINISTRADOR']);
+        $isMechanic = $user && $user->hasAnyRole(['MECANICO', 'Tecnico', 'Mecanico', 'TECNICO']);
+
+        if ($isBilling) {
+            $partida = Inventario::with('bill')->findOrFail($id);
+            if ($partida->status === 'VENDIDO' || $partida->bill->count() > 0) {
+                $bill = $partida->bill->last();
+                if ($bill) {
+                    return redirect()->route('editBilling', $bill->id);
+                }
+            }
+            return redirect()->route('createBilling', $id);
+        }
 
         if ($isMechanic) {
             return app(\App\Http\Controllers\ScanController::class)->directToMaintenance($id);
@@ -260,9 +274,6 @@ class InventarioController extends Controller
         ]);
     }
 
-    /**
-     * Generate a printable label for a single item.
-     */
     public function printLabel($id)
     {
         $data = Inventario::with(['container'])->findOrFail($id);
@@ -288,6 +299,7 @@ class InventarioController extends Controller
             'qrCode' => $qrCode,
             'barcode' => $barcode,
             'barcodeData' => $barcodeData,
+            'type' => request('type', 'all'),
         ]);
     }
 
@@ -337,4 +349,114 @@ class InventarioController extends Controller
         $inventario->delete();
         return redirect()->route('inventario');
     }
+
+    /**
+     * Display the thermal label generator dashboard.
+     */
+    public function generatorDashboard()
+    {
+        return view('labels.generator');
+    }
+
+    /**
+     * Print Label 1: Maikel Cars Logo and Contact Info.
+     */
+    public function printLogoInfoLabel()
+    {
+        $logoPath = public_path('logo-mk.jpg');
+        if (!file_exists($logoPath)) {
+            $logoPath = public_path('storage/images/logo.png');
+        }
+        if (!file_exists($logoPath)) {
+            $logoPath = storage_path('app/public/images/logo.png');
+        }
+        
+        $logoBase64 = '';
+        if (file_exists($logoPath)) {
+            $logoBase64 = base64_encode(file_get_contents($logoPath));
+        }
+
+        return view('labels.logo-info', [
+            'logoBase64' => $logoBase64,
+        ]);
+    }
+
+    /**
+     * Print Label 2: Unified Contact QR Code.
+     */
+    public function printQrCodeLabel()
+    {
+        $qrData = "MAIKEL CARS\n" .
+                  "Web: https://maikelcars.com/\n" .
+                  "Instagram: @maikelcars51\n" .
+                  "Telfs: 0424-5213994 / 0424-5665298";
+
+        // Generate QR code SVG
+        $renderer = new \BaconQrCode\Renderer\ImageRenderer(
+            new \BaconQrCode\Renderer\RendererStyle\RendererStyle(150),
+            new \BaconQrCode\Renderer\Image\SvgImageBackEnd()
+        );
+        $writer = new \BaconQrCode\Writer($renderer);
+        $qrCode = base64_encode($writer->writeString($qrData));
+
+        // Get logo Base64
+        $logoPath = public_path('logo-mk.jpg');
+        if (!file_exists($logoPath)) {
+            $logoPath = public_path('storage/images/logo.png');
+        }
+        if (!file_exists($logoPath)) {
+            $logoPath = storage_path('app/public/images/logo.png');
+        }
+        
+        $logoBase64 = '';
+        if (file_exists($logoPath)) {
+            $logoBase64 = base64_encode(file_get_contents($logoPath));
+        }
+
+        return view('labels.qr-code', [
+            'qrCode' => $qrCode,
+            'logoBase64' => $logoBase64,
+            'qrData' => $qrData,
+        ]);
+    }
+
+    /**
+     * Print Label 3: Grid of Alternating Labels for A4/Letter Sheets.
+     */
+    public function printFullPageGrid()
+    {
+        $qrData = "MAIKEL CARS\n" .
+                  "Web: https://maikelcars.com/\n" .
+                  "Instagram: @maikelcars51\n" .
+                  "Telfs: 0424-5213994 / 0424-5665298";
+
+        // Generate QR code SVG
+        $renderer = new \BaconQrCode\Renderer\ImageRenderer(
+            new \BaconQrCode\Renderer\RendererStyle\RendererStyle(150),
+            new \BaconQrCode\Renderer\Image\SvgImageBackEnd()
+        );
+        $writer = new \BaconQrCode\Writer($renderer);
+        $qrCode = base64_encode($writer->writeString($qrData));
+
+        // Get logo Base64
+        $logoPath = public_path('logo-mk.jpg');
+        if (!file_exists($logoPath)) {
+            $logoPath = public_path('storage/images/logo.png');
+        }
+        if (!file_exists($logoPath)) {
+            $logoPath = storage_path('app/public/images/logo.png');
+        }
+        
+        $logoBase64 = '';
+        if (file_exists($logoPath)) {
+            $logoBase64 = base64_encode(file_get_contents($logoPath));
+        }
+
+        return view('labels.full-page', [
+            'qrCode' => $qrCode,
+            'logoBase64' => $logoBase64,
+            'qrData' => $qrData,
+        ]);
+    }
 }
+

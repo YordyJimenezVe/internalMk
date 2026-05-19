@@ -1,82 +1,146 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { useForm } from '@inertiajs/vue3';
+
+const form = useForm({
+    cod: '',
+    expediente: '',
+    fecha: new Date().toISOString().split('T')[0],
+    hora: new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
+    motores: 0,
+    cajas: 0,
+    camaras: 0,
+    accesorios: 0,
+    costo_importacion_general: 0,
+    aplicar_costos: false,
+});
+
+const submit = () => {
+    form.post(route('container.store'));
+};
 </script>
 
-<template >
-    <AppLayout title="Containers">
+<template>
+    <AppLayout title="Registrar Contenedor">
         <template #header>
-            <h2 class="font-bold text-2xl text-gray-800 dark:text-white leading-tight">
-                <i class="fa-solid fa-box-archive mr-2 text-indigo-500"></i>Registrar Containers
+            <h2 class="font-bold text-2xl text-gray-800 dark:text-white leading-tight flex items-center">
+                <i class="fa-solid fa-box-archive mr-3 text-indigo-500"></i>Registrar Nuevo Contenedor
             </h2>
         </template>
 
-        <div class="py-12">
+        <div class="py-12 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
             <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
-                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-xl rounded-2xl border border-gray-100 dark:border-gray-700 p-8">
-                    <form ref="form" @submit.prevent="submitForm" class="space-y-6" method="post">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <!-- Código -->
-                            <div>
-                                <label class="block uppercase tracking-wide text-gray-700 dark:text-gray-300 text-xs font-bold mb-2" for="cod">
-                                    <i class="fa-solid fa-barcode mr-1"></i>Código
-                                </label>
-                                <input class="appearance-none block w-full bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg py-3 px-4 leading-tight focus:outline-none focus:bg-white dark:focus:bg-gray-600 focus:border-indigo-500 transition-colors" name="cod" type="text" placeholder="Ej: CONT-001" required>
+                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-2xl rounded-[2.5rem] border border-gray-100 dark:border-gray-700/50 p-8 md:p-12">
+                    <form @submit.prevent="submit" class="space-y-10">
+                        
+                        <!-- Identification Section -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div class="space-y-6">
+                                <h3 class="font-black text-[10px] uppercase tracking-[0.3em] text-gray-400 dark:text-gray-500 flex items-center">
+                                    <i class="fa-solid fa-id-card mr-2"></i>Identificación
+                                </h3>
+                                <div class="grid grid-cols-1 gap-6">
+                                    <div>
+                                        <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="cod">Código de Contenedor</label>
+                                        <div class="relative">
+                                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-indigo-500">
+                                                <i class="fa-solid fa-barcode"></i>
+                                            </div>
+                                            <input class="appearance-none block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-4 pl-12 pr-4 leading-tight focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-bold" id="cod" type="text" v-model="form.cod" placeholder="Ej: CONT-2024-001" required>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="expediente">Nro. Expediente</label>
+                                        <div class="relative">
+                                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-indigo-500">
+                                                <i class="fa-solid fa-folder-tree"></i>
+                                            </div>
+                                            <input class="appearance-none block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-4 pl-12 pr-4 leading-tight focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-bold" id="expediente" type="text" v-model="form.expediente" placeholder="Ej: EXP-12345" required>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <!-- Expediente -->
-                            <div>
-                                <label class="block uppercase tracking-wide text-gray-700 dark:text-gray-300 text-xs font-bold mb-2" for="expediente">
-                                    <i class="fa-solid fa-file-invoice mr-1"></i>Expediente
-                                </label>
-                                <input class="appearance-none block w-full bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg py-3 px-4 leading-tight focus:outline-none focus:bg-white dark:focus:bg-gray-600 focus:border-indigo-500 transition-colors" name="expediente" type="text" placeholder="Ej: EXP-2024" required>
-                            </div>
-                        </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <!-- Fecha -->
-                            <div>
-                                <label class="block uppercase tracking-wide text-gray-700 dark:text-gray-300 text-xs font-bold mb-2" for="fecha">
-                                    <i class="fa-solid fa-calendar mr-1"></i>Fecha
-                                </label>
-                                <input class="appearance-none block w-full bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg py-3 px-4 leading-tight focus:outline-none focus:bg-white dark:focus:bg-gray-600 focus:border-indigo-500 transition-colors" name="fecha" type="date" required>
-                            </div>
-                            <!-- Hora -->
-                            <div>
-                                <label class="block uppercase tracking-wide text-gray-700 dark:text-gray-300 text-xs font-bold mb-2" for="hora">
-                                    <i class="fa-solid fa-clock mr-1"></i>Hora
-                                </label>
-                                <input class="appearance-none block w-full bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg py-3 px-4 leading-tight focus:outline-none focus:bg-white dark:focus:bg-gray-600 focus:border-indigo-500 transition-colors" name="hora" type="time" required>
-                            </div>
-                        </div>
-
-                        <div class="border-t border-gray-100 dark:border-gray-700 pt-6">
-                            <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Totales en Contenedor</h3>
-                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                                <!-- Motores -->
-                                <div>
-                                    <label class="block text-gray-700 dark:text-gray-300 text-xs font-bold mb-2" for="motores">Motores</label>
-                                    <input class="block w-full bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg py-2 px-3 focus:outline-none focus:border-indigo-500" name="motores" type="number" placeholder="0" required>
-                                </div>
-                                <!-- Cajas -->
-                                <div>
-                                    <label class="block text-gray-700 dark:text-gray-300 text-xs font-bold mb-2" for="cajas">Cajas</label>
-                                    <input class="block w-full bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg py-2 px-3 focus:outline-none focus:border-indigo-500" name="cajas" type="number" placeholder="0" required>
-                                </div>
-                                <!-- Cámaras -->
-                                <div>
-                                    <label class="block text-gray-700 dark:text-gray-300 text-xs font-bold mb-2" for="camaras">Cámaras</label>
-                                    <input class="block w-full bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg py-2 px-3 focus:outline-none focus:border-indigo-500" name="camaras" type="number" placeholder="0" required>
-                                </div>
-                                <!-- Accesorios -->
-                                <div>
-                                    <label class="block text-gray-700 dark:text-gray-300 text-xs font-bold mb-2" for="accesorios">Accesorios</label>
-                                    <input class="block w-full bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg py-2 px-3 focus:outline-none focus:border-indigo-500" name="accesorios" type="number" placeholder="0" required>
+                            <div class="space-y-6">
+                                <h3 class="font-black text-[10px] uppercase tracking-[0.3em] text-gray-400 dark:text-gray-500 flex items-center">
+                                    <i class="fa-solid fa-clock mr-2"></i>Logística
+                                </h3>
+                                <div class="grid grid-cols-1 gap-6">
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="fecha">Fecha</label>
+                                            <input class="appearance-none block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-4 px-4 leading-tight focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold" id="fecha" type="date" v-model="form.fecha">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="hora">Hora</label>
+                                            <input class="appearance-none block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-4 px-4 leading-tight focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold" id="hora" type="time" v-model="form.hora">
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="flex items-center justify-center pt-4">
-                            <button type="submit" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-12 rounded-xl shadow-lg shadow-indigo-200 dark:shadow-none transition-all transform hover:scale-[1.02] active:scale-95">
-                                <i class="fa-solid fa-plus mr-2"></i>Registrar Contenedor
+                        <!-- Quantities Section -->
+                        <div class="p-8 bg-gray-50 dark:bg-gray-900/30 rounded-[2rem] border border-gray-100 dark:border-gray-700/50">
+                            <h3 class="font-black text-[10px] uppercase tracking-[0.3em] text-gray-400 dark:text-gray-500 mb-6 flex items-center">
+                                <i class="fa-solid fa-layer-group mr-2 text-indigo-500"></i>Cantidades Esperadas
+                            </h3>
+                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                                <div class="space-y-2">
+                                    <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Motores</label>
+                                    <input class="w-full bg-white dark:bg-gray-800 text-gray-800 dark:text-white text-lg font-black border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" type="number" v-model="form.motores">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Cajas</label>
+                                    <input class="w-full bg-white dark:bg-gray-800 text-gray-800 dark:text-white text-lg font-black border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" type="number" v-model="form.cajas">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Cámaras</label>
+                                    <input class="w-full bg-white dark:bg-gray-800 text-gray-800 dark:text-white text-lg font-black border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" type="number" v-model="form.camaras">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Accesorios</label>
+                                    <input class="w-full bg-white dark:bg-gray-800 text-gray-800 dark:text-white text-lg font-black border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" type="number" v-model="form.accesorios">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Import Costs Section -->
+                        <div class="bg-indigo-600 dark:bg-indigo-600/90 rounded-[2.5rem] p-8 md:p-10 shadow-2xl shadow-indigo-600/20 relative overflow-hidden">
+                            <!-- Decorative elements -->
+                            <div class="absolute -right-20 -top-20 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
+                            <div class="absolute -left-20 -bottom-20 w-64 h-64 bg-black/10 rounded-full blur-3xl"></div>
+                            
+                            <div class="relative z-10 space-y-8">
+                                <div class="flex items-center justify-between">
+                                    <h3 class="font-black text-xs uppercase tracking-[0.4em] text-indigo-100 flex items-center">
+                                        <i class="fa-solid fa-ship mr-3"></i>Costos de Importación y Nacionalización
+                                    </h3>
+                                    <div class="flex items-center gap-3 bg-white/10 px-4 py-2 rounded-full border border-white/10">
+                                        <span class="text-[10px] font-black text-white uppercase tracking-widest">Aplicar a Ítems</span>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" v-model="form.aplicar_costos" class="sr-only peer">
+                                            <div class="w-11 h-6 bg-indigo-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-4">
+                                    <label class="block text-[10px] font-black text-indigo-100 uppercase tracking-widest ml-1" for="costo_importacion_general">Costo General de Importación y Nacionalización</label>
+                                    <div class="relative">
+                                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-300 font-black text-xl">$</span>
+                                        <input class="w-full bg-white text-gray-900 text-2xl font-black border-none rounded-2xl py-5 pl-10 pr-6 shadow-inner focus:ring-4 focus:ring-white/20 transition-all" id="costo_importacion_general" type="number" step="0.01" v-model="form.costo_importacion_general">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actions Section -->
+                        <div class="pt-8 flex justify-center">
+                            <button type="submit" :disabled="form.processing" class="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 px-20 rounded-[2rem] shadow-2xl shadow-indigo-600/30 transition-all transform hover:scale-[1.03] active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3">
+                                <i v-if="form.processing" class="fa-solid fa-circle-notch animate-spin text-xl"></i>
+                                <i v-else class="fa-solid fa-plus text-xl"></i>
+                                REGISTRAR CONTENEDOR
                             </button>
                         </div>
                     </form>
@@ -85,25 +149,3 @@ import AppLayout from '@/Layouts/AppLayout.vue';
         </div>
     </AppLayout>
 </template>
-<script>
-export default {
-  methods: {
-    async submitForm() {
-    try {
-        console.log('e')
-      const data = {};
-      for (const element of this.$refs.form.elements) {
-        data[element.name] = element.value;
-      }
-
-      const response = await this.$inertia.post('/container/store', data);
-      // Handle successful response (e.g., display success message)
-      console.log('Form submitted successfully:', response);
-    } catch (error) {
-      // Handle errors (e.g., display error message to user)
-      console.error('Error submitting form:', error);
-    }
-  }
-}
-};
-</script>

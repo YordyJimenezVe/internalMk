@@ -22,8 +22,11 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
-
-
+// Public Thermal Label Generator Routes
+Route::get('/generar-qr-etiquetas', [\App\Http\Controllers\InventarioController::class, 'generatorDashboard'])->name('labels.generator');
+Route::get('/generar-qr-etiquetas/imprimir/logo-info', [\App\Http\Controllers\InventarioController::class, 'printLogoInfoLabel'])->name('labels.print.logo-info');
+Route::get('/generar-qr-etiquetas/imprimir/qr-code', [\App\Http\Controllers\InventarioController::class, 'printQrCodeLabel'])->name('labels.print.qr-code');
+Route::get('/generar-qr-etiquetas/imprimir/hoja-completa', [\App\Http\Controllers\InventarioController::class, 'printFullPageGrid'])->name('labels.print.full-page');
 
 Route::middleware([
     'auth:sanctum',
@@ -86,7 +89,7 @@ Route::middleware([
     Route::post('/billing/update/{id}', 'App\Http\Controllers\BillingsController@update')->name('updateBilling');
     Route::delete('/billing/delete/{id}', 'App\Http\Controllers\BillingsController@destroy')->name('deleteBilling');
     Route::get('/billing/return/{id}', 'App\Http\Controllers\BillingsController@return')->name('returnBilling');
-    Route::post('/billing/returnSubmit/{id}', 'App\Http\Controllers\BillingsController@returnSubmit')->name('returnSubmit');
+    Route::post('/billing/returnSubmit/{id}', 'App\Http\Controllers\BillingsController@returnSubmit')->name('billing.returnSubmit');
 
     Route::get('/billing-requests', 'App\Http\Controllers\BillingRequestController@index')->name('billing.requests.index');
     Route::post('/billing-requests/store', 'App\Http\Controllers\BillingRequestController@store')->name('billing.requests.store');

@@ -1,92 +1,175 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
+import { useForm } from '@inertiajs/vue3';
+
 const props = defineProps({
   container: Object,
 });
+
+const form = useForm({
+    cod: props.container.cod,
+    expediente: props.container.expediente,
+    fecha: props.container.fecha,
+    hora: props.container.hora,
+    motores: props.container.motores,
+    cajas: props.container.cajas,
+    camaras: props.container.camaras,
+    accesorios: props.container.accesorios,
+    costo_importacion_general: props.container.costo_importacion_general,
+    aplicar_costos: props.container.aplicar_costos === 1 || props.container.aplicar_costos === true,
+});
+
+const submit = () => {
+    form.post(route('container.update', props.container.id));
+};
 </script>
 
-<template >
-    <AppLayout title="Asignaciones">
+<template>
+    <AppLayout title="Editar Contenedor">
         <template #header>
-            <h1 v-if="props.container && props.container.fecha" class="text-center">
-                Editar Contenedor de Fecha: {{ props.container.fecha }}
-            </h1>
+            <div class="flex items-center justify-between">
+                <h2 class="font-bold text-2xl text-gray-800 dark:text-white leading-tight flex items-center">
+                    <i class="fa-solid fa-box-open mr-3 text-indigo-500"></i>Editar Contenedor: <span class="ml-2 text-indigo-600 dark:text-indigo-400 font-black">{{ container.cod }}</span>
+                </h2>
+                <div class="flex items-center gap-4">
+                    <span v-if="form.isDirty" class="text-xs font-black text-amber-500 uppercase animate-pulse">
+                        <i class="fa-solid fa-circle-exclamation mr-1"></i>Cambios sin guardar
+                    </span>
+                    <a :href="route('container')" class="text-sm font-bold text-gray-500 hover:text-indigo-600 transition-colors">
+                        Cancelar
+                    </a>
+                </div>
+            </div>
         </template>
 
-        <div class="bg-white">
-            <form ref="form" @submit.prevent="submitForm" class="w-full max-w-lg mx-auto" method="post">
-                <div class="flex flex-wrap mx-3 mb-6">
-                    <div class="w-full md:w-1/2 px-3 mb-6 md:mb-0">
-                    <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="cod">
-                        Código
-                    </label>
-                    <input class="appearance-none block w-full bg-gray-200 text-gray-700 border border-red-500 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white" name="cod" type="text" placeholder="Código"  :value="props.container.cod" required>
-                    </div>
-                    <div class="w-full md:w-1/2 px-3">
-                    <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="expediente">
-                        Expediente
-                    </label>
-                    <input class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" name="expediente" type="text" placeholder="Expediente"  :value="props.container.expediente" required>
-                    </div>
+        <div class="py-12 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
+            <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
+                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-2xl rounded-[2.5rem] border border-gray-100 dark:border-gray-700/50 p-8 md:p-12">
+                    <form @submit.prevent="submit" class="space-y-10">
+                        
+                        <!-- Identification Section -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div class="space-y-6">
+                                <h3 class="font-black text-[10px] uppercase tracking-[0.3em] text-gray-400 dark:text-gray-500 flex items-center">
+                                    <i class="fa-solid fa-id-card mr-2"></i>Identificación
+                                </h3>
+                                <div class="grid grid-cols-1 gap-6">
+                                    <div>
+                                        <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="cod">Código de Contenedor</label>
+                                        <div class="relative">
+                                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-indigo-500">
+                                                <i class="fa-solid fa-barcode"></i>
+                                            </div>
+                                            <input class="appearance-none block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-4 pl-12 pr-4 leading-tight focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-bold" id="cod" type="text" v-model="form.cod" required>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="expediente">Nro. Expediente</label>
+                                        <div class="relative">
+                                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-indigo-500">
+                                                <i class="fa-solid fa-folder-tree"></i>
+                                            </div>
+                                            <input class="appearance-none block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-4 pl-12 pr-4 leading-tight focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-bold" id="expediente" type="text" v-model="form.expediente" required>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-6">
+                                <h3 class="font-black text-[10px] uppercase tracking-[0.3em] text-gray-400 dark:text-gray-500 flex items-center">
+                                    <i class="fa-solid fa-clock mr-2"></i>Logística
+                                </h3>
+                                <div class="grid grid-cols-1 gap-6">
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="fecha">Fecha</label>
+                                            <input class="appearance-none block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-4 px-4 leading-tight focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold" id="fecha" type="date" v-model="form.fecha">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="hora">Hora</label>
+                                            <input class="appearance-none block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-4 px-4 leading-tight focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold" id="hora" type="time" v-model="form.hora">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quantities Section -->
+                        <div class="p-8 bg-gray-50 dark:bg-gray-900/30 rounded-[2rem] border border-gray-100 dark:border-gray-700/50">
+                            <h3 class="font-black text-[10px] uppercase tracking-[0.3em] text-gray-400 dark:text-gray-500 mb-6 flex items-center">
+                                <i class="fa-solid fa-layer-group mr-2 text-indigo-500"></i>Cantidades Esperadas
+                            </h3>
+                            <div class="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                                <div class="space-y-2">
+                                    <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Motores</label>
+                                    <input class="w-full bg-white dark:bg-gray-800 text-gray-800 dark:text-white text-lg font-black border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" type="number" v-model="form.motores">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Cajas</label>
+                                    <input class="w-full bg-white dark:bg-gray-800 text-gray-800 dark:text-white text-lg font-black border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" type="number" v-model="form.cajas">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Cámaras</label>
+                                    <input class="w-full bg-white dark:bg-gray-800 text-gray-800 dark:text-white text-lg font-black border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" type="number" v-model="form.camaras">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Accesorios</label>
+                                    <input class="w-full bg-white dark:bg-gray-800 text-gray-800 dark:text-white text-lg font-black border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all" type="number" v-model="form.accesorios">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Import Costs Section -->
+                        <div class="bg-indigo-600 dark:bg-indigo-600/90 rounded-[2.5rem] p-8 md:p-10 shadow-2xl shadow-indigo-600/20 relative overflow-hidden">
+                            <!-- Decorative elements -->
+                            <div class="absolute -right-20 -top-20 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
+                            <div class="absolute -left-20 -bottom-20 w-64 h-64 bg-black/10 rounded-full blur-3xl"></div>
+                            
+                            <div class="relative z-10 space-y-8">
+                                <div class="flex items-center justify-between">
+                                    <h3 class="font-black text-xs uppercase tracking-[0.4em] text-indigo-100 flex items-center">
+                                        <i class="fa-solid fa-ship mr-3"></i>Costos de Importación y Nacionalización
+                                    </h3>
+                                    <div class="flex items-center gap-3 bg-white/10 px-4 py-2 rounded-full border border-white/10">
+                                        <span class="text-[10px] font-black text-white uppercase tracking-widest">Aplicar a Ítems</span>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" v-model="form.aplicar_costos" class="sr-only peer">
+                                            <div class="w-11 h-6 bg-indigo-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-4">
+                                    <label class="block text-[10px] font-black text-indigo-100 uppercase tracking-widest ml-1" for="costo_importacion_general">Costo General de Importación y Nacionalización</label>
+                                    <div class="relative">
+                                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-300 font-black text-xl">$</span>
+                                        <input class="w-full bg-white text-gray-900 text-2xl font-black border-none rounded-2xl py-5 pl-10 pr-6 shadow-inner focus:ring-4 focus:ring-white/20 transition-all" id="costo_importacion_general" type="number" step="0.01" v-model="form.costo_importacion_general">
+                                    </div>
+                                </div>
+
+                                <div v-if="form.aplicar_costos" class="bg-indigo-700/50 p-4 rounded-2xl border border-white/10 flex items-start gap-4">
+                                    <i class="fa-solid fa-circle-info text-indigo-200 mt-1"></i>
+                                    <p class="text-xs text-indigo-100 leading-relaxed font-medium">
+                                        Al activar esta opción, este costo se dividirá entre el total de piezas registradas y se añadirá al costo individual de cada motor/caja automáticamente al guardar.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actions Section -->
+                        <div class="pt-8 flex flex-col md:flex-row items-center justify-between gap-6">
+                            <div class="text-gray-400 dark:text-gray-500 text-xs font-bold italic">
+                                <i class="fa-solid fa-fingerprint mr-1"></i>Última actualización: {{ new Date(container.updated_at).toLocaleDateString() }}
+                            </div>
+                            <button type="submit" :disabled="form.processing" class="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 px-16 rounded-[2rem] shadow-2xl shadow-indigo-600/30 transition-all transform hover:scale-[1.03] active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3">
+                                <i v-if="form.processing" class="fa-solid fa-circle-notch animate-spin text-xl"></i>
+                                <i v-else class="fa-solid fa-floppy-disk text-xl"></i>
+                                GUARDAR CAMBIOS
+                            </button>
+                        </div>
+                    </form>
                 </div>
-                
-                <div class="flex flex-wrap mx-3 mb-6">
-                    <div class="w-full md:w-1/2 px-3 mb-6 md:mb-0">
-                    <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="fecha">
-                        Fecha
-                    </label>
-                    <input class="appearance-none block w-full bg-gray-200 text-gray-700 border border-red-500 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white" name="fecha" type="text" placeholder="Fecha" :value="props.container.fecha">
-                    </div>
-                    <div class="w-full md:w-1/2 px-3">
-                    <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="hora">
-                        Hora
-                    </label>
-                    <input class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" name="hora" type="text" placeholder="Hora" :value="props.container.hora">
-                    </div>
-                </div>
-                <div class="flex flex-wrap mx-3 mb-6">
-                    <div class="w-full md:w-1/2 px-3 mb-6 md:mb-0">
-                    <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="motores">
-                        Cantidad de Motores
-                    </label>
-                    <input class="appearance-none block w-full bg-gray-200 text-gray-700 border border-red-500 rounded py-3 px-4 mb-3 leading-tight focus:outline-none focus:bg-white" name="motores" type="text" placeholder="Motores" :value="props.container.motores">
-                    </div>
-                    <div class="w-full md:w-1/2 px-3">
-                    <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="cajas">
-                        Cantidad de Cajas
-                    </label>
-                    <input class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" name="cajas" type="text" placeholder="Código Inventario" :value="props.container.cajas" required>
-                    </div>
-                    <div class="w-full md:w-1/2 px-3">
-                    <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="camaras">
-                        Cantidad de Cámaras
-                    </label>
-                    <input class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" name="camaras" type="text" placeholder="Código Expediente" :value="props.container.camaras" required>
-                    </div>
-                    <div class="w-full md:w-1/2 px-3 mb-6 md:mb-0">
-                    <label class="block uppercase tracking-wide text-gray-700 text-xs font-bold mb-2" for="accesorios">
-                        Cantidad de Accesorios
-                    </label>
-                    <input class="appearance-none block w-full bg-gray-200 text-gray-700 border border-gray-200 rounded py-3 px-4 leading-tight focus:outline-none focus:bg-white focus:border-gray-500" name="accesorios" type="text" placeholder="Código Expediente" :value="props.container.accesorios" required>
-                    </div>
-                </div>
-                <div class="flex flex-wrap mx-3 mb-6">
-                    <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mx-2 mx-auto">Actualizar</button>
-                </div>
-            </form>
+            </div>
         </div>
     </AppLayout>
 </template>
-<script>
-export default {
-  methods: {
-    submitForm() {
-        const data = {};
-        for (const element of this.$refs.form.elements) {
-                data[element.name] = element.value;
-        }
-        this.$inertia.post('/container/update/' + this.container.id, data);
-    }
-}
-};
-</script>

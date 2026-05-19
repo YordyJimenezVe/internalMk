@@ -54,6 +54,14 @@ class MaintenancesController extends Controller
      */
     public function create(Request $request)
     {
+        $user = auth()->user();
+        if ($user->hasAnyRole(['FACTURACION', 'Facturacion', 'facturacion']) && !$user->hasAnyRole(['Superusuario', 'Administrador', 'SUPERUSUARIO', 'ADMINISTRADOR'])) {
+            $partidaId = $request->input('partida');
+            if ($partidaId) {
+                return redirect()->route('createBilling', $partidaId);
+            }
+            return redirect()->route('billing');
+        }
         // Mostrar items DISPONIBLES o DEVUELTOS que NO tengan un mantenimiento activo
         $datas = Inventario::whereIn('status', ['DISPONIBLE', 'DEVUELTO'])
             ->whereDoesntHave('maintenances', function ($query) {
@@ -91,7 +99,13 @@ class MaintenancesController extends Controller
      */
     public function show($id)
     {
+        $user = auth()->user();
         $maintenance = Maintenance::with(['partida', 'bills', 'materials', 'accesorios_engine'])->findOrFail($id);
+
+        if ($user->hasAnyRole(['FACTURACION', 'Facturacion', 'facturacion']) && !$user->hasAnyRole(['Superusuario', 'Administrador', 'SUPERUSUARIO', 'ADMINISTRADOR'])) {
+            return redirect()->route('createBilling', $maintenance->partida_id);
+        }
+
         return inertia('Maintenance/Show', [
             'maintenance' => $maintenance,
             'partida' => $maintenance->partida,
@@ -110,6 +124,10 @@ class MaintenancesController extends Controller
 
         if ($maintenance->status === 'TERMINADO' && !auth()->user()->hasAnyRole(['Superusuario', 'SUPERUSUARIO', 'Administrador', 'ADMINISTRADOR'])) {
             return redirect()->route('maintenance.history')->with('error', 'No tienes permisos para editar un mantenimiento terminado.');
+        }
+
+        if (auth()->user()->hasAnyRole(['FACTURACION', 'Facturacion', 'facturacion']) && !auth()->user()->hasAnyRole(['Superusuario', 'Administrador', 'SUPERUSUARIO', 'ADMINISTRADOR'])) {
+            return redirect()->route('createBilling', $maintenance->partida_id);
         }
 
         $partida = $maintenance->partida;
@@ -184,8 +202,9 @@ class MaintenancesController extends Controller
         // Auto-transition inventory status if maintenance is finished or culminated
         if (isset($data['status']) && ($data['status'] === 'TERMINADO' || $data['status'] === 'CULMINADO')) {
             $inventario = $maintenance->partida;
-            if ($inventario && $inventario->status === 'DEVUELTO') {
-                $inventario->update(['status' => 'DISPONIBLE']);
+            if ($inventario && ($inventario->status === 'DEVUELTO' || $inventario->status === 'GARANTIA' || $inventario->status === 'GARANTÍA')) {
+                $newInvStatus = ($inventario->status === 'GARANTIA' || $inventario->status === 'GARANTÍA') ? 'VENDIDO' : 'DISPONIBLE';
+                $inventario->update(['status' => $newInvStatus]);
             }
         }
 
