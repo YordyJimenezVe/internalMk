@@ -363,7 +363,13 @@ class InventarioController extends Controller
      */
     public function printLogoInfoLabel()
     {
-        $logoPath = public_path('logo-mk.jpg');
+        $logoPath = public_path('logo-mk-transparent.png');
+        if (!file_exists($logoPath)) {
+            $logoPath = public_path('logo-mk.png');
+        }
+        if (!file_exists($logoPath)) {
+            $logoPath = public_path('logo-mk.jpg');
+        }
         if (!file_exists($logoPath)) {
             $logoPath = public_path('storage/images/logo.png');
         }
@@ -400,7 +406,13 @@ class InventarioController extends Controller
         $qrCode = base64_encode($writer->writeString($qrData));
 
         // Get logo Base64
-        $logoPath = public_path('logo-mk.jpg');
+        $logoPath = public_path('logo-mk-transparent.png');
+        if (!file_exists($logoPath)) {
+            $logoPath = public_path('logo-mk.png');
+        }
+        if (!file_exists($logoPath)) {
+            $logoPath = public_path('logo-mk.jpg');
+        }
         if (!file_exists($logoPath)) {
             $logoPath = public_path('storage/images/logo.png');
         }
@@ -439,7 +451,13 @@ class InventarioController extends Controller
         $qrCode = base64_encode($writer->writeString($qrData));
 
         // Get logo Base64
-        $logoPath = public_path('logo-mk.jpg');
+        $logoPath = public_path('logo-mk-transparent.png');
+        if (!file_exists($logoPath)) {
+            $logoPath = public_path('logo-mk.png');
+        }
+        if (!file_exists($logoPath)) {
+            $logoPath = public_path('logo-mk.jpg');
+        }
         if (!file_exists($logoPath)) {
             $logoPath = public_path('storage/images/logo.png');
         }

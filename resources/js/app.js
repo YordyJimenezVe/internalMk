@@ -14,7 +14,7 @@ import {
     faBox, faListCheck, faUsers, faShieldHalved, faBook,
     faFileInvoiceDollar, faChartPie, faBarcode, faChevronLeft,
     faChevronRight, faWrench, faCube, faHandHoldingDollar,
-    faBoxesStacked, faScrewdriverWrench
+    faBoxesStacked, faScrewdriverWrench, faQrcode
 } from '@fortawesome/free-solid-svg-icons'
 
 library.add(
@@ -22,7 +22,7 @@ library.add(
     faBox, faListCheck, faUsers, faShieldHalved, faBook,
     faFileInvoiceDollar, faChartPie, faBarcode, faChevronLeft,
     faChevronRight, faWrench, faCube, faHandHoldingDollar,
-    faBoxesStacked, faScrewdriverWrench
+    faBoxesStacked, faScrewdriverWrench, faQrcode
 )
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
