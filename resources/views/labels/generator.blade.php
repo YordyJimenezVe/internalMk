@@ -41,6 +41,45 @@
             align-items: center;
             justify-content: flex-start;
             padding: 2rem 1rem;
+            position: relative;
+        }
+
+        /* Back to App Button */
+        .back-button {
+            position: absolute;
+            top: 2rem;
+            left: 2rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.65rem 1.15rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 9999px;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            z-index: 100;
+        }
+        .back-button:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--gold);
+            color: var(--gold);
+            transform: translateX(-3px);
+            box-shadow: 0 4px 12px rgba(251, 191, 36, 0.15);
+        }
+        
+        @media (max-width: 1024px) {
+            .back-button {
+                position: static;
+                margin-bottom: 0rem;
+                align-self: flex-start;
+            }
         }
 
         .container {
@@ -420,10 +459,15 @@
 
     <div class="container">
         
+        <!-- Back to App Button -->
+        <a href="{{ route('dashboard') }}" class="back-button">
+            <i class="fa-solid fa-arrow-left"></i> Volver al Panel
+        </a>
+        
         <!-- Header -->
         <header>
             <div class="brand-logo-container">
-                <img src="/logo-mk.jpg" class="brand-logo" alt="Maikel Cars Logo">
+                <img src="/logo-mk-transparent.png" class="brand-logo" alt="Maikel Cars Logo">
             </div>
             <h1>Generador de Etiquetas</h1>
             <p class="subtitle">
@@ -445,7 +489,7 @@
                 <div class="sticker-wrapper">
                     <div class="sticker-preview label1-preview" style="padding: 10px 14px; flex-direction: column; justify-content: center; align-items: center;">
                         <div class="preview-logo" style="height: 52px; margin-bottom: 4px; width: 100%; display: flex; justify-content: center;">
-                            <img src="/logo-mk.jpg" alt="Maikel Cars" style="max-height: 100%; object-fit: contain;">
+                            <img src="/logo-mk-transparent.png" alt="Maikel Cars" style="max-height: 100%; object-fit: contain;">
                         </div>
                         <div class="preview-divider" style="width: 80%; margin-bottom: 2px; border-top: 1.5px solid #000;"></div>
                         <!-- Espacio en blanco completamente limpio de altura equivalente -->

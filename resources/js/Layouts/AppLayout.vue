@@ -168,7 +168,7 @@ const logout = () => {
                         <span v-if="!isSidebarCollapsed">Mantenimiento</span>
                     </NavLink>
 
-                    <a v-if="$page.props.auth.user.permissions?.includes('view partida') || $page.props.auth.user.roles?.includes('Superusuario')" href="/generar-qr-etiquetas" target="_blank" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white" :class="[isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Etiquetas QR' : ''">
+                    <a v-if="$page.props.auth.user.permissions?.includes('view partida') || $page.props.auth.user.roles?.includes('Superusuario')" href="/generar-qr-etiquetas" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white" :class="[isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Etiquetas QR' : ''">
                         <font-awesome-icon icon="fa-solid fa-qrcode" class="w-5 h-5 shrink-0 text-gray-400 group-hover:text-gray-500 dark:text-gray-400" :class="[isSidebarCollapsed ? '' : 'mr-3']" />
                         <span v-if="!isSidebarCollapsed">Etiquetas QR</span>
                     </a>
