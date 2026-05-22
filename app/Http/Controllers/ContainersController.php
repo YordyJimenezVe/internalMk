@@ -88,7 +88,7 @@ class ContainersController extends Controller
                 continue;
 
             $latestMaintenance = $item->maintenances->first();
-            if ($latestMaintenance && $latestMaintenance->status !== 'FINALIZADO') {
+            if ($latestMaintenance && $latestMaintenance->status !== 'TERMINADO') {
                 $inMaintenanceCount++;
             } else {
                 if ($item->status === 'DISPONIBLE') {

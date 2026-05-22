@@ -199,8 +199,8 @@ class MaintenancesController extends Controller
             return redirect()->back()->with('error', 'No tienes permisos para modificar un mantenimiento terminado.');
         }
 
-        // Auto-transition inventory status if maintenance is finished or culminated
-        if (isset($data['status']) && ($data['status'] === 'TERMINADO' || $data['status'] === 'CULMINADO')) {
+        // Auto-transition inventory status if maintenance is finished
+        if (isset($data['status']) && $data['status'] === 'TERMINADO') {
             $inventario = $maintenance->partida;
             if ($inventario && ($inventario->status === 'DEVUELTO' || $inventario->status === 'GARANTIA' || $inventario->status === 'GARANTÍA')) {
                 $newInvStatus = ($inventario->status === 'GARANTIA' || $inventario->status === 'GARANTÍA') ? 'VENDIDO' : 'DISPONIBLE';

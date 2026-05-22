@@ -207,13 +207,6 @@ const getBrandIcon = (brand) => {
                                 <i class="fa-solid fa-flag-checkered mr-2 opacity-50"></i>TERMINADO
                             </button>
                             <button 
-                                @click="filterByStatus('CULMINADO')" 
-                                :class="[props.filters.status === 'CULMINADO' ? 'bg-white dark:bg-gray-800 text-emerald-500 dark:text-emerald-400 shadow-md transform scale-[1.02]' : 'bg-transparent text-gray-500 dark:text-gray-400 hover:text-emerald-500']"
-                                class="flex-1 px-4 py-3 rounded-[1.2rem] text-xs font-black uppercase tracking-widest transition-all duration-300"
-                            >
-                                <i class="fa-solid fa-check-double mr-2 opacity-50"></i>CULMINADO
-                            </button>
-                            <button 
                                 @click="filterByStatus('CANCELADO')" 
                                 :class="[props.filters.status === 'CANCELADO' ? 'bg-white dark:bg-gray-800 text-rose-500 dark:text-rose-400 shadow-md transform scale-[1.02]' : 'bg-transparent text-gray-500 dark:text-gray-400 hover:text-rose-500']"
                                 class="flex-1 px-4 py-3 rounded-[1.2rem] text-xs font-black uppercase tracking-widest transition-all duration-300"
@@ -244,7 +237,6 @@ const getBrandIcon = (brand) => {
                         <template #cell-status="{ row }">
                             <span class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all flex items-center justify-center w-fit gap-1.5 mx-auto"
                                 :class="{
-                                    'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/50': row.status === 'CULMINADO',
                                     'bg-indigo-50 text-indigo-700 border-indigo-100 dark:bg-indigo-900/20 dark:text-indigo-400 dark:border-indigo-800/50': row.status === 'TERMINADO',
                                     'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/50': row.status === 'EN PROCESO',
                                     'bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-800/50': row.status === 'CANCELADO' || row.status === 'NO SE PUDO CONTINUAR',
@@ -253,7 +245,6 @@ const getBrandIcon = (brand) => {
                             >
                                 <i v-if="row.status === 'EN PROCESO'" class="fa-solid fa-spinner fa-spin-pulse"></i>
                                 <i v-else-if="row.status === 'TERMINADO'" class="fa-solid fa-flag-checkered"></i>
-                                <i v-else-if="row.status === 'CULMINADO'" class="fa-solid fa-check-double"></i>
                                 <i v-else-if="row.status === 'CANCELADO'" class="fa-solid fa-ban"></i>
                                 <i v-else-if="row.status === 'EN ESPERA'" class="fa-solid fa-hourglass-start"></i>
                                 <span>{{ row.status }}</span>

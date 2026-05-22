@@ -113,7 +113,6 @@ const submitForm = (e) => {
                                     <option value="EN ESPERA" :selected="props.maintenance.status === 'EN ESPERA'">En Espera</option>
                                     <option value="EN PROCESO" :selected="props.maintenance.status === 'EN PROCESO'">En Proceso</option>
                                     <option value="TERMINADO" :selected="props.maintenance.status === 'TERMINADO'">Terminado</option>
-                                    <option value="CULMINADO" :selected="props.maintenance.status === 'CULMINADO'">Culminado</option>
                                     <option value="CANCELADO" :selected="props.maintenance.status === 'CANCELADO'">Cancelado</option>
                                 </select>
                             </div>
