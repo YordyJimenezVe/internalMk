@@ -205,7 +205,16 @@
                     $statusColor = ($partida->status == 'VENDIDO') ? 'color: #dc2626;' : 'color: #16a34a;';
 
                     $bill = $partida->bill ? $partida->bill->first() : null;
-                    $fechaVenta = $bill ? \Carbon\Carbon::parse($bill->fecha)->format('d/m/Y') : '-';
+                    
+                    $fechaVenta = '-';
+                    if ($bill && $bill->fecha) {
+                        try {
+                            $fechaVenta = \Carbon\Carbon::parse($bill->fecha)->format('d/m/Y');
+                        } catch (\Exception $e) {
+                            $fechaVenta = $bill->fecha;
+                        }
+                    }
+                    
                     $nroFactura = $bill ? $bill->numero_factura : '-';
                 @endphp
                 <tr style="{{ $isZebra ? $zebraStyle : '' }}">
