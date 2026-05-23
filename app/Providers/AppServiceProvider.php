@@ -29,5 +29,12 @@ class AppServiceProvider extends ServiceProvider
         if (!is_dir($fontPath)) {
             @mkdir($fontPath, 0777, true);
         }
+
+        // Dynamically override paths to prevent write permission locks (even if config is cached on production)
+        config([
+            'dompdf.options.font_dir' => $fontPath,
+            'dompdf.options.font_cache' => $fontPath,
+            'excel.temporary_files.local_path' => sys_get_temp_dir(),
+        ]);
     }
 }
