@@ -76,6 +76,9 @@ class ReportsController extends Controller
     }
     public function exportExcel(Request $request, $tipo, $caso, $termino = null)
     {
+        ini_set('memory_limit', '512M');
+        set_time_limit(120);
+
         $startDate = $request->query('fecha_inicio');
         $endDate = $request->query('fecha_fin');
         $status = $request->query('status');
@@ -94,6 +97,9 @@ class ReportsController extends Controller
     }
     public function exportPdf(Request $request, $tipo, $caso, $termino = null)
     {
+        ini_set('memory_limit', '512M');
+        set_time_limit(120);
+
         $startDate = $request->query('fecha_inicio');
         $endDate = $request->query('fecha_fin');
         $status = $request->query('status');
