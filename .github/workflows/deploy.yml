@@ -54,8 +54,6 @@ jobs:
             vite.config.js
             tailwind.config.js
             postcss.config.js
-            composer.json
-            composer.lock
             package.json
             package-lock.json
             **/*.pdf
