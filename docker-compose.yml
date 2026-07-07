@@ -23,7 +23,7 @@ services:
     restart: unless-stopped
     tty: true
     ports:
-      - "3309:3306"
+      - "3307:3306"
     environment:
       MYSQL_DATABASE: maikelca_inventary
       MYSQL_ROOT_PASSWORD: root
@@ -41,7 +41,7 @@ services:
     restart: unless-stopped
     tty: true
     ports:
-      - "8086:80"
+      - "8085:80"
       - "4443:443"
     volumes:
       - .:/var/www

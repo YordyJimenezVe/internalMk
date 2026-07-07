@@ -9,11 +9,11 @@ const props = defineProps({
 });
 
 const columns = [
-    { key: 'id', label: 'ID', sortable: false, class: 'w-20' },
-    { key: 'user_name', label: 'Usuario', sortable: false, class: 'w-48' },
-    { key: 'action', label: 'Acción', sortable: false, class: 'min-w-[150px] max-w-[250px] !whitespace-normal' },
-    { key: 'description', label: 'Descripción', sortable: false, class: 'min-w-[250px] max-w-[400px] !whitespace-normal' },
-    { key: 'created_at', label: 'Fecha', sortable: false, class: 'w-48' },
+    { key: 'id', label: 'ID', sortable: true, class: 'w-20' },
+    { key: 'user_name', label: 'Usuario', sortable: true, class: 'w-48' },
+    { key: 'action', label: 'Acción', sortable: true, class: 'min-w-[150px] max-w-[250px] !whitespace-normal' },
+    { key: 'description', label: 'Descripción', sortable: true, class: 'min-w-[250px] max-w-[400px] !whitespace-normal' },
+    { key: 'created_at', label: 'Fecha', sortable: true, class: 'w-48' },
 ];
 </script>
 

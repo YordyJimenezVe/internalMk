@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use App\Models\NotificationSetting;
 
 class DatabaseSeeder extends Seeder
 {
@@ -12,11 +12,40 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // \App\Models\User::factory(10)->create();
+        NotificationSetting::updateOrCreate(
+            ['key' => 'notify_outflow'],
+            [
+                'name' => 'Pieza a Rectificadora',
+                'description' => 'Notifica a los administradores cuando una pieza sale del taller hacia la rectificadora.',
+                'enabled' => true
+            ]
+        );
 
-        // \App\Models\User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
+        NotificationSetting::updateOrCreate(
+            ['key' => 'notify_return'],
+            [
+                'name' => 'Entrada de Rectificadora',
+                'description' => 'Notifica a los administradores y encargados cuando una pieza regresa de la rectificadora para que se registre la factura.',
+                'enabled' => true
+            ]
+        );
+
+        NotificationSetting::updateOrCreate(
+            ['key' => 'notify_pending_conciliation'],
+            [
+                'name' => 'Conciliación Pendiente',
+                'description' => 'Notifica al departamento de facturación cuando se ha cargado una nueva factura de taller para ser conciliada.',
+                'enabled' => true
+            ]
+        );
+
+        NotificationSetting::updateOrCreate(
+            ['key' => 'notify_low_stock'],
+            [
+                'name' => 'Bajo Stock de Repuestos',
+                'description' => 'Notifica a los administradores y almacén si la existencia de algún repuesto cae por debajo del mínimo.',
+                'enabled' => true
+            ]
+        );
     }
 }

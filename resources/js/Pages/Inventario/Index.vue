@@ -34,8 +34,8 @@ const getBrandSlug = (brand) => {
         'jeep': 'jeep',
         'jeepp': 'jeep',
         'volkswagen': 'volkswagen',
-        'dodge': 'dodge',
-        'dosge': 'dodge',
+        'dodge': 'ram',
+        'dosge': 'ram',
         'mazda': 'mazda',
         'suzuki': 'suzuki',
         'mercedes': 'mercedesbenz',
@@ -59,10 +59,24 @@ const getBrandSlug = (brand) => {
     return null;
 };
 
-const getBrandIcon = (brand) => {
+const imageAttempts = ref({});
+
+const getBrandIcon = (brand, id) => {
     const slug = getBrandSlug(brand);
-    if (slug) return `https://cdn.simpleicons.org/${slug}/9ca3af`;
-    return null;
+    if (!slug) return null;
+    
+    const urls = [
+        `https://cdn.simpleicons.org/${slug}/9ca3af`,
+        `https://vl.imgix.net/img/${slug}-logo.png`,
+        `https://logo.clearbit.com/${slug}.com`
+    ];
+    
+    const attempt = imageAttempts.value[id] || 0;
+    return attempt < urls.length ? urls[attempt] : null;
+};
+
+const handleImageError = (id) => {
+    imageAttempts.value[id] = (imageAttempts.value[id] || 0) + 1;
 };
 
 const currentUrl = window.location.pathname;
@@ -84,7 +98,7 @@ const columns = computed(() => {
         { key: 'expediente', label: 'Expediente', sortable: true },
         { key: 'tipo', label: 'Tipo', sortable: true },
         { key: 'serial', label: 'Serial', sortable: true },
-        { key: 'model_display', label: 'Marca / Modelo' }, // Composite
+        { key: 'model_display', label: 'Marca / Modelo', sortable: true }, // Composite
     ];
 
     if (isAutopart.value) {
@@ -97,7 +111,7 @@ const columns = computed(() => {
     return cols;
 });
 
-const statusFilter = ref(props.filters?.status || 'DISPONIBLE');
+const statusFilter = ref(props.filters?.status || 'ALL');
 const typeFilter = ref(props.filters?.type_filter || ''); // New
 
 const fetchInventarios = () => {
@@ -156,7 +170,7 @@ const confirmDelete = () => {
         <div class="max-w-8xl mx-auto sm:px-6 lg:px-8">
             
             <!-- Primary Action Toolbar -->
-            <div class="mb-6 flex justify-end">
+            <div v-if="$page.props.auth.user.permissions?.includes('manage partida') || $page.props.auth.user.roles?.includes('Superusuario')" class="mb-6 flex justify-end">
                 <button 
                     @click="registrarInventario()" 
                     class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-[2rem] font-black shadow-xl shadow-indigo-500/20 transition-all transform hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 group border-b-4 border-indigo-800"
@@ -190,6 +204,7 @@ const confirmDelete = () => {
                     <div class="relative group">
                         <i class="fa-solid fa-tag absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-emerald-500 transition-colors"></i>
                         <select v-model="statusFilter" @change="fetchInventarios" class="w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold outline-none appearance-none cursor-pointer">
+                            <option value="PRECIO PENDIENTE">PRECIO PENDIENTE</option>
                             <option value="DISPONIBLE">DISPONIBLES</option>
                             <option value="VENDIDO">VENDIDOS</option>
                             <option value="GARANTIA">GARANTÍAS</option>
@@ -237,7 +252,7 @@ const confirmDelete = () => {
                     <template #cell-model_display="{ row }">
                         <div class="flex items-center gap-3">
                             <div class="h-10 w-10 flex items-center justify-center bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-700 overflow-hidden p-1.5">
-                                <img v-if="getBrandIcon(row.marca)" :src="getBrandIcon(row.marca)" class="w-full h-full object-contain opacity-80" :alt="row.marca" />
+                                <img v-if="getBrandIcon(row.marca, row.id)" :src="getBrandIcon(row.marca, row.id)" @error="handleImageError(row.id)" class="w-full h-full object-contain opacity-80" :alt="row.marca" />
                                 <FontAwesomeIcon v-else :icon="['fas', 'car']" class="text-gray-400 dark:text-gray-500 text-xl" />
                             </div>
                             <div class="flex flex-col">
@@ -257,15 +272,15 @@ const confirmDelete = () => {
                              <button @click="router.visit(route('showInventario', row.id))"
                                 class="h-8 w-8 flex items-center justify-center rounded-lg bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 transition-all transform active:scale-90" title="Ver Detalles">
                                 <i class="fa-solid fa-eye text-xs"></i>
-                            </button>
-                            <button @click="editarInventario(row.id)"
+                             </button>
+                             <button v-if="$page.props.auth.user.permissions?.includes('manage partida') || $page.props.auth.user.roles?.includes('Superusuario')" @click="editarInventario(row.id)"
                                 class="h-8 w-8 flex items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 transition-all transform active:scale-90" title="Editar">
                                 <i class="fa-solid fa-pen-to-square text-xs"></i>
-                            </button>
-                            <button @click="openDeleteModal(row.id)"
+                             </button>
+                             <button v-if="$page.props.auth.user.permissions?.includes('manage partida') || $page.props.auth.user.roles?.includes('Superusuario')" @click="openDeleteModal(row.id)"
                                 class="h-8 w-8 flex items-center justify-center rounded-lg bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 hover:bg-rose-600 hover:text-white dark:hover:bg-rose-500 transition-all transform active:scale-90" title="Eliminar">
                                 <i class="fa-solid fa-trash-can text-xs"></i>
-                            </button>
+                             </button>
                         </div>
                     </template>
                 </DataTable>

@@ -28,10 +28,11 @@
         }
 
         .info-value {
-            font-size: 8px;
+            font-size: 10.5px;
             font-weight: bold;
             color: #000;
-            margin-bottom: 2px;
+            margin-top: 2px;
+            margin-bottom: 3px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -39,16 +40,17 @@
         }
 
         .qr-code {
-            margin-bottom: 2px;
+            margin-top: 0px;
+            margin-bottom: -3px;
         }
 
         .barcode {
-            margin-top: 2px;
+            margin-top: -3px;
         }
 
         .barcode-text {
             font-family: 'Courier New', Courier, monospace;
-            font-size: 7px;
+            font-size: 9px;
             font-weight: bold;
             letter-spacing: 1px;
             margin-top: 1px;
@@ -77,10 +79,11 @@
             {{ $inventario->marca }} {{ $inventario->modelo }}
         </div>
         <div class="qr-code">
-            <img src="data:image/svg+xml;base64,{{ $qrCode }}" width="45" height="45">
+            <img src="data:image/svg+xml;base64,{{ $qrCode }}" width="60" height="60">
         </div>
         <div class="barcode">
             <img src="data:image/png;base64,{{ $barcode }}" width="130" height="15">
+            <div class="barcode-text">EXP: {{ $inventario->expediente }}</div>
         </div>
     </div>
 </body>

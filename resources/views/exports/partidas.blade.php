@@ -141,24 +141,24 @@
     @if($isExcel)
         <table>
             <tr>
-                <td colspan="10" style="font-size: 24px; font-weight: bold; color: #1e293b;">MAIKEL CARS</td>
+                <td colspan="11" style="font-size: 24px; font-weight: bold; color: #1e293b;">MAIKEL CARS</td>
             </tr>
             <tr>
                 <td colspan="4" rowspan="2" style="font-size: 16px; color: #64748b; text-transform: uppercase; vertical-align: middle;">Reporte de Inventario</td>
-                <td colspan="6" style="text-align: right; font-size: 10px; color: #94a3b8;">
+                <td colspan="7" style="text-align: right; font-size: 10px; color: #94a3b8;">
                     Generado el {{ date('d/m/Y') }} a las {{ date('h:i A') }}
                 </td>
             </tr>
             <tr>
-                <td colspan="6" style="text-align: right; font-size: 10px; color: #94a3b8;">
+                <td colspan="7" style="text-align: right; font-size: 10px; color: #94a3b8;">
                     Sistema de Gestión Interna
                 </td>
             </tr>
             <tr>
-                <td colspan="10" style="border-bottom: 2px solid #2563EB; height: 5px;"></td>
+                <td colspan="11" style="border-bottom: 2px solid #2563EB; height: 5px;"></td>
             </tr>
             <tr>
-                <td colspan="10" style="height: 10px;"></td>
+                <td colspan="11" style="height: 10px;"></td>
             </tr>
         </table>
     @else
@@ -184,16 +184,17 @@
     <table class="data-table" style="width: 100%; border-collapse: collapse;">
         <thead>
             <tr>
-                <th style="{{ $headerStyle }} width: 10%;">TIPO</th>
-                <th style="{{ $headerStyle }} width: 10%;">MARCA</th>
-                <th style="{{ $headerStyle }} width: 15%;">MODELO</th>
+                <th style="{{ $headerStyle }} width: 8%;">TIPO</th>
+                <th style="{{ $headerStyle }} width: 8%;">MARCA</th>
+                <th style="{{ $headerStyle }} width: 12%;">MODELO</th>
                 <th style="{{ $headerStyle }} width: 10%;">SERIAL</th>
-                <th style="{{ $headerStyle }} width: 6%;">AÑO</th>
+                <th style="{{ $headerStyle }} width: 5%;">AÑO</th>
                 <th style="{{ $headerStyle }} width: 8%;">COD. INV</th>
                 <th style="{{ $headerStyle }} width: 8%;">EXPEDIENTE</th>
-                <th style="{{ $headerStyle }} width: 10%;">ESTATUS</th>
-                <th style="{{ $headerStyle }} width: 10%;">F. VENTA</th>
-                <th style="{{ $headerStyle }} width: 13%;">NRO. FACTURA</th>
+                <th style="{{ $headerStyle }} width: 8%;">ESTATUS</th>
+                <th style="{{ $headerStyle }} width: 8%;">F. VENTA</th>
+                <th style="{{ $headerStyle }} width: 10%;">NRO. FACTURA</th>
+                <th style="{{ $headerStyle }} width: 15%;">OBSERVACIÓN</th>
             </tr>
         </thead>
         <tbody>
@@ -228,6 +229,7 @@
                     <td style="{{ $currentRowStyle }} {{ $statusColor }} font-weight: bold;">{{ $partida->status }}</td>
                     <td style="{{ $currentRowStyle }}">{{ $fechaVenta }}</td>
                     <td style="{{ $currentRowStyle }} font-weight: bold;">{{ $nroFactura }}</td>
+                    <td style="{{ $currentRowStyle }}">{{ $partida->observation ?? '-' }}</td>
                 </tr>
             @endforeach
         </tbody>
@@ -245,7 +247,7 @@
                 <td colspan="3" style="{{ $statCardStyle }}">
                     DISPONIBLES: {{ $disponibles }}
                 </td>
-                <td colspan="4" style="{{ $statCardStyle }}">
+                <td colspan="5" style="{{ $statCardStyle }}">
                     VENDIDOS: {{ $vendidos }}
                 </td>
             </tr>

@@ -7,10 +7,19 @@ use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Inertia\Inertia;
 
+/**
+ * Controlador para la gestión de Roles y Permisos en el sistema.
+ * 
+ * Permite administrar las agrupaciones de permisos definidos por el sistema (Spatie),
+ * creando nuevos roles, modificando sus permisos asignados y restringiendo de forma
+ * segura la edición o eliminación del rol raíz 'Superusuario'.
+ */
 class RolesController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Muestra la matriz de roles y permisos configurados.
+     *
+     * @return \Inertia\Response
      */
     public function index()
     {
@@ -25,7 +34,10 @@ class RolesController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Almacena un nuevo rol en la base de datos y le asocia los permisos indicados.
+     *
+     * @param  \Illuminate\Http\Request  $request  Petición HTTP con el nombre del rol y el array de permisos.
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function store(Request $request)
     {
@@ -44,7 +56,11 @@ class RolesController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * Actualiza el nombre del rol (exceptuando 'Superusuario') y sincroniza sus permisos.
+     *
+     * @param  \Illuminate\Http\Request  $request  Petición HTTP con los nuevos datos.
+     * @param  int  $id  Identificador único del rol a actualizar.
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function update(Request $request, int $id)
     {
@@ -69,7 +85,12 @@ class RolesController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Elimina un rol específico de la base de datos.
+     * 
+     * Impide estrictamente la eliminación del rol vital 'Superusuario'.
+     *
+     * @param  int  $id  Identificador único del rol a eliminar.
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function destroy(int $id)
     {

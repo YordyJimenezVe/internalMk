@@ -7,6 +7,7 @@ import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ref, onMounted } from 'vue';
+import axios from 'axios';
 
 defineProps({
     title: String,
@@ -15,6 +16,41 @@ defineProps({
 const showingNavigationDropdown = ref(false);
 const isSidebarCollapsed = ref(false);
 const isDarkMode = ref(false);
+
+const unreadCount = ref(0);
+const notifications = ref([]);
+
+const fetchNotifications = async () => {
+    try {
+        const response = await axios.get(route('notifications.unread'));
+        unreadCount.value = response.data.unread_count;
+        notifications.value = response.data.notifications;
+    } catch (error) {
+        console.error('Error fetching notifications:', error);
+    }
+};
+
+const markAllNotificationsRead = () => {
+    router.post(route('notifications.read_all'), {}, {
+        preserveScroll: true,
+        onSuccess: () => {
+            unreadCount.value = 0;
+            notifications.value = [];
+        }
+    });
+};
+
+const handleNotifClick = (notif) => {
+    router.post(route('notifications.read', notif.id), {}, {
+        preserveScroll: true,
+        onSuccess: () => {
+            fetchNotifications();
+            if (notif.action_url) {
+                router.visit(notif.action_url);
+            }
+        }
+    });
+};
 
 const toggleSidebar = () => {
     isSidebarCollapsed.value = !isSidebarCollapsed.value;
@@ -78,6 +114,9 @@ onMounted(() => {
             }, 200);
         }
     });
+
+    fetchNotifications();
+    setInterval(fetchNotifications, 45000);
 });
 
 const switchToTeam = (team) => {
@@ -89,7 +128,11 @@ const switchToTeam = (team) => {
 };
 
 const logout = () => {
-    router.post(route('logout'));
+    router.post(route('logout'), {}, {
+        onFinish: () => {
+            window.location.href = '/login';
+        }
+    });
 };
 </script>
 
@@ -162,6 +205,11 @@ const logout = () => {
                         <span v-if="!isSidebarCollapsed">Inventario</span>
                     </NavLink>
 
+                    <NavLink v-if="$page.props.auth.user.permissions?.includes('view billing') || $page.props.auth.user.roles?.includes('Superusuario')" :href="route('inventario.precio_pendiente')" :active="route().current('inventario.precio_pendiente')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('inventario.precio_pendiente') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Precio Pendiente' : ''">
+                        <font-awesome-icon icon="fa-solid fa-hourglass-half" class="w-5 h-5 shrink-0" :class="[route().current('inventario.precio_pendiente') ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 group-hover:text-gray-500 dark:text-gray-400', isSidebarCollapsed ? '' : 'mr-3']" />
+                        <span v-if="!isSidebarCollapsed">Precio Pendiente</span>
+                    </NavLink>
+
 
                      <NavLink v-if="$page.props.auth.user.permissions?.includes('view maintenance') || $page.props.auth.user.roles?.includes('Superusuario')" :href="route('maintenance')" :active="route().current('maintenance')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('maintenance') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Mantenimiento' : ''">
                         <font-awesome-icon icon="fa-solid fa-wrench" class="w-5 h-5 shrink-0" :class="[route().current('maintenance') ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 group-hover:text-gray-500 dark:text-gray-400', isSidebarCollapsed ? '' : 'mr-3']" />
@@ -200,6 +248,11 @@ const logout = () => {
                         <span v-if="!isSidebarCollapsed">Solicitudes</span>
                     </NavLink>
 
+                    <NavLink v-if="$page.props.auth.user.permissions?.includes('view billing') || $page.props.auth.user.roles?.includes('Superusuario') || $page.props.auth.user.roles?.includes('FACTURACION')" :href="route('maintenance.conciliacion')" :active="route().current('maintenance.conciliacion')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('maintenance.conciliacion') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Conciliación Taller' : ''">
+                        <font-awesome-icon icon="fa-solid fa-scale-balanced" class="w-5 h-5 shrink-0" :class="[route().current('maintenance.conciliacion') ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 group-hover:text-gray-500 dark:text-gray-400', isSidebarCollapsed ? '' : 'mr-3']" />
+                        <span v-if="!isSidebarCollapsed">Conciliación Taller</span>
+                    </NavLink>
+
                     <NavLink v-if="$page.props.auth.user.permissions?.includes('view billing') || $page.props.auth.user.roles?.includes('Superusuario') || $page.props.auth.user.roles?.includes('FACTURACION')" :href="route('billing')" :active="route().current('billing')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('billing') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Historial' : ''">
                         <font-awesome-icon icon="fa-solid fa-file-invoice-dollar" class="w-5 h-5 shrink-0" :class="[route().current('billing') ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 group-hover:text-gray-500 dark:text-gray-400', isSidebarCollapsed ? '' : 'mr-3']" />
                         <span v-if="!isSidebarCollapsed">Historial de Ventas</span>
@@ -210,6 +263,12 @@ const logout = () => {
                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
                         </svg>
                         <span v-if="!isSidebarCollapsed">Reportes</span>
+                    </NavLink>
+
+                    <!-- Notificaciones Admin Menu -->
+                    <NavLink v-if="$page.props.auth.user.rol === 'Administrador' || $page.props.auth.user.roles?.includes('Superusuario')" :href="route('admin.notifications.index')" :active="route().current('admin.notifications.index')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('admin.notifications.index') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Alertas y Avisos' : ''">
+                        <font-awesome-icon icon="fa-solid fa-bell" class="w-5 h-5 shrink-0" :class="[route().current('admin.notifications.index') ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 group-hover:text-gray-500 dark:text-gray-400', isSidebarCollapsed ? '' : 'mr-3']" />
+                        <span v-if="!isSidebarCollapsed">Alertas y Avisos</span>
                     </NavLink>
 
                     <NavLink v-if="$page.props.auth.user.permissions?.includes('access scan') || $page.props.auth.user.roles?.includes('Superusuario')" :href="route('scan.index')" :active="route().current('scan.index')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('scan.index') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Escaneo' : ''">
@@ -277,6 +336,63 @@ const logout = () => {
                             </template>
                         </Dropdown>
                      </div>
+
+                      <!-- Notification Dropdown -->
+                      <div class="relative ms-3 flex items-center">
+                           <Dropdown align="right" width="80" :content-classes="['py-0', 'bg-transparent', 'shadow-none', 'ring-0']">
+                               <template #trigger>
+                                   <button type="button" class="relative p-2 text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition-all duration-200 focus:outline-none" :title="'Notificaciones'">
+                                       <font-awesome-icon icon="fa-solid fa-bell" class="w-5 h-5" :class="{'animate-bounce': unreadCount > 0}" />
+                                       <span v-if="unreadCount > 0" class="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-black text-white ring-2 ring-white dark:ring-slate-900 animate-pulse">
+                                           {{ unreadCount }}
+                                       </span>
+                                   </button>
+                               </template>
+
+                               <template #content>
+                                   <div class="w-80 max-w-sm bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl shadow-2xl p-4 text-left">
+                                       <div class="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800 mb-3">
+                                           <span class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-wider">Alertas Recientes</span>
+                                           <button v-if="unreadCount > 0" @click="markAllNotificationsRead" class="text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 hover:underline">
+                                               Marcar todo leido
+                                           </button>
+                                       </div>
+
+                                       <div class="space-y-3 max-h-[250px] overflow-y-auto">
+                                           <div v-if="notifications.length === 0" class="py-6 text-center text-xs text-gray-400 italic">
+                                               <i class="fa-solid fa-bell-slash text-lg mb-2 block text-gray-300"></i>Sin notificaciones pendientes
+                                           </div>
+                                           <div v-for="notif in notifications" :key="notif.id" @click="handleNotifClick(notif)" class="flex gap-3 p-2.5 hover:bg-gray-50 dark:hover:bg-slate-850 rounded-2xl cursor-pointer transition-all duration-150 border-l-4" :class="[
+                                               notif.color === 'rose' ? 'border-rose-500 bg-rose-500/5' :
+                                               notif.color === 'emerald' ? 'border-emerald-500 bg-emerald-500/5' :
+                                               notif.color === 'amber' ? 'border-amber-500 bg-amber-500/5' :
+                                               'border-indigo-500 bg-indigo-500/5'
+                                           ]">
+                                               <div class="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full" :class="[
+                                                   notif.color === 'rose' ? 'bg-rose-100 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400' :
+                                                   notif.color === 'emerald' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400' :
+                                                   notif.color === 'amber' ? 'bg-amber-100 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400' :
+                                                   'bg-indigo-100 text-indigo-600 dark:bg-indigo-950/30 dark:text-indigo-400'
+                                               ]">
+                                                   <i :class="['fa-solid', notif.icon || 'fa-bell', 'text-xs']"></i>
+                                               </div>
+                                               <div class="flex-1 min-w-0">
+                                                   <div class="text-xs font-bold text-gray-900 dark:text-white truncate uppercase">{{ notif.title }}</div>
+                                                   <div class="text-[10px] text-gray-500 dark:text-slate-400 line-clamp-2 mt-0.5 leading-snug">{{ notif.message }}</div>
+                                                   <div class="text-[8px] text-gray-400 dark:text-slate-500 mt-1 italic">{{ notif.created_at }}</div>
+                                               </div>
+                                           </div>
+                                       </div>
+
+                                       <div v-if="$page.props.auth.user.rol === 'Administrador'" class="pt-3 border-t border-gray-100 dark:border-slate-800 mt-3 text-center">
+                                           <Link :href="route('admin.notifications.index')" class="text-[10px] font-black text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 uppercase tracking-widest">
+                                               Administrar Notificaciones →
+                                           </Link>
+                                       </div>
+                                   </div>
+                               </template>
+                           </Dropdown>
+                      </div>
 
                      <!-- Settings Dropdown -->
                      <div class="relative ms-3">

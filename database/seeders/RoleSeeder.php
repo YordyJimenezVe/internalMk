@@ -79,6 +79,16 @@ class RoleSeeder extends Seeder
             'manage billing',
         ]);
 
+        // 6. ADMINISTRADOR DE SOLO LECTURA (Administrador Consulta)
+        $adminReadOnly = Role::firstOrCreate(['name' => 'Administrador Consulta']);
+        $adminReadOnly->givePermissionTo([
+            'view partida',
+            'view billing',
+            'view maintenance',
+            'view bitacora',
+            'view reports',
+        ]);
+
         // --- Migrating Existing Users (Best Guess) ---
         // We look for users with 'rol' column if it exists or generic logic
         $users = User::all();
@@ -98,6 +108,12 @@ class RoleSeeder extends Seeder
                     $user->assignRole('Facturacion');
                 }
             }
+        }
+
+        // Assign role to Rebeca if she exists in database
+        $rebeca = User::where('email', 'like', 'rebeca%')->first();
+        if ($rebeca) {
+            $rebeca->syncRoles([$adminReadOnly]);
         }
     }
 }

@@ -7,6 +7,7 @@ const props = defineProps({
   data: Object,
   employee: Object,
   tasa_bcv: Number,
+  costo_declarado: [Number, String],
 });
 const showCedulaModal = ref(false);
 </script>
@@ -327,46 +328,48 @@ export default {
         },
     },
     mounted() {
-    // Convertimos a número, redondeamos a 2 decimales y aseguramos que sea string para tus regex
-    this.valueDivisa = parseFloat(this.tasa_bcv).toFixed(2);
+        // Convertimos a número, redondeamos a 2 decimales y aseguramos que sea string para tus regex
+        this.valueDivisa = parseFloat(this.tasa_bcv).toFixed(2);
 
-    this.priceDivisa = this.data['price'];
-    var priceDivisaSinCracter = (String(this.priceDivisa)).replace(/[,.]/g, "");
+        // El costo declarado en dólares (BIG en USD) se usa para la base fiscal
+        const declaredUSD = parseFloat(this.$page.props.costo_declarado || 0).toFixed(2);
+        this.priceDivisa = declaredUSD;
 
-    // Cents-to-cents multiplication results in scale 10,000 (cents squared)
-    const valueDivisaSinCaracter = (String(this.valueDivisa)).replace(/[,.]/g, "");
-    const generalScale10000 = parseInt(priceDivisaSinCracter) * parseInt(valueDivisaSinCaracter);
-    
-    // Convert to scale 100 (cents) by dividing by 100
-    const generalCents = Math.round(generalScale10000 / 100);
+        const declaredUSDSinCaracter = String(declaredUSD).replace(/[,.]/g, "");
+        const valueDivisaSinCaracter = String(this.valueDivisa).replace(/[,.]/g, "");
 
-    // Big (Base Imponible)
-    const bigCents = Math.round(generalCents / 1.16);
-    this.big = this.thousandsSeparator(String(bigCents));
+        // Multiplicación en centavos (escala 10,000)
+        const bigScale10000 = parseInt(declaredUSDSinCaracter) * parseInt(valueDivisaSinCaracter);
+        const bigCents = Math.round(bigScale10000 / 100); // Base Imponible en Bs (100% de la base declarada)
 
-    // Iva (16%)
-    const ivaCents = Math.round(generalCents - bigCents); // Difference ensures precision
-    this.iva = this.thousandsSeparator(String(ivaCents));
+        // BIG (Base Imponible)
+        this.big = this.thousandsSeparator(String(bigCents));
 
-    // Precio Total
-    this.totalAmount = this.thousandsSeparator(String(generalCents));
+        // IVA (16% sobre la Base Imponible)
+        const ivaCents = Math.round(bigCents * 0.16);
+        this.iva = this.thousandsSeparator(String(ivaCents));
 
-    this.clientName = this.data['client_name'] || '';
-    this.clientCedula = this.data['client_cedula'] || '';
-    this.clientPhone = this.data['client_phone'] || '';
-    this.clientAddress = this.data['client_address'] || '';
-    this.partida = this.data.id;
-    this.pagoDivisa = this.data['price'] || ''; // Auto-fill payment amount
+        // Precio Total de Facturación (BIG + IVA)
+        const generalCents = bigCents + ivaCents;
+        this.totalAmount = this.thousandsSeparator(String(generalCents));
 
+        this.clientName = this.data['client_name'] || '';
+        this.clientCedula = this.data['client_cedula'] || '';
+        this.clientPhone = this.data['client_phone'] || '';
+        this.clientAddress = this.data['client_address'] || '';
+        this.partida = this.data.id;
+        
+        // El pago real en divisa por el cual se vende el motor (ej: $1600) se usa para calcular el cobro y el IGTF
+        this.pagoDivisa = this.data['price'] || ''; 
 
-    // Set current date and time
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    this.fecha = `${year}-${month}-${day}`;
-    this.hora = now.toTimeString().split(' ')[0].substring(0, 5);
-},
+        // Set current date and time
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        this.fecha = `${year}-${month}-${day}`;
+        this.hora = now.toTimeString().split(' ')[0].substring(0, 5);
+    },
     methods: {
         submitForm() {
             const data = {};

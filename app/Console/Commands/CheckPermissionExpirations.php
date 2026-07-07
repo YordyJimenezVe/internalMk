@@ -44,8 +44,16 @@ class CheckPermissionExpirations extends Command
             $model = $record->model_type::find($record->model_id);
 
             if ($model) {
-                // Check if they still have it
-                if ($model->hasDirectPermission($record->permission_name)) {
+                // Check if there are other unexpired temporary entries for the same permission
+                $stillActive = DB::table('permission_expirations')
+                    ->where('model_type', $record->model_type)
+                    ->where('model_id', $record->model_id)
+                    ->where('permission_name', $record->permission_name)
+                    ->where('expires_at', '>', now())
+                    ->exists();
+
+                // Only revoke if no other active temporary entries exist
+                if (!$stillActive && $model->hasDirectPermission($record->permission_name)) {
                     $model->revokePermissionTo($record->permission_name);
                     $this->info("Revoked {$record->permission_name} from {$record->model_type} ID {$record->model_id}");
                 }

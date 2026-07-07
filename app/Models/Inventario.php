@@ -13,6 +13,27 @@ class Inventario extends Model
 
     protected $table = 'inventarios';
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saving(function ($model) {
+            if ($model->marca) {
+                $model->marca = mb_strtoupper($model->marca);
+            }
+            if ($model->modelo) {
+                $model->modelo = mb_strtoupper($model->modelo);
+            }
+            if ($model->serial) {
+                $model->serial = mb_strtoupper($model->serial);
+            }
+        });
+
+        static::saved(function ($model) {
+            $model->recalculatePrice();
+        });
+    }
+
     protected $fillable = [
         'tipo',
         'marca',
@@ -32,6 +53,7 @@ class Inventario extends Model
         'costo',
         'costo_importacion_unitario',
         'origen',
+        'observation',
     ];
 
     public function container()
@@ -52,5 +74,28 @@ class Inventario extends Model
     public function billingRequests()
     {
         return $this->hasMany(BillingRequest::class, 'partida_id');
+    }
+
+    public function getCostoTallerAttribute()
+    {
+        $total = 0;
+        foreach ($this->maintenances as $maintenance) {
+            $total += (float) $maintenance->items()
+                ->where('document_type', 'FACTURA')
+                ->sum('base_imponible');
+        }
+        return $total;
+    }
+
+    public function recalculatePrice()
+    {
+        $costoImportacion = (float) $this->costo_importacion_unitario;
+        $costoTaller = (float) $this->getCostoTallerAttribute();
+        $utilidad = (float) \App\Models\Setting::get('utility_percentage', 30);
+
+        $newPrice = ($costoImportacion + $costoTaller) * (1 + $utilidad / 100);
+
+        $this->price = number_format($newPrice, 2, '.', '');
+        $this->saveQuietly();
     }
 }

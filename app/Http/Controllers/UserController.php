@@ -11,8 +11,21 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
+/**
+ * Controlador para la administración de Usuarios e integración de Permisos Temporales.
+ * 
+ * Permite listar, registrar, editar y borrar usuarios del sistema, controlando
+ * la asignación de roles de Spatie y proveyendo un mecanismo de seguridad avanzado
+ * para otorgar permisos temporales que vencen automáticamente tras n minutos.
+ */
 class UserController extends Controller
 {
+    /**
+     * Muestra la bandeja de usuarios registrados con filtros de búsqueda y listado de roles/permisos.
+     *
+     * @param  \Illuminate\Http\Request  $request  Petición HTTP con filtros opcionales.
+     * @return \Inertia\Response
+     */
     public function index(Request $request)
     {
         $search = $request->input('search');
@@ -35,6 +48,12 @@ class UserController extends Controller
         ]);
     }
 
+    /**
+     * Registra un nuevo usuario en la base de datos y le asigna el rol de Spatie indicado.
+     *
+     * @param  \Illuminate\Http\Request  $request  Petición HTTP con los datos de registro.
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function store(Request $request)
     {
         $request->validate([
@@ -55,6 +74,15 @@ class UserController extends Controller
         return redirect()->back()->with('success', 'Usuario creado correctamente.');
     }
 
+    /**
+     * Actualiza la información de un usuario existente.
+     * 
+     * Sincroniza su rol y actualiza de manera segura la contraseña si fue provista.
+     *
+     * @param  \Illuminate\Http\Request  $request  Petición HTTP con los datos modificados.
+     * @param  string|int  $id  Identificador único del usuario a actualizar.
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function update(Request $request, $id)
     {
         $user = User::findOrFail($id);
@@ -79,6 +107,14 @@ class UserController extends Controller
         return redirect()->back()->with('success', 'Usuario actualizado correctamente.');
     }
 
+    /**
+     * Elimina un usuario de la base de datos.
+     * 
+     * Impide que un usuario autenticado se elimine a sí mismo por razones de seguridad.
+     *
+     * @param  string|int  $id  Identificador único del usuario a eliminar.
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function destroy($id)
     {
         $user = User::findOrFail($id);
@@ -89,6 +125,16 @@ class UserController extends Controller
         return redirect()->back()->with('success', 'Usuario eliminado.');
     }
 
+    /**
+     * Otorga un permiso específico de Spatie a un usuario por un tiempo limitado de minutos.
+     * 
+     * Almacena el vencimiento en la tabla `permission_expirations` para su posterior
+     * revocación automatizada.
+     *
+     * @param  \Illuminate\Http\Request  $request  Petición HTTP con el nombre del permiso y duración en minutos.
+     * @param  string|int  $id  Identificador único del usuario al que se le otorga el permiso.
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function assignTemporaryPermission(Request $request, $id)
     {
         $user = User::findOrFail($id);

@@ -5,10 +5,19 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Inventario;
 
+/**
+ * Controlador para la gestión y visualización de Cámaras en el inventario.
+ * 
+ * Permite filtrar, buscar y paginar registros de tipo CÁMARA disponibles,
+ * conectando el flujo de datos directamente con Inertia.
+ */
 class CamarasController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Muestra el listado de cámaras filtrado, ordenado y paginado.
+     *
+     * @param  \Illuminate\Http\Request  $request  Petición HTTP con filtros de búsqueda y paginación.
+     * @return \Inertia\Response
      */
     public function index(Request $request)
     {
@@ -45,7 +54,9 @@ class CamarasController extends Controller
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Muestra el formulario para registrar una nueva cámara.
+     *
+     * @return void
      */
     public function create()
     {
@@ -53,7 +64,10 @@ class CamarasController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Almacena una nueva cámara en la base de datos.
+     *
+     * @param  \Illuminate\Http\Request  $request  Petición con los datos de creación.
+     * @return void
      */
     public function store(Request $request)
     {
@@ -61,7 +75,10 @@ class CamarasController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * Muestra los detalles de una cámara específica.
+     *
+     * @param  string  $id  Identificador único de la cámara.
+     * @return void
      */
     public function show(string $id)
     {
@@ -69,7 +86,10 @@ class CamarasController extends Controller
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Muestra el formulario de edición de una cámara.
+     *
+     * @param  string  $id  Identificador único de la cámara.
+     * @return void
      */
     public function edit(string $id)
     {
@@ -77,7 +97,11 @@ class CamarasController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * Actualiza una cámara específica en la base de datos.
+     *
+     * @param  \Illuminate\Http\Request  $request  Petición con los datos modificados.
+     * @param  string  $id  Identificador único de la cámara.
+     * @return void
      */
     public function update(Request $request, string $id)
     {
@@ -85,7 +109,10 @@ class CamarasController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Elimina una cámara específica de la base de datos.
+     *
+     * @param  string  $id  Identificador único de la cámara.
+     * @return void
      */
     public function destroy(string $id)
     {

@@ -1,18 +1,55 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { useForm, router } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref, onMounted } from 'vue';
+import axios from 'axios';
 
 const props = defineProps({
   inventario: Object,
   qrCode: String,
   barcode: String,
   barcodeData: String,
+  tasa_bcv: Number,
+});
+
+const vehicleType = ref('Cargando...');
+const vehicleExample = ref('');
+const loadingVehicleType = ref(true);
+
+onMounted(() => {
+    axios.get(route('inventario.vehicle_type'), {
+        params: {
+            marca: props.inventario.marca,
+            modelo: props.inventario.modelo,
+            ano: props.inventario.año
+        }
+    }).then(response => {
+        vehicleType.value = response.data.tipo_vehiculo;
+        vehicleExample.value = response.data.ejemplo;
+    }).catch(error => {
+        console.error('Error al obtener el tipo de vehículo:', error);
+        vehicleType.value = 'N/A';
+        vehicleExample.value = '';
+    }).finally(() => {
+        loadingVehicleType.value = false;
+    });
 });
 
 const alreadyRequested = computed(() => {
     return (props.inventario.billing_requests && props.inventario.billing_requests.length > 0) || 
            (props.inventario.bill && props.inventario.bill.length > 0);
+});
+
+const baseImponible = computed(() => {
+    return parseFloat(props.inventario.costo_importacion_unitario || 0) + parseFloat(props.inventario.costo_taller || 0);
+});
+
+const iva = computed(() => {
+    return baseImponible.value * 0.16;
+});
+
+const totalConIva = computed(() => {
+    return baseImponible.value * 1.16;
 });
 
 const form = useForm({
@@ -98,6 +135,22 @@ const submitBilling = () => {
                                 </div>
                                 <div>
                                     <label class="block uppercase tracking-wide text-gray-500 dark:text-gray-400 text-xs font-bold mb-2">
+                                        <i class="fa-solid fa-truck-pickup mr-1"></i>Tipo de Vehículo
+                                    </label>
+                                    <div class="w-full bg-gray-50 dark:bg-gray-700/50 text-gray-800 dark:text-white rounded-xl py-3 px-4 font-semibold border border-gray-100 dark:border-gray-700 min-h-[46px] flex flex-col justify-center">
+                                        <span v-if="loadingVehicleType" class="text-xs text-gray-400 flex items-center">
+                                            <i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Consultando API...
+                                        </span>
+                                        <div v-else>
+                                            <span class="font-bold">{{ vehicleType }}</span>
+                                            <span v-if="vehicleExample" class="text-xs text-gray-400 block mt-0.5 font-normal">
+                                                Ejemplo: {{ vehicleExample }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block uppercase tracking-wide text-gray-500 dark:text-gray-400 text-xs font-bold mb-2">
                                         <i class="fa-solid fa-barcode mr-1"></i>Inventario
                                     </label>
                                     <div class="w-full bg-gray-50 dark:bg-gray-700/50 text-indigo-600 dark:text-indigo-400 rounded-xl py-3 px-4 font-bold border border-gray-100 dark:border-gray-700">
@@ -134,27 +187,63 @@ const submitBilling = () => {
                                         </span>
                                     </div>
                                 </div>
-                                 <div class="space-y-4">
-                                    <div>
-                                        <label class="block uppercase tracking-wide text-gray-500 dark:text-gray-400 text-xs font-bold mb-2">
-                                            <i class="fa-solid fa-money-bill-transfer mr-1"></i>Costo de Adquisición
-                                        </label>
-                                        <div class="w-full bg-gray-50 dark:bg-gray-700/50 text-gray-800 dark:text-gray-300 rounded-xl py-3 px-4 font-bold border border-gray-100 dark:border-gray-700 flex justify-between items-center">
-                                            <span>${{ parseFloat(props.inventario.costo || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) }}</span>
-                                            <div v-if="props.inventario.costo_importacion_unitario > 0" class="flex flex-col items-end">
-                                                <span class="text-[9px] text-indigo-500 dark:text-indigo-400 uppercase font-black">Importación</span>
-                                                <span class="text-xs font-black text-indigo-600 dark:text-indigo-400">+ ${{ parseFloat(props.inventario.costo_importacion_unitario).toLocaleString('en-US', {minimumFractionDigits: 2}) }}</span>
+                                <div v-if="props.inventario.origen === 'IMPORTADO' || props.inventario.costo_importacion_unitario > 0">
+                                    <label class="block uppercase tracking-wide text-gray-500 dark:text-gray-400 text-xs font-bold mb-2">
+                                        <i class="fa-solid fa-money-bill-transfer mr-1"></i>Costo de Importación + Mantenimiento
+                                    </label>
+                                    <div class="w-full bg-gray-50 dark:bg-gray-700/50 text-gray-800 dark:text-gray-300 rounded-xl py-3.5 px-5 border border-gray-100 dark:border-gray-700 flex justify-between items-center">
+                                        <div class="flex flex-col">
+                                            <span class="text-[9px] text-gray-400 uppercase tracking-wide">Total + IVA 16% (Bs.)</span>
+                                            <span class="text-xl font-black text-indigo-600 dark:text-indigo-400">Bs. {{ totalConIva.toLocaleString('es-VE', {minimumFractionDigits: 2}) }}</span>
+                                        </div>
+                                        
+                                        <div class="flex items-center gap-6">
+                                            <!-- Detailed Breakdown -->
+                                            <div class="flex flex-col text-right text-[11px] text-gray-500 font-semibold gap-0.5">
+                                                <span>Base Imponible: Bs. {{ baseImponible.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</span>
+                                                <span class="text-xs">IVA (16%): Bs. {{ iva.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</span>
+                                                <span v-if="props.inventario.costo_taller > 0" class="text-[9px] text-gray-400 font-normal">
+                                                    (Imp: Bs. {{ parseFloat(props.inventario.costo_importacion_unitario || 0).toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }} 
+                                                    + Taller: Bs. {{ parseFloat(props.inventario.costo_taller || 0).toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }})
+                                                </span>
+                                            </div>
+
+                                            <!-- Conversion to Dolar -->
+                                            <div v-if="props.tasa_bcv > 0" class="flex flex-col items-end border-l border-gray-200 dark:border-gray-700 pl-4">
+                                                <span class="text-[9px] text-indigo-500 dark:text-indigo-400 uppercase font-black">Conversión BCV (Con IVA)</span>
+                                                <span class="text-xs font-black text-indigo-600 dark:text-indigo-400">
+                                                    $ {{ (totalConIva / parseFloat(props.tasa_bcv)).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}
+                                                </span>
+                                                <span class="text-[8px] text-gray-400 font-medium">Tasa: Bs. {{ parseFloat(props.tasa_bcv).toFixed(2) }}</span>
                                             </div>
                                         </div>
                                     </div>
-                                    <div>
-                                        <label class="block uppercase tracking-wide text-gray-500 dark:text-gray-400 text-xs font-bold mb-2">
-                                            <i class="fa-solid fa-tag mr-1"></i>Precio de Venta Sugerido
-                                        </label>
-                                        <div class="w-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 rounded-xl py-3 px-4 text-xl font-black border border-indigo-100 dark:border-indigo-900/30">
-                                            ${{ parseFloat(props.inventario.price_sale || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) }}
-                                        </div>
+                                </div>
+                                <div v-else>
+                                    <label class="block uppercase tracking-wide text-gray-500 dark:text-gray-400 text-xs font-bold mb-2">
+                                        <i class="fa-solid fa-money-bill-transfer mr-1"></i>Costo de Adquisición
+                                    </label>
+                                    <div class="w-full bg-gray-50 dark:bg-gray-700/50 text-gray-800 dark:text-gray-300 rounded-xl py-3 px-4 font-bold border border-gray-100 dark:border-gray-700 flex justify-between items-center">
+                                        <span>${{ parseFloat(props.inventario.costo || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) }}</span>
                                     </div>
+                                </div>
+                                <div>
+                                    <label class="block uppercase tracking-wide text-gray-500 dark:text-gray-400 text-xs font-bold mb-2">
+                                        <i class="fa-solid fa-tag mr-1"></i>Precio de Venta Sugerido
+                                    </label>
+                                    <div class="w-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 rounded-xl py-3 px-4 text-xl font-black border border-indigo-100 dark:border-indigo-900/30">
+                                        ${{ parseFloat(props.inventario.price_sale || 0).toLocaleString('en-US', {minimumFractionDigits: 2}) }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Observation Display -->
+                            <div v-if="props.inventario.observation" class="mt-6 p-6 bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-gray-100 dark:border-gray-700">
+                                <label class="block uppercase tracking-wide text-gray-500 dark:text-gray-400 text-xs font-bold mb-2">
+                                    <i class="fa-solid fa-comment-dots mr-1 text-indigo-500"></i>Observaciones
+                                </label>
+                                <div class="text-sm font-semibold text-gray-800 dark:text-white leading-relaxed whitespace-pre-line">
+                                    {{ props.inventario.observation }}
                                 </div>
                             </div>
 

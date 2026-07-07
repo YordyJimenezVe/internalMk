@@ -23,6 +23,11 @@ class GeneralObserver
     {
         $changes = $model->getChanges();
         unset($changes['updated_at']); // Ignore timestamp changes
+        unset($changes['remember_token']); // Ignore remember token changes
+
+        if (empty($changes)) {
+            return;
+        }
 
         $details = 'Cambios: ' . json_encode($changes);
         $this->logActivity($model, 'ACTUALIZADO', $details);
@@ -69,6 +74,7 @@ class GeneralObserver
             } elseif ($action === 'ACTUALIZADO') {
                 $changes = $model->getChanges();
                 unset($changes['updated_at']);
+                unset($changes['remember_token']);
 
                 if (empty($changes)) {
                     $description = "EL USUARIO {$userName} ACTUALIZÓ EL REGISTRO DE {$spanishModelName} #{$modelId} SIN CAMBIOS SIGNIFICATIVOS.";

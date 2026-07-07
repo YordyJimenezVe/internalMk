@@ -15,7 +15,32 @@ class MaintenanceItem extends Model
         'cost',
         'invoice_path',
         'type', // REPUESTO, SERVICIO
+        'source',
+        'document_type',
+        'invoice_number',
+        'base_imponible',
+        'status',
+        'outflow_date',
+        'return_date',
+        'notes',
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saved(function ($item) {
+            if ($item->maintenance && $item->maintenance->inventario) {
+                $item->maintenance->inventario->recalculatePrice();
+            }
+        });
+
+        static::deleted(function ($item) {
+            if ($item->maintenance && $item->maintenance->inventario) {
+                $item->maintenance->inventario->recalculatePrice();
+            }
+        });
+    }
 
     public function maintenance()
     {

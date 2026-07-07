@@ -463,6 +463,12 @@
         <a href="{{ route('dashboard') }}" class="back-button">
             <i class="fa-solid fa-arrow-left"></i> Volver al Panel
         </a>
+
+        @if(session('error'))
+            <div style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; padding: 1rem; border-radius: 12px; font-size: 0.95rem; text-align: center; margin-top: 1rem; width: 100%; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.1);">
+                <i class="fa-solid fa-triangle-exclamation" style="margin-right: 0.5rem; color: #f87171;"></i> {{ session('error') }}
+            </div>
+        @endif
         
         <!-- Header -->
         <header>
@@ -598,6 +604,56 @@
                 <a href="{{ route('labels.print.full-page') }}" target="_blank" class="btn-print">
                     <i class="fa-solid fa-print"></i> Imprimir Hoja Completa
                 </a>
+            </div>
+
+            <!-- Etiqueta 4: Por Contenedor -->
+            <div class="label-card">
+                <div class="card-header">
+                    <div class="card-number">Etiqueta 04</div>
+                    <h2 class="card-title">Por Contenedor</h2>
+                    <p class="card-desc">Impresión masiva en hoja Carta de etiquetas de 50x30mm, filtradas por contenedor.</p>
+                </div>
+
+                <form action="{{ route('labels.print.container') }}" method="GET" target="_blank" style="width: 100%; display: flex; flex-direction: column; gap: 1.25rem;">
+                    <!-- Dropdown Contenedor -->
+                    <div class="form-group" style="display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
+                        <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.5px; text-transform: uppercase;">Contenedor</label>
+                        <select name="container_id" required style="width: 100%; padding: 0.8rem 1rem; background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border-color); border-radius: 10px; color: var(--text-primary); font-family: inherit; font-size: 0.95rem; cursor: pointer; outline: none; transition: border-color 0.2s;">
+                            <option value="" disabled selected>Selecciona un contenedor...</option>
+                            <option value="all">Todos los contenedores</option>
+                            @foreach($containers as $container)
+                                <option value="{{ $container->id }}">{{ $container->cod }} - {{ $container->name ?? 'Contenedor' }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <!-- Dropdown Tipo de Mercancía -->
+                    <div class="form-group" style="display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
+                        <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.5px; text-transform: uppercase;">Tipo de Mercancía</label>
+                        <select name="type" style="width: 100%; padding: 0.8rem 1rem; background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border-color); border-radius: 10px; color: var(--text-primary); font-family: inherit; font-size: 0.95rem; cursor: pointer; outline: none; transition: border-color 0.2s;">
+                            <option value="all">Toda la mercancía</option>
+                            <option value="motors">Solo Motores</option>
+                            <option value="boxes">Solo Cajas</option>
+                            <option value="cameras">Solo Cámaras</option>
+                            <option value="autopartes">Solo Autopartes</option>
+                        </select>
+                    </div>
+
+                    <!-- Dropdown Marca -->
+                    <div class="form-group" style="display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
+                        <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.5px; text-transform: uppercase;">Marca</label>
+                        <select name="brand" style="width: 100%; padding: 0.8rem 1rem; background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border-color); border-radius: 10px; color: var(--text-primary); font-family: inherit; font-size: 0.95rem; cursor: pointer; outline: none; transition: border-color 0.2s;">
+                            <option value="all">Todas las marcas</option>
+                            @foreach($brands as $brand)
+                                <option value="{{ $brand }}">{{ $brand }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn-print" style="margin-top: 0.5rem; border: none; width: 100%;">
+                        <i class="fa-solid fa-print"></i> Generar Pliego (Carta)
+                    </button>
+                </form>
             </div>
 
         </div>

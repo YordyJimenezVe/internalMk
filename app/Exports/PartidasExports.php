@@ -51,6 +51,7 @@ class PartidasExports implements FromView, WithEvents, ShouldAutoSize, WithColum
                 'codInv',
                 'expediente',
                 'status',
+                'observation',
                 // DB::raw('DATE_FORMAT(billings.fecha, "%d/%m/%Y") as fecha_venta'),
                 // 'billings.numero_factura',
                 DB::raw('DATE_FORMAT(inventarios.created_at, "%d/%m/%Y") as fecha_creacion')
@@ -116,6 +117,7 @@ class PartidasExports implements FromView, WithEvents, ShouldAutoSize, WithColum
             'H' => 15, // ESTATUS
             'I' => 15, // F VENTA
             'J' => 20, // NRO FACTURA
+            'K' => 30, // OBSERVACIÓN
         ];
     }
 

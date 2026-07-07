@@ -287,17 +287,7 @@ const exportReport = (format) => {
                                     </div>
                                 </div>
 
-                                <div class="p-4 bg-white/5 rounded-2xl border border-white/10 space-y-3">
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Costos de Importación</span>
-                                        <span v-if="stats.financials.import_costs.aplicado" class="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-[9px] font-black rounded-full border border-emerald-500/20 uppercase tracking-tighter">Aplicado</span>
-                                        <span v-else class="px-2 py-0.5 bg-slate-500/20 text-slate-400 text-[9px] font-black rounded-full border border-slate-500/20 uppercase tracking-tighter">No Aplicado</span>
-                                    </div>
-                                    <div class="pt-2 border-t border-white/10 flex justify-between items-baseline">
-                                        <span class="text-xs font-bold text-indigo-300 uppercase">Costo Extra:</span>
-                                        <span class="text-lg font-black text-indigo-400">${{ formatNumber(stats.financials.import_costs.total) }}</span>
-                                    </div>
-                                </div>
+
                             </div>
                         </div>
 

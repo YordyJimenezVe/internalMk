@@ -12,10 +12,20 @@ use App\Exports\HistoryExports;
 
 use App\Exports\MaintenanceExports;
 
+/**
+ * Controlador para la exportación de Reportes y generación masiva de etiquetas.
+ * 
+ * Permite filtrar y exportar a formato Excel y PDF información relevante de inventario,
+ * facturación, historial y bitácora de auditoría.
+ * También gestiona la generación e impresión masiva de etiquetas térmicas de código QR
+ * y código de barras agrupadas por categoría de artículos.
+ */
 class ReportsController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Muestra la pantalla principal del generador de reportes.
+     *
+     * @return \Inertia\Response
      */
     public function index()
     {
@@ -23,20 +33,22 @@ class ReportsController extends Controller
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Stub para el formulario de creación de reportes de partidas.
+     *
+     * @return void
      */
     public function partidas()
     {
-
         // // return Excel::download(new PartidasExport, 'my-export.xlsx');
-
         // $export = new PartidasExport();
-
         // //return Excel::download($export, 'reporte-partida.pdf');
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Stub para almacenar recursos.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return void
      */
     public function store(Request $request)
     {
@@ -44,7 +56,10 @@ class ReportsController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * Stub para mostrar un recurso específico.
+     *
+     * @param  string  $id
+     * @return void
      */
     public function show(string $id)
     {
@@ -52,7 +67,10 @@ class ReportsController extends Controller
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Stub para editar un recurso específico.
+     *
+     * @param  string  $id
+     * @return void
      */
     public function edit(string $id)
     {
@@ -60,7 +78,11 @@ class ReportsController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * Stub para actualizar un recurso en almacenamiento.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  string  $id
+     * @return void
      */
     public function update(Request $request, string $id)
     {
@@ -68,12 +90,25 @@ class ReportsController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Stub para eliminar un recurso de almacenamiento.
+     *
+     * @param  string  $id
+     * @return void
      */
     public function destroy(string $id)
     {
         //
     }
+
+    /**
+     * Filtra y exporta datos de inventario, facturas, bitácora, historial o mantenimiento en formato Excel.
+     *
+     * @param  \Illuminate\Http\Request  $request  Petición HTTP con filtros de fechas e inventario.
+     * @param  string  $tipo  Tipo de reporte ('partidas', 'facturas', 'bitacora', 'history', 'maintenance').
+     * @param  string  $caso  Criterio o columna por la cual buscar o agrupar.
+     * @param  string|null  $termino  Término de búsqueda textual.
+     * @return \Symfony\Component\HttpFoundation\BinaryFileResponse
+     */
     public function exportExcel(Request $request, $tipo, $caso, $termino = null)
     {
         ini_set('memory_limit', '512M');
@@ -95,6 +130,16 @@ class ReportsController extends Controller
             return Excel::download(new MaintenanceExports($caso, $termino, $startDate, $endDate, $status), $tipo . '.xlsx');
         }
     }
+
+    /**
+     * Filtra y exporta datos en formato PDF (visualización inline) utilizando DomPDF o Excel-raw.
+     *
+     * @param  \Illuminate\Http\Request  $request  Petición HTTP con filtros de rango de fechas y estado.
+     * @param  string  $tipo  Tipo de reporte ('partidas', 'facturas', 'bitacora', 'history', 'maintenance').
+     * @param  string  $caso  Criterio de búsqueda o agrupación.
+     * @param  string|null  $termino  Término de búsqueda textual.
+     * @return \Illuminate\Http\Response
+     */
     public function exportPdf(Request $request, $tipo, $caso, $termino = null)
     {
         ini_set('memory_limit', '512M');
@@ -134,6 +179,16 @@ class ReportsController extends Controller
         }
     }
 
+    /**
+     * Genera e imprime masivamente en PDF etiquetas térmicas de artículos (código de barra CODE-128 y código QR).
+     * 
+     * Las etiquetas contienen código de inventario compuesto (ej: CONTAINER-CODINV) y están filtradas
+     * por categoría ('motores', 'cajas', o 'autopartes').
+     *
+     * @param  \Illuminate\Http\Request  $request  Petición HTTP.
+     * @param  string  $tipo  Categoría de artículo ('motores', 'cajas', 'autopartes').
+     * @return \Illuminate\Http\Response
+     */
     public function bulkPrintLabels(Request $request, $tipo)
     {
         $query = Inventario::with('container')->whereIn('status', ['DISPONIBLE', 'DEVUELTO']);

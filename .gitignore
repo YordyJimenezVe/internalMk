@@ -18,3 +18,10 @@ yarn-error.log
 /.idea
 /.vscode
 docker/mysql/data/
+/backup/
+/*.sql
+/context.md
+/test_*.php
+/scratch/
+.config/
+.lesshst

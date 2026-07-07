@@ -14,9 +14,26 @@ use App\Models\ExchangeRate;
 use App\Models\BillingRequest;
 use Carbon\Carbon;
 
+/**
+ * Controlador para la facturación, registro de ventas y devoluciones.
+ * 
+ * Este controlador administra el ciclo comercial: creación y edición de facturas,
+ * obtención automática de la tasa oficial de cambio del Banco Central de Venezuela (BCV),
+ * procesamiento de devoluciones (totales, por garantía o desincorporación),
+ * registro de auditoría en Bitácora y generación de facturas en PDF.
+ */
 class BillingsController extends Controller
 {
-
+    /**
+     * Crea un registro de auditoría en la Bitácora de cambios para facturación.
+     *
+     * @param  string  $action  Acción realizada (UPDATE, DELETE, REVERSE, etc.).
+     * @param  string|int  $billingId  Identificador o número de la factura.
+     * @param  string  $field  Campo modificado en caso de actualización.
+     * @param  string  $oldValue  Valor anterior.
+     * @param  string  $newValue  Valor nuevo asignado.
+     * @return void
+     */
     private function createBitacoraEntry($action, $billingId, $field = '', $oldValue = '', $newValue = '')
     {
         if ($action == 'UPDATE') {
@@ -36,7 +53,9 @@ class BillingsController extends Controller
         ]);
     }
     /**
-     * Display a listing of the resource.
+     * Muestra el listado completo de facturas registradas en orden descendente.
+     *
+     * @return \Inertia\Response
      */
     public function index()
     {
@@ -49,7 +68,14 @@ class BillingsController extends Controller
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Muestra el formulario de creación de factura para un artículo específico del inventario.
+     * 
+     * Resuelve los datos de cotización (tasa de cambio oficial del BCV) consultándolos
+     * en tiempo real mediante Guzzle e integrando datos previos si provienen de una solicitud de facturación.
+     *
+     * @param  \Illuminate\Http\Request  $request  Petición con identificadores opcionales de solicitud.
+     * @param  string|int  $id  Identificador único del artículo a facturar.
+     * @return \Inertia\Response|\Illuminate\Http\RedirectResponse
      */
     public function create(Request $request, $id)
     {
@@ -124,14 +150,35 @@ class BillingsController extends Controller
             }
         }
 
+        $baseCosto = (float) ($billing->costo ?? 0);
+        
+        // Sumar la base imponible de todos los repuestos/servicios externos conciliados con Factura
+        $mantenimientosFacturables = 0;
+        foreach ($billing->maintenances as $maint) {
+            $mantenimientosFacturables += (float) $maint->items()
+                ->where('document_type', 'FACTURA')
+                ->where('status', 'CONCILIADO')
+                ->sum('base_imponible');
+        }
+
+        $costoDeclarado = $baseCosto + $mantenimientosFacturables;
+
         return inertia('Bill/Create', [
             'data' => $billing,
             'tasa_bcv' => $tasa,
+            'costo_declarado' => $costoDeclarado,
         ]);
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Almacena una nueva factura recién creada en la base de datos.
+     * 
+     * Limpia formatos numéricos locales, asocia el usuario que registra la venta,
+     * actualiza el estado del artículo en inventario a 'VENDIDO', registra el precio real de venta
+     * y marca como procesada la solicitud de facturación asociada si existiera.
+     *
+     * @param  \Illuminate\Http\Request  $request  Petición HTTP con los datos de facturación.
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function store(Request $request)
     {
@@ -200,7 +247,10 @@ class BillingsController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * Muestra los detalles de una factura específica (Inactivo, redirigido a show de inventario).
+     *
+     * @param  string  $id  Identificador único de la factura.
+     * @return void
      */
     public function show(string $id)
     {
@@ -208,7 +258,10 @@ class BillingsController extends Controller
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Muestra el formulario para editar los datos de facturación de una factura existente.
+     *
+     * @param  \App\Models\Billing  $bill  Instancia de la factura inyectada por Implicit Model Binding.
+     * @return \Inertia\Response
      */
     public function edit(Billing $bill)
     {
@@ -218,7 +271,11 @@ class BillingsController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * Actualiza una factura específica y registra las modificaciones en la Bitácora.
+     *
+     * @param  \Illuminate\Http\Request  $request  Petición HTTP con los datos modificados.
+     * @param  int  $id  Identificador único de la factura.
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function update(Request $request, int $id)
     {
@@ -241,7 +298,11 @@ class BillingsController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Elimina una factura específica de la base de datos y audita la acción.
+     *
+     * @param  \Illuminate\Http\Request  $request  Petición HTTP.
+     * @param  int  $id  Identificador único de la factura a eliminar.
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function destroy(Request $request, int $id)
     {
@@ -254,6 +315,13 @@ class BillingsController extends Controller
         return redirect()->route('billing');
     }
 
+    /**
+     * Muestra el formulario para procesar una devolución o nota de crédito sobre una factura.
+     *
+     * @param  \App\Models\Billing  $partida  Instancia de la factura (herencia de ruta).
+     * @param  string|int  $id  Identificador único de la factura.
+     * @return \Inertia\Response
+     */
     public function return(Billing $partida, $id)
     {
         $data = Billing::findOrFail($id);
@@ -261,8 +329,14 @@ class BillingsController extends Controller
             'bill' => $data,
         ]);
     }
+
     /**
-     * Update the specified resource in storage.
+     * Procesa la solicitud de devolución (Total, Temporal/Garantía o Desincorporación),
+     * actualizando el inventario, generando la nota de crédito (ReverseBill) y auditando la bitácora.
+     *
+     * @param  \Illuminate\Http\Request  $request  Petición HTTP con los datos de nota de crédito.
+     * @param  int  $id  Identificador único de la factura a anular/devolver.
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function returnSubmit(Request $request, int $id)
     {
@@ -312,6 +386,13 @@ class BillingsController extends Controller
 
         return redirect()->route('billing')->with('success', "{$actionVerb} procesada con éxito.");
     }
+
+    /**
+     * Genera y transmite el PDF de la factura utilizando DomPDF.
+     *
+     * @param  string|int  $id  Identificador único de la factura.
+     * @return \Illuminate\Http\Response
+     */
     public function pdf($id)
     {
         $bill = Billing::with('partida')->findOrFail($id);

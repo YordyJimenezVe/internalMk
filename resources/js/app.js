@@ -1,6 +1,13 @@
 import './bootstrap';
 import '../css/app.css';
 
+// Prevent BFCache (back-forward cache) issues, especially on logout transitions
+window.addEventListener('pageshow', function (event) {
+    if (event.persisted) {
+        window.location.reload();
+    }
+});
+
 import { createApp, h } from 'vue';
 import { createInertiaApp } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
@@ -14,7 +21,9 @@ import {
     faBox, faListCheck, faUsers, faShieldHalved, faBook,
     faFileInvoiceDollar, faChartPie, faBarcode, faChevronLeft,
     faChevronRight, faWrench, faCube, faHandHoldingDollar,
-    faBoxesStacked, faScrewdriverWrench, faQrcode
+    faBoxesStacked, faScrewdriverWrench, faQrcode,
+    faFileCircleExclamation, faScaleBalanced, faBell, faBullhorn,
+    faEnvelope, faHourglassHalf
 } from '@fortawesome/free-solid-svg-icons'
 
 library.add(
@@ -22,7 +31,9 @@ library.add(
     faBox, faListCheck, faUsers, faShieldHalved, faBook,
     faFileInvoiceDollar, faChartPie, faBarcode, faChevronLeft,
     faChevronRight, faWrench, faCube, faHandHoldingDollar,
-    faBoxesStacked, faScrewdriverWrench, faQrcode
+    faBoxesStacked, faScrewdriverWrench, faQrcode,
+    faFileCircleExclamation, faScaleBalanced, faBell, faBullhorn,
+    faEnvelope, faHourglassHalf
 )
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';

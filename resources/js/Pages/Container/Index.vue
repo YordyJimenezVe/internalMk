@@ -12,11 +12,11 @@ const columns = [
     { key: 'expediente', label: 'Expediente', sortable: true },
     { key: 'fecha', label: 'Fecha', sortable: true },
     { key: 'hora', label: 'Hora', sortable: true },
-    { key: 'motores', label: 'Motores' },
-    { key: 'cajas', label: 'Cajas' },
-    { key: 'camaras', label: 'Cámaras' },
-    { key: 'accesorios', label: 'Accesorios' },
-    { key: 'total', label: 'Total' }, // Computed column
+    { key: 'motores', label: 'Motores', sortable: true },
+    { key: 'cajas', label: 'Cajas', sortable: true },
+    { key: 'camaras', label: 'Cámaras', sortable: true },
+    { key: 'accesorios', label: 'Accesorios', sortable: true },
+    { key: 'total', label: 'Total', sortable: true }, // Computed column
 ];
 
 // Formatting helper

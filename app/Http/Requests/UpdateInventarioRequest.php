@@ -30,6 +30,9 @@ class UpdateInventarioRequest extends FormRequest
             'marca' => 'required|string',
             'modelo' => 'required|string',
             'serial' => 'nullable|string',
+            'costo_importacion_unitario' => 'nullable|numeric',
+            'price_sale' => 'nullable|string',
+            'observation' => 'nullable|string',
         ];
 
         // Conditional for Imported items
@@ -47,21 +50,88 @@ class UpdateInventarioRequest extends FormRequest
             $rules['categorie'] = 'required|string';
             $rules['cantidad'] = 'required|integer|min:1';
             $rules['costo'] = 'required';
-            $rules['price'] = 'required';
+            $rules['price'] = 'nullable';
         } else {
             // Motores / Cámaras / Cajas
             $rules['item'] = 'required|string';
             $rules['año'] = 'required|string';
             $rules['condicion'] = 'required|string';
-            $rules['price'] = 'required';
+            $rules['price'] = 'nullable';
         }
 
         return $rules;
     }
 
+    private function cleanCurrency($value)
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $value = str_replace(' ', '', $value);
+
+        if (strpos($value, '.') !== false && strpos($value, ',') !== false) {
+            $lastDot = strrpos($value, '.');
+            $lastComma = strrpos($value, ',');
+            if ($lastDot > $lastComma) {
+                $value = str_replace(',', '', $value);
+            } else {
+                $value = str_replace('.', '', $value);
+                $value = str_replace(',', '.', $value);
+            }
+        } else {
+            if (strpos($value, ',') !== false) {
+                if (preg_match('/,\d{2}$/', $value)) {
+                    $value = str_replace(',', '.', $value);
+                } else {
+                    $value = str_replace(',', '', $value);
+                }
+            }
+            if (strpos($value, '.') !== false) {
+                if (substr_count($value, '.') > 1) {
+                    $value = str_replace('.', '', $value);
+                } else {
+                    if (preg_match('/\.\d{2}$/', $value)) {
+                        // Keep single dot as decimal separator
+                    } else {
+                        $value = str_replace('.', '', $value);
+                    }
+                }
+            }
+        }
+
+        return $value;
+    }
+
     protected function prepareForValidation()
     {
         $tipo = $this->input('tipo');
+
+        if ($this->has('marca')) {
+            $this->merge(['marca' => strtoupper($this->input('marca'))]);
+        }
+        if ($this->has('modelo')) {
+            $this->merge(['modelo' => strtoupper($this->input('modelo'))]);
+        }
+        if ($this->has('serial')) {
+            $this->merge(['serial' => strtoupper($this->input('serial'))]);
+        }
+
+        if ($this->has('price')) {
+            $this->merge(['price' => $this->cleanCurrency($this->input('price'))]);
+        }
+        if ($this->has('price_sale')) {
+            $this->merge(['price_sale' => $this->cleanCurrency($this->input('price_sale'))]);
+        }
+        if ($this->has('costo_importacion_unitario')) {
+            $this->merge(['costo_importacion_unitario' => $this->cleanCurrency($this->input('costo_importacion_unitario'))]);
+        }
+
+        // Default price if not provided
+        if (!$this->has('price') || $this->input('price') === '' || $this->input('price') === null) {
+            $this->merge(['price' => '0.00']);
+        }
+
         if ($tipo === 'AUTOPARTE') {
             $this->merge([
                 'item' => trim(($tipo ?? '') . ' ' . ($this->input('categorie') ?? '')),

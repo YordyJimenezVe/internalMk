@@ -6,7 +6,7 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { fas } from '@fortawesome/free-solid-svg-icons';
 import { fab } from '@fortawesome/free-brands-svg-icons';
 import { router, Link, usePage } from '@inertiajs/vue3';
-import { computed, reactive } from 'vue';
+import { computed, reactive, ref } from 'vue';
 
 library.add(fas, fab);
 
@@ -35,9 +35,9 @@ const columns = [
     { key: 'id', label: 'ID', sortable: true },
     { key: 'partida.codInv', label: 'Cód. Inventario', sortable: true },
     { key: 'tipo', label: 'Tipo Mantenimiento', sortable: true },
-    { key: 'partida.tipo', label: 'Categoría' },
-    { key: 'partida.marca', label: 'Marca' },
-    { key: 'partida.modelo', label: 'Modelo' },
+    { key: 'partida.tipo', label: 'Categoría', sortable: true },
+    { key: 'partida.marca', label: 'Marca', sortable: true },
+    { key: 'partida.modelo', label: 'Modelo', sortable: true },
     { key: 'costo', label: 'Costo ($)', sortable: true },
     { key: 'status', label: 'Estado', sortable: true },
 ];
@@ -97,8 +97,8 @@ const getBrandSlug = (brand) => {
         'jeep': 'jeep',
         'jeepp': 'jeep',
         'volkswagen': 'volkswagen',
-        'dodge': 'dodge',
-        'dosge': 'dodge',
+        'dodge': 'ram',
+        'dosge': 'ram',
         'mazda': 'mazda',
         'suzuki': 'suzuki',
         'mercedes': 'mercedesbenz',
@@ -122,10 +122,24 @@ const getBrandSlug = (brand) => {
     return null;
 };
 
-const getBrandIcon = (brand) => {
+const imageAttempts = ref({});
+
+const getBrandIcon = (brand, id) => {
     const slug = getBrandSlug(brand);
-    if (slug) return `https://cdn.simpleicons.org/${slug}/9ca3af`;
-    return null;
+    if (!slug) return null;
+    
+    const urls = [
+        `https://cdn.simpleicons.org/${slug}/9ca3af`,
+        `https://vl.imgix.net/img/${slug}-logo.png`,
+        `https://logo.clearbit.com/${slug}.com`
+    ];
+    
+    const attempt = imageAttempts.value[id] || 0;
+    return attempt < urls.length ? urls[attempt] : null;
+};
+
+const handleImageError = (id) => {
+    imageAttempts.value[id] = (imageAttempts.value[id] || 0) + 1;
 };
 </script>
 
@@ -258,7 +272,7 @@ const getBrandIcon = (brand) => {
                         <template #cell-partida.marca="{ row }">
                            <div class="flex items-center gap-3">
                                <div class="h-9 w-9 flex items-center justify-center bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-100 dark:border-gray-700 shrink-0 overflow-hidden p-1.5">
-                                   <img v-if="getBrandIcon(row.partida?.marca)" :src="getBrandIcon(row.partida?.marca)" class="w-full h-full object-contain opacity-80" :alt="row.partida?.marca" />
+                                   <img v-if="getBrandIcon(row.partida?.marca, row.id)" :src="getBrandIcon(row.partida?.marca, row.id)" @error="handleImageError(row.id)" class="w-full h-full object-contain opacity-80" :alt="row.partida?.marca" />
                                    <FontAwesomeIcon v-else :icon="['fas', 'car']" class="text-gray-400 dark:text-gray-500 text-base" />
                                </div>
                                <span class="text-sm font-bold text-gray-700 dark:text-gray-300">{{ row.partida ? row.partida.marca : 'N/A' }}</span>

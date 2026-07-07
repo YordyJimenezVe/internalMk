@@ -20,7 +20,7 @@ const form = useForm({
 });
 
 const submit = () => {
-    form.post(route('container.update', props.container.id));
+    form.post(route('updateContainer', props.container.id));
 };
 </script>
 
@@ -119,42 +119,7 @@ const submit = () => {
                             </div>
                         </div>
 
-                        <!-- Import Costs Section -->
-                        <div class="bg-indigo-600 dark:bg-indigo-600/90 rounded-[2.5rem] p-8 md:p-10 shadow-2xl shadow-indigo-600/20 relative overflow-hidden">
-                            <!-- Decorative elements -->
-                            <div class="absolute -right-20 -top-20 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
-                            <div class="absolute -left-20 -bottom-20 w-64 h-64 bg-black/10 rounded-full blur-3xl"></div>
-                            
-                            <div class="relative z-10 space-y-8">
-                                <div class="flex items-center justify-between">
-                                    <h3 class="font-black text-xs uppercase tracking-[0.4em] text-indigo-100 flex items-center">
-                                        <i class="fa-solid fa-ship mr-3"></i>Costos de Importación y Nacionalización
-                                    </h3>
-                                    <div class="flex items-center gap-3 bg-white/10 px-4 py-2 rounded-full border border-white/10">
-                                        <span class="text-[10px] font-black text-white uppercase tracking-widest">Aplicar a Ítems</span>
-                                        <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" v-model="form.aplicar_costos" class="sr-only peer">
-                                            <div class="w-11 h-6 bg-indigo-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-                                        </label>
-                                    </div>
-                                </div>
 
-                                <div class="space-y-4">
-                                    <label class="block text-[10px] font-black text-indigo-100 uppercase tracking-widest ml-1" for="costo_importacion_general">Costo General de Importación y Nacionalización</label>
-                                    <div class="relative">
-                                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-300 font-black text-xl">$</span>
-                                        <input class="w-full bg-white text-gray-900 text-2xl font-black border-none rounded-2xl py-5 pl-10 pr-6 shadow-inner focus:ring-4 focus:ring-white/20 transition-all" id="costo_importacion_general" type="number" step="0.01" v-model="form.costo_importacion_general">
-                                    </div>
-                                </div>
-
-                                <div v-if="form.aplicar_costos" class="bg-indigo-700/50 p-4 rounded-2xl border border-white/10 flex items-start gap-4">
-                                    <i class="fa-solid fa-circle-info text-indigo-200 mt-1"></i>
-                                    <p class="text-xs text-indigo-100 leading-relaxed font-medium">
-                                        Al activar esta opción, este costo se dividirá entre el total de piezas registradas y se añadirá al costo individual de cada motor/caja automáticamente al guardar.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
 
                         <!-- Actions Section -->
                         <div class="pt-8 flex flex-col md:flex-row items-center justify-between gap-6">

@@ -2,7 +2,7 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import MaterialsEngine from './MaterialsEngine.vue';
 import { useForm, usePage, router } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 
 const props = defineProps({
   maintenance: Object,
@@ -10,6 +10,7 @@ const props = defineProps({
   bill: Object,
   materials: Object,
   accesorios: Object,
+  items: Array, // Dynamic items list
 });
 
 const page = usePage();
@@ -42,7 +43,215 @@ const submitForm = (e) => {
     router.post('/maintenance/update/' + props.maintenance.id, data);
 };
 
-// Note: The previous UpdateAccesorios was redundant as it's now handled by the main update
+// Módulo de repuestos y rectificadora states
+const showAddModal = ref(false);
+const showReturnModal = ref(false);
+const activeReturnItemId = ref(null);
+const showDetailModal = ref(false);
+const activeDetailItem = ref(null);
+
+const showDeleteConfirmModal = ref(false);
+const itemToDeleteId = ref(null);
+
+const addForm = useForm({
+    description: '',
+    type: 'REPUESTO',
+    source: 'COMPRADO',
+    cost: '',
+    document_type: 'NINGUNO',
+    invoice_number: '',
+    base_imponible: '',
+    status: 'COMPLETADO',
+    notes: '',
+    requires_outflow: false,
+    invoice_file: null
+});
+
+const returnForm = useForm({
+    cost: '',
+    document_type: 'FACTURA',
+    invoice_number: '',
+    base_imponible: '',
+    notes: '',
+    invoice_file: null
+});
+
+// Edit item states
+const showEditModal = ref(false);
+const activeEditItem = ref(null);
+const editForm = useForm({
+    cost: '',
+    document_type: 'FACTURA',
+    invoice_number: '',
+    base_imponible: '',
+    notes: '',
+    invoice_file: null
+});
+
+const handleSourceChange = () => {
+    if (addForm.source === 'INVENTARIO') {
+        addForm.cost = 0;
+        addForm.document_type = 'NINGUNO';
+        addForm.invoice_number = '';
+        addForm.base_imponible = 0;
+        addForm.invoice_file = null;
+    } else {
+        addForm.cost = '';
+        addForm.document_type = 'NINGUNO';
+        addForm.invoice_number = '';
+        addForm.base_imponible = '';
+        addForm.invoice_file = null;
+    }
+
+    if (addForm.requires_outflow) {
+        addForm.status = 'FUERA';
+    } else {
+        addForm.status = 'COMPLETADO';
+    }
+};
+
+const handleRequiresOutflowChange = () => {
+    if (addForm.requires_outflow) {
+        addForm.status = 'FUERA';
+        addForm.cost = '';
+        addForm.document_type = 'NINGUNO';
+        addForm.invoice_number = '';
+        addForm.base_imponible = '';
+        addForm.invoice_file = null;
+    } else {
+        addForm.status = 'COMPLETADO';
+    }
+};
+
+const openAddModal = () => {
+    addForm.reset();
+    addForm.type = 'REPUESTO';
+    addForm.source = 'COMPRADO';
+    addForm.document_type = 'NINGUNO';
+    addForm.status = 'COMPLETADO';
+    addForm.requires_outflow = false;
+    addForm.invoice_file = null;
+    showAddModal.value = true;
+};
+
+const submitAdd = () => {
+    // Validar que base_imponible no sea mayor al costo si es comprado y no va a rectificadora
+    if (addForm.source === 'COMPRADO' && !addForm.requires_outflow) {
+        const costVal = parseFloat(addForm.cost) || 0;
+        const baseVal = parseFloat(addForm.base_imponible) || 0;
+        if (baseVal > costVal) {
+            addForm.setError('base_imponible', 'La Base Imponible (BIG) no puede ser mayor al Costo Real.');
+            return;
+        }
+    }
+
+    // Si no requiere salida, pero el documento es FACTURA, el estado debe ser RETORNADO para conciliación
+    if (!addForm.requires_outflow) {
+        if (addForm.source === 'COMPRADO' && addForm.document_type === 'FACTURA') {
+            addForm.status = 'RETORNADO';
+        } else {
+            addForm.status = 'COMPLETADO';
+        }
+    } else {
+        addForm.status = 'FUERA';
+    }
+
+    addForm.post(route('maintenance.store_item', props.maintenance.id), {
+        onSuccess: () => {
+            showAddModal.value = false;
+            addForm.reset();
+        }
+    });
+};
+
+const openReturnModal = (itemId) => {
+    activeReturnItemId.value = itemId;
+    returnForm.reset();
+    returnForm.document_type = 'FACTURA';
+    returnForm.invoice_file = null;
+    showReturnModal.value = true;
+};
+
+const submitReturn = () => {
+    const costVal = parseFloat(returnForm.cost) || 0;
+    const baseVal = parseFloat(returnForm.base_imponible) || 0;
+    if (returnForm.document_type === 'FACTURA' && baseVal > costVal) {
+        returnForm.setError('base_imponible', 'La Base Imponible (BIG) no puede ser mayor al Costo Real.');
+        return;
+    }
+
+    returnForm.post(route('maintenance.register_return', activeReturnItemId.value), {
+        onSuccess: () => {
+            showReturnModal.value = false;
+            returnForm.reset();
+            activeReturnItemId.value = null;
+        }
+    });
+};
+
+const openEditModal = (item) => {
+    activeEditItem.value = item;
+    editForm.reset();
+    editForm.cost = item.cost;
+    editForm.document_type = item.document_type || 'NINGUNO';
+    editForm.invoice_number = item.invoice_number || '';
+    editForm.base_imponible = item.base_imponible || '';
+    editForm.notes = item.notes || '';
+    editForm.invoice_file = null;
+    showEditModal.value = true;
+};
+
+const submitEdit = () => {
+    const costVal = parseFloat(editForm.cost) || 0;
+    const baseVal = parseFloat(editForm.base_imponible) || 0;
+    if (editForm.document_type === 'FACTURA' && baseVal > costVal) {
+        editForm.setError('base_imponible', 'La Base Imponible (BIG) no puede ser mayor al Costo Real.');
+        return;
+    }
+
+    editForm.post(route('maintenance.update_item', activeEditItem.value.id), {
+        onSuccess: () => {
+            showEditModal.value = false;
+            editForm.reset();
+            activeEditItem.value = null;
+        }
+    });
+};
+
+const confirmDelete = (itemId) => {
+    itemToDeleteId.value = itemId;
+    showDeleteConfirmModal.value = true;
+};
+
+const executeDelete = () => {
+    if (!itemToDeleteId.value) return;
+    router.delete(route('maintenance.delete_item', itemToDeleteId.value), {
+        onSuccess: () => {
+            showDeleteConfirmModal.value = false;
+            itemToDeleteId.value = null;
+        }
+    });
+};
+
+const formatPrice = (value) => {
+    if (value === null || value === undefined || value === '') return '$0.00';
+    return '$' + parseFloat(value).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
+const openDetailModal = (item) => {
+    activeDetailItem.value = item;
+    showDetailModal.value = true;
+};
+
+const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+};
 </script>
 
 <template >
@@ -196,11 +405,498 @@ const submitForm = (e) => {
                         <div class="bg-white dark:bg-slate-800/40 p-5 rounded-xl border border-gray-100 dark:border-slate-700/50 mb-8 shadow-sm transition-colors">
                             <MaterialsEngine v-bind:materials="materials" v-bind:accesorios="accesorios" />
                         </div>
+
+                        <!-- Panel de Repuestos y Trabajos Externos -->
+                        <div class="mb-8">
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                                <h4 class="font-bold text-lg text-blue-600 dark:text-blue-400 tracking-tight uppercase flex items-center gap-2">
+                                    <i class="fa-solid fa-gears text-indigo-500"></i>Gestión de Repuestos y Trabajos Externos
+                                </h4>
+                                <button type="button" @click="openAddModal" class="inline-flex items-center justify-center px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-xs font-black uppercase rounded-xl transition-all shadow-md shadow-indigo-600/20 gap-1.5 self-start sm:self-auto">
+                                    <i class="fa-solid fa-circle-plus"></i>Agregar Repuesto / Servicio
+                                </button>
+                            </div>
+
+                            <div class="bg-white dark:bg-slate-800/45 rounded-2xl border border-gray-100 dark:border-slate-700/50 p-6 shadow-sm transition-colors">
+                                <div v-if="props.items && props.items.length > 0" class="divide-y divide-gray-100 dark:divide-slate-700/50">
+                                    <div v-for="item in props.items" :key="item.id" class="py-4 first:pt-0 last:pb-0 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                                        <div class="space-y-1">
+                                            <div class="flex items-center gap-2">
+                                                <span class="font-extrabold text-sm text-gray-800 dark:text-white uppercase">{{ item.description }}</span>
+                                                <span class="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md"
+                                                    :class="item.type === 'REPUESTO' ? 'bg-purple-100 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400' : 'bg-amber-100 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400'">
+                                                    {{ item.type }}
+                                                </span>
+                                            </div>
+                                            <div class="flex flex-wrap items-center gap-2 text-xs">
+                                                <!-- Origen Badge -->
+                                                <span class="inline-flex items-center gap-1 font-bold text-gray-500 dark:text-slate-400">
+                                                    <i class="fa-solid" :class="item.source === 'INVENTARIO' ? 'fa-warehouse' : 'fa-basket-shopping'"></i>
+                                                    {{ item.source === 'INVENTARIO' ? 'Taller (Existente)' : 'Compra Externa' }}
+                                                </span>
+                                                <span class="text-gray-300 dark:text-slate-600">•</span>
+                                                <!-- Documento Badge -->
+                                                <span class="font-bold text-gray-500 dark:text-slate-400">
+                                                    Soporte: 
+                                                    <span class="font-black" :class="item.document_type === 'FACTURA' ? 'text-indigo-600 dark:text-indigo-400' : item.document_type === 'RECIBO' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-400'">
+                                                        {{ item.document_type }}
+                                                    </span>
+                                                </span>
+                                                <span v-if="item.invoice_number" class="text-gray-300 dark:text-slate-600">•</span>
+                                                <span v-if="item.invoice_number" class="font-black text-indigo-500 dark:text-indigo-400">
+                                                    Fac: {{ item.invoice_number }}
+                                                </span>
+                                                <span v-if="item.outflow_date" class="text-gray-300 dark:text-slate-600">•</span>
+                                                <span v-if="item.outflow_date" class="inline-flex items-center gap-1 font-bold text-rose-500 dark:text-rose-450 animate-fade-in" title="Fecha de salida a rectificadora">
+                                                    <i class="fa-solid fa-calendar-minus"></i>
+                                                    Salida: {{ formatDate(item.outflow_date) }}
+                                                </span>
+                                                <span v-if="item.return_date" class="text-gray-300 dark:text-slate-600">•</span>
+                                                <span v-if="item.return_date" class="inline-flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400 animate-fade-in" title="Fecha de entrada/recepción">
+                                                    <i class="fa-solid fa-calendar-check"></i>
+                                                    Entrada: {{ formatDate(item.return_date) }}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex items-center gap-6 justify-between md:justify-end">
+                                            <!-- Cost / BIG info -->
+                                            <div class="text-right">
+                                                <div class="font-black text-sm text-gray-800 dark:text-white">{{ formatPrice(item.cost) }}</div>
+                                                <div v-if="item.base_imponible > 0" class="text-[10px] text-emerald-600 dark:text-emerald-400 font-extrabold">
+                                                    BIG: {{ formatPrice(item.base_imponible) }}
+                                                </div>
+                                            </div>
+
+                                            <!-- Status & Action Buttons -->
+                                            <div class="flex items-center gap-3">
+                                                <!-- Status Badge -->
+                                                <span class="px-2.5 py-1 text-[10px] font-black uppercase rounded-full tracking-wider inline-flex items-center gap-1"
+                                                    :class="item.status === 'FUERA' ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400' :
+                                                            item.status === 'RETORNADO' ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 animate-pulse' :
+                                                            item.status === 'CONCILIADO' ? 'bg-sky-500/10 text-sky-600 dark:text-sky-400' :
+                                                            'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'">
+                                                    <i class="fa-solid" :class="item.status === 'FUERA' ? 'fa-truck-arrow-right animate-bounce' : item.status === 'RETORNADO' ? 'fa-clock' : 'fa-circle-check'"></i>
+                                                    {{ item.status === 'FUERA' ? 'En Rectificadora' : item.status === 'RETORNADO' ? 'Pendiente' : item.status === 'CONCILIADO' ? 'Conciliado' : 'Completado' }}
+                                                </span>
+
+                                                <!-- View Details Button -->
+                                                <button type="button" @click="openDetailModal(item)" class="p-2 text-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 rounded-lg transition-all" title="Ver detalles y notas">
+                                                    <i class="fa-solid fa-eye text-sm"></i>
+                                                </button>
+
+                                                <!-- Return Button -->
+                                                <button v-if="item.status === 'FUERA'" type="button" @click="openReturnModal(item.id)" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase rounded-lg transition-all shadow-md shadow-emerald-600/10 flex items-center gap-1">
+                                                    <i class="fa-solid fa-right-to-bracket"></i>Entrada
+                                                </button>
+
+                                                <!-- Edit Button -->
+                                                <button v-if="item.status !== 'CONCILIADO' && item.source !== 'INVENTARIO'" type="button" @click="openEditModal(item)" class="p-2 text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20 rounded-lg transition-all" title="Editar detalles de factura/costo">
+                                                    <i class="fa-solid fa-pen-to-square text-sm"></i>
+                                                </button>
+
+                                                <!-- Delete Button -->
+                                                <button v-if="item.status !== 'CONCILIADO'" type="button" @click="confirmDelete(item.id)" class="p-2 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-lg transition-all" title="Eliminar ítem">
+                                                    <i class="fa-solid fa-trash-can"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-else class="text-center py-6 text-xs font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider">
+                                    No hay repuestos o servicios dinámicos cargados a esta orden.
+                                </div>
+                            </div>
+                        </div>
                         
                         <div class="pb-6">
                             <button type="submit" class="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white font-bold py-4 px-6 rounded-2xl shadow-xl transform active:scale-[0.99] transition-all uppercase tracking-widest text-sm">Guardar Cambios del Mantenimiento</button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Item Modal -->
+        <div v-if="showAddModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm" @click="showAddModal = false"></div>
+            <div class="relative bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl shadow-2xl border border-gray-100 dark:border-slate-800 p-6 sm:p-8 animate-in zoom-in-95 duration-200">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-6 uppercase flex items-center gap-2">
+                    <i class="fa-solid fa-circle-plus text-indigo-500"></i>Añadir Repuesto / Servicio Externo
+                </h3>
+                
+                <form @submit.prevent="submitAdd" class="space-y-4 text-left">
+                    <div>
+                        <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">
+                            <i class="fa-solid fa-wrench text-indigo-500 mr-1.5"></i>Descripción / Pieza
+                        </label>
+                        <input type="text" v-model="addForm.description" required class="block w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white border border-gray-200 dark:border-slate-700 rounded-xl py-2 px-4 focus:ring-2 focus:ring-indigo-500 uppercase font-bold" placeholder="EJ: ANILLOS, PISTONES, REVISIÓN CIGÜEÑAL">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">
+                                <i class="fa-solid fa-tag text-indigo-500 mr-1.5"></i>Tipo
+                            </label>
+                            <select v-model="addForm.type" class="block w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white border border-gray-200 dark:border-slate-700 rounded-xl py-2.5 px-4 focus:ring-2 focus:ring-indigo-500 rounded-xl">
+                                <option value="REPUESTO">REPUESTO</option>
+                                <option value="SERVICIO">SERVICIO</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">
+                                <i class="fa-solid fa-store text-indigo-500 mr-1.5"></i>Origen
+                            </label>
+                            <select v-model="addForm.source" @change="handleSourceChange" class="block w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white border border-gray-200 dark:border-slate-700 rounded-xl py-2.5 px-4 focus:ring-2 focus:ring-indigo-500 rounded-xl">
+                                <option value="COMPRADO">COMPRADO EXTE.</option>
+                                <option value="INVENTARIO">TALLER (STOCK)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2 pt-2">
+                        <input type="checkbox" id="requires_outflow" v-model="addForm.requires_outflow" @change="handleRequiresOutflowChange" class="rounded border-gray-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500">
+                        <label for="requires_outflow" class="text-xs font-bold text-gray-700 dark:text-slate-300 uppercase cursor-pointer select-none">¿Requiere salida a rectificadora / taller externo?</label>
+                    </div>
+
+                    <!-- Datos de Compra Directa (si es comprado y no va a rectificadora) -->
+                    <div v-if="addForm.source === 'COMPRADO' && !addForm.requires_outflow" class="p-4 bg-gray-50 dark:bg-slate-800/40 border border-gray-100 dark:border-slate-800 rounded-2xl space-y-4 animate-in slide-in-from-top-4 duration-200">
+                        <div class="text-[10px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
+                            <i class="fa-solid fa-file-invoice-dollar"></i>Datos del Soporte de Compra
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">
+                                    <i class="fa-solid fa-hand-holding-dollar text-indigo-500 mr-1.5"></i>Costo ($ USD)
+                                </label>
+                                <input type="number" step="0.01" v-model="addForm.cost" required class="block w-full bg-white dark:bg-slate-900 text-gray-900 dark:text-white border border-gray-200 dark:border-slate-700 rounded-xl py-2 px-4 focus:ring-2 focus:ring-indigo-500 text-xs font-bold" placeholder="0.00">
+                                <span v-if="addForm.errors.cost" class="text-[9px] text-rose-500 font-extrabold mt-1 block uppercase tracking-tight">{{ addForm.errors.cost }}</span>
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">
+                                    <i class="fa-solid fa-file-invoice text-indigo-500 mr-1.5"></i>Soporte Fiscal
+                                </label>
+                                <select v-model="addForm.document_type" class="block w-full bg-white dark:bg-slate-900 text-gray-900 dark:text-white border border-gray-200 dark:border-slate-700 rounded-xl py-2.5 px-4 focus:ring-2 focus:ring-indigo-500 rounded-xl text-xs font-bold">
+                                    <option value="FACTURA">FACTURA</option>
+                                    <option value="RECIBO">RECIBO</option>
+                                    <option value="NINGUNO">NINGUNO</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div v-if="addForm.document_type !== 'NINGUNO'" class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">
+                                    <i class="fa-solid fa-hashtag text-indigo-500 mr-1.5"></i>Nro. Factura/Recibo
+                                </label>
+                                <input type="text" v-model="addForm.invoice_number" required class="block w-full bg-white dark:bg-slate-900 text-gray-900 dark:text-white border border-gray-200 dark:border-slate-700 rounded-xl py-2 px-4 focus:ring-2 focus:ring-indigo-500 uppercase text-xs font-bold" placeholder="EJ: 12345">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">
+                                    <i class="fa-solid fa-calculator text-indigo-500 mr-1.5"></i>Base Imponible (BIG)
+                                </label>
+                                <input type="number" step="0.01" v-model="addForm.base_imponible" class="block w-full bg-white dark:bg-slate-900 text-gray-900 dark:text-white border border-gray-200 dark:border-slate-700 rounded-xl py-2 px-4 focus:ring-2 focus:ring-indigo-500 text-xs font-bold" placeholder="Opcional">
+                                <span v-if="addForm.errors.base_imponible" class="text-[9px] text-rose-500 font-extrabold mt-1 block uppercase tracking-tight">{{ addForm.errors.base_imponible }}</span>
+                            </div>
+                        </div>
+
+                        <div v-if="addForm.document_type !== 'NINGUNO'">
+                            <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">
+                                <i class="fa-solid fa-image text-indigo-500 mr-1.5"></i>Imagen de la Factura o Recibo
+                            </label>
+                            <input @input="addForm.invoice_file = $event.target.files[0]" type="file" accept="image/*" class="block w-full text-xs text-gray-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-extrabold file:bg-indigo-50 dark:file:bg-slate-800 file:text-indigo-700 dark:file:text-indigo-400 hover:file:bg-indigo-100 dark:hover:file:bg-slate-750 border border-gray-200 dark:border-slate-700 rounded-xl py-2 px-2 bg-white dark:bg-slate-900">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">
+                            <i class="fa-solid fa-comment-dots text-indigo-500 mr-1.5"></i>Notas / Observaciones
+                        </label>
+                        <textarea v-model="addForm.notes" class="block w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white border border-gray-200 dark:border-slate-700 rounded-xl py-2 px-4 min-h-[60px] focus:ring-2 focus:ring-indigo-500" placeholder="Opcional"></textarea>
+                    </div>
+
+                    <div class="pt-4 flex items-center justify-end gap-3">
+                        <button type="button" @click="showAddModal = false" class="px-4 py-2 bg-gray-150 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-gray-700 dark:text-white text-xs font-bold uppercase rounded-xl transition-all">Cancelar</button>
+                        <button type="submit" :disabled="addForm.processing" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black uppercase rounded-xl transition-all shadow-md shadow-indigo-600/10">Agregar Ítem</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Return Item Modal -->
+        <div v-if="showReturnModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm" @click="showReturnModal = false"></div>
+            <div class="relative bg-white dark:bg-slate-900 w-full max-w-md rounded-3xl shadow-2xl border border-gray-100 dark:border-slate-800 p-6 sm:p-8 animate-in zoom-in-95 duration-200">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-6 uppercase flex items-center gap-2">
+                    <i class="fa-solid fa-right-to-bracket text-emerald-500"></i>Registrar Entrada de Rectificadora
+                </h3>
+                
+                <form @submit.prevent="submitReturn" class="space-y-4 text-left">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">
+                                <i class="fa-solid fa-dollar-sign text-emerald-500 mr-1.5"></i>Costo ($ USD)
+                            </label>
+                            <input type="number" step="0.01" v-model="returnForm.cost" required class="block w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white border border-gray-200 dark:border-slate-700 rounded-xl py-2 px-4 focus:ring-2 focus:ring-emerald-500 rounded-xl">
+                            <span v-if="returnForm.errors.cost" class="text-[9px] text-rose-500 font-extrabold mt-1 block uppercase tracking-tight">{{ returnForm.errors.cost }}</span>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">
+                                <i class="fa-solid fa-file-invoice text-emerald-500 mr-1.5"></i>Soporte
+                            </label>
+                            <select v-model="returnForm.document_type" class="block w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white border border-gray-200 dark:border-slate-700 rounded-xl py-2.5 px-4 focus:ring-2 focus:ring-emerald-500 rounded-xl">
+                                <option value="FACTURA">FACTURA</option>
+                                <option value="RECIBO">RECIBO / NOTA</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div v-if="returnForm.document_type === 'FACTURA'" class="grid grid-cols-2 gap-4 animate-in fade-in duration-200">
+                        <div>
+                            <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">
+                                <i class="fa-solid fa-hashtag text-emerald-500 mr-1.5"></i>Nro. de Factura
+                            </label>
+                            <input type="text" v-model="returnForm.invoice_number" required class="block w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white border border-gray-200 dark:border-slate-700 rounded-xl py-2 px-4 focus:ring-2 focus:ring-emerald-500 rounded-xl uppercase font-bold" placeholder="F-0001">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">
+                                <i class="fa-solid fa-calculator text-emerald-500 mr-1.5"></i>Base Imponible (BIG)
+                            </label>
+                            <input type="number" step="0.01" v-model="returnForm.base_imponible" required class="block w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white border border-gray-200 dark:border-slate-700 rounded-xl py-2 px-4 focus:ring-2 focus:ring-emerald-500 rounded-xl">
+                            <span v-if="returnForm.errors.base_imponible" class="text-[9px] text-rose-500 font-extrabold mt-1 block uppercase tracking-tight">{{ returnForm.errors.base_imponible }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Imagen de Soporte (Factura / Recibo) -->
+                    <div>
+                        <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">
+                            <i class="fa-solid fa-image text-emerald-500 mr-1.5"></i>Imagen de la Factura o Recibo
+                        </label>
+                        <input @input="returnForm.invoice_file = $event.target.files[0]" type="file" accept="image/*" class="block w-full text-xs text-gray-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-extrabold file:bg-emerald-50 dark:file:bg-slate-850 file:text-emerald-700 dark:file:text-emerald-400 hover:file:bg-emerald-100 dark:hover:file:bg-slate-750 border border-gray-200 dark:border-slate-700 rounded-xl py-2 px-2 bg-gray-50 dark:bg-slate-800">
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">
+                            <i class="fa-solid fa-comment-dots text-emerald-500 mr-1.5"></i>Notas / Observaciones de Entrada
+                        </label>
+                        <textarea v-model="returnForm.notes" class="block w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white border border-gray-200 dark:border-slate-700 rounded-xl py-2 px-4 min-h-[60px] focus:ring-2 focus:ring-emerald-500" placeholder="Opcional"></textarea>
+                    </div>
+
+                    <div class="pt-4 flex items-center justify-end gap-3">
+                        <button type="button" @click="showReturnModal = false" class="px-4 py-2 bg-gray-150 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-gray-700 dark:text-white text-xs font-bold uppercase rounded-xl transition-all">Cancelar</button>
+                        <button type="submit" :disabled="returnForm.processing" class="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase rounded-xl transition-all shadow-md shadow-emerald-600/10">Registrar Entrada</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Edit Item Modal -->
+        <div v-if="showEditModal && activeEditItem" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm" @click="showEditModal = false"></div>
+            <div class="relative bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl shadow-2xl border border-gray-100 dark:border-slate-800 p-6 sm:p-8 animate-in zoom-in-95 duration-200">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-6 uppercase flex items-center gap-2">
+                    <i class="fa-solid fa-pen-to-square text-amber-500"></i>Editar Factura / Recibo de Ítem
+                </h3>
+                
+                <form @submit.prevent="submitEdit" class="space-y-4 text-left">
+                    <div class="p-3 bg-indigo-50/50 dark:bg-slate-800/30 rounded-xl border border-indigo-100 dark:border-slate-700/50">
+                        <div class="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">Ítem / Pieza</div>
+                        <div class="text-sm font-black text-gray-800 dark:text-white uppercase">{{ activeEditItem.description }}</div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">
+                                <i class="fa-solid fa-dollar-sign text-amber-500 mr-1.5"></i>Costo ($ USD)
+                            </label>
+                            <input type="number" step="0.01" v-model="editForm.cost" required class="block w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white border border-gray-200 dark:border-slate-700 rounded-xl py-2 px-4 focus:ring-2 focus:ring-amber-500 rounded-xl">
+                            <span v-if="editForm.errors.cost" class="text-[9px] text-rose-500 font-extrabold mt-1 block uppercase tracking-tight">{{ editForm.errors.cost }}</span>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">
+                                <i class="fa-solid fa-file-invoice text-amber-500 mr-1.5"></i>Soporte
+                            </label>
+                            <select v-model="editForm.document_type" class="block w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white border border-gray-200 dark:border-slate-700 rounded-xl py-2.5 px-4 focus:ring-2 focus:ring-amber-500 rounded-xl">
+                                <option value="FACTURA">FACTURA</option>
+                                <option value="RECIBO">RECIBO / NOTA</option>
+                                <option value="NINGUNO">NINGUNO</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div v-if="editForm.document_type !== 'NINGUNO'" class="grid grid-cols-2 gap-4 animate-in fade-in duration-200">
+                        <div>
+                            <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">
+                                <i class="fa-solid fa-hashtag text-amber-500 mr-1.5"></i>Nro. de Documento
+                            </label>
+                            <input type="text" v-model="editForm.invoice_number" required class="block w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white border border-gray-200 dark:border-slate-700 rounded-xl py-2 px-4 focus:ring-2 focus:ring-amber-500 rounded-xl uppercase font-bold" placeholder="EJ: 12345">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">
+                                <i class="fa-solid fa-calculator text-amber-500 mr-1.5"></i>Base Imponible (BIG)
+                            </label>
+                            <input type="number" step="0.01" v-model="editForm.base_imponible" class="block w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white border border-gray-200 dark:border-slate-700 rounded-xl py-2 px-4 focus:ring-2 focus:ring-amber-500 rounded-xl">
+                            <span v-if="editForm.errors.base_imponible" class="text-[9px] text-rose-500 font-extrabold mt-1 block uppercase tracking-tight">{{ editForm.errors.base_imponible }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Imagen de Soporte (Factura / Recibo) -->
+                    <div v-if="editForm.document_type !== 'NINGUNO'">
+                        <label class="block text-[10px] font-black text-gray-400 uppercase mb-1 flex justify-between">
+                            <span><i class="fa-solid fa-image text-amber-500 mr-1.5"></i>Actualizar Imagen de Soporte</span>
+                            <span v-if="activeEditItem.invoice_path" class="text-indigo-500 dark:text-indigo-400 font-extrabold text-[8px] lowercase italic">(ya cuenta con archivo adjunto)</span>
+                        </label>
+                        <input @input="editForm.invoice_file = $event.target.files[0]" type="file" accept="image/*" class="block w-full text-xs text-gray-500 dark:text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-extrabold file:bg-amber-50 dark:file:bg-slate-855 file:text-amber-700 dark:file:text-amber-400 hover:file:bg-amber-100 dark:hover:file:bg-slate-750 border border-gray-200 dark:border-slate-700 rounded-xl py-2 px-2 bg-gray-50 dark:bg-slate-800">
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">
+                            <i class="fa-solid fa-comment-dots text-amber-500 mr-1.5"></i>Notas / Observaciones
+                        </label>
+                        <textarea v-model="editForm.notes" class="block w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white border border-gray-200 dark:border-slate-700 rounded-xl py-2 px-4 min-h-[60px] focus:ring-2 focus:ring-amber-500" placeholder="Opcional"></textarea>
+                    </div>
+
+                    <div class="pt-4 flex items-center justify-end gap-3">
+                        <button type="button" @click="showEditModal = false" class="px-4 py-2 bg-gray-150 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-gray-700 dark:text-white text-xs font-bold uppercase rounded-xl transition-all">Cancelar</button>
+                        <button type="submit" :disabled="editForm.processing" class="px-6 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-black uppercase rounded-xl transition-all shadow-md shadow-amber-600/10">Guardar Cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- View Detail Modal -->
+        <div v-if="showDetailModal && activeDetailItem" class="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm" @click="showDetailModal = false"></div>
+            <div class="relative bg-white dark:bg-slate-900 w-full max-w-lg rounded-3xl shadow-2xl border border-gray-100 dark:border-slate-800 p-6 sm:p-8 animate-in zoom-in-95 duration-200">
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-6 uppercase flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info text-indigo-500"></i>Detalles del Repuesto / Servicio
+                </h3>
+                
+                <div class="space-y-4 text-left max-h-[70vh] overflow-y-auto pr-1">
+                    <div class="bg-gray-50 dark:bg-slate-800/50 rounded-2xl p-4 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-black text-gray-400 uppercase flex items-center gap-1.5">
+                                <i class="fa-solid fa-wrench text-indigo-500 mr-0.5"></i>Descripción
+                            </span>
+                            <span class="text-sm font-black text-gray-800 dark:text-white uppercase">{{ activeDetailItem.description }}</span>
+                        </div>
+                        <div class="flex items-center justify-between border-t border-gray-100 dark:border-slate-700/50 pt-2.5">
+                            <span class="text-[10px] font-black text-gray-400 uppercase flex items-center gap-1.5">
+                                <i class="fa-solid fa-tag text-indigo-500 mr-0.5"></i>Tipo
+                            </span>
+                            <span class="px-2 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md bg-purple-100 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400">
+                                {{ activeDetailItem.type }}
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-between border-t border-gray-100 dark:border-slate-700/50 pt-2.5">
+                            <span class="text-[10px] font-black text-gray-400 uppercase flex items-center gap-1.5">
+                                <i class="fa-solid fa-warehouse text-indigo-500 mr-0.5"></i>Origen
+                            </span>
+                            <span class="text-xs font-bold text-gray-700 dark:text-slate-300">
+                                {{ activeDetailItem.source === 'INVENTARIO' ? 'Taller (Existente)' : 'Compra Externa' }}
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-between border-t border-gray-100 dark:border-slate-700/50 pt-2.5">
+                            <span class="text-[10px] font-black text-gray-400 uppercase flex items-center gap-1.5">
+                                <i class="fa-solid fa-circle-notch text-indigo-500 mr-0.5"></i>Estado
+                            </span>
+                            <span class="px-2.5 py-1 text-[9px] font-black uppercase rounded-full tracking-wider bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                                {{ activeDetailItem.status === 'FUERA' ? 'En Rectificadora' : activeDetailItem.status === 'RETORNADO' ? 'Pendiente' : activeDetailItem.status === 'CONCILIADO' ? 'Conciliado' : 'Completado' }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 dark:bg-slate-800/50 rounded-2xl p-4 space-y-3">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <span class="block text-[10px] font-black text-gray-400 uppercase mb-1 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-hand-holding-dollar text-emerald-500 mr-0.5"></i>Costo ($ USD)
+                                </span>
+                                <span class="text-sm font-black text-gray-800 dark:text-white">{{ formatPrice(activeDetailItem.cost) }}</span>
+                            </div>
+                            <div>
+                                <span class="block text-[10px] font-black text-gray-400 uppercase mb-1 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-file-invoice text-emerald-500 mr-0.5"></i>Soporte Fiscal
+                                </span>
+                                <span class="text-xs font-bold text-gray-700 dark:text-slate-300 uppercase">{{ activeDetailItem.document_type || 'NINGUNO' }}</span>
+                            </div>
+                        </div>
+
+                        <div v-if="activeDetailItem.invoice_number" class="grid grid-cols-2 gap-4 border-t border-gray-100 dark:border-slate-700/50 pt-2.5">
+                            <div>
+                                <span class="block text-[10px] font-black text-gray-400 uppercase mb-1 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-hashtag text-emerald-500 mr-0.5"></i>Nro. de Factura
+                                </span>
+                                <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase font-black">{{ activeDetailItem.invoice_number }}</span>
+                            </div>
+                            <div>
+                                <span class="block text-[10px] font-black text-gray-400 uppercase mb-1 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-calculator text-emerald-500 mr-0.5"></i>Base Imponible (BIG)
+                                </span>
+                                <span class="text-xs font-extrabold text-emerald-600 dark:text-emerald-450">{{ formatPrice(activeDetailItem.base_imponible) }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 dark:bg-slate-800/50 rounded-2xl p-4 space-y-3">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <span class="block text-[10px] font-black text-gray-400 uppercase mb-1 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-calendar-minus text-rose-500 mr-0.5"></i>Fecha de Salida
+                                </span>
+                                <span class="text-xs font-bold text-gray-700 dark:text-slate-300">
+                                    {{ activeDetailItem.outflow_date ? formatDate(activeDetailItem.outflow_date) : 'N/A' }}
+                                </span>
+                            </div>
+                            <div>
+                                <span class="block text-[10px] font-black text-gray-400 uppercase mb-1 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-calendar-check text-emerald-500 mr-0.5"></i>Fecha de Entrada
+                                </span>
+                                <span class="text-xs font-bold text-gray-700 dark:text-slate-300">
+                                    {{ activeDetailItem.return_date ? formatDate(activeDetailItem.return_date) : 'N/A' }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="activeDetailItem.notes" class="bg-gray-50 dark:bg-slate-800/50 rounded-2xl p-4">
+                        <span class="block text-[10px] font-black text-gray-400 uppercase mb-1 flex items-center gap-1.5">
+                            <i class="fa-solid fa-comment-dots text-indigo-500 mr-0.5"></i>Notas / Observaciones
+                        </span>
+                        <p class="text-xs font-semibold text-gray-600 dark:text-slate-400 leading-relaxed uppercase">{{ activeDetailItem.notes }}</p>
+                    </div>
+
+                    <!-- Imagen de Soporte (Factura / Recibo) -->
+                    <div v-if="activeDetailItem.invoice_path" class="bg-gray-50 dark:bg-slate-800/50 rounded-2xl p-4 space-y-2">
+                        <span class="block text-[10px] font-black text-gray-400 uppercase flex items-center gap-1.5">
+                            <i class="fa-solid fa-image text-indigo-500 mr-0.5"></i>Imagen de Soporte (Factura / Recibo)
+                        </span>
+                        <div class="relative group overflow-hidden rounded-xl border border-gray-200 dark:border-slate-700 bg-black/5 dark:bg-black/25 flex justify-center items-center p-2">
+                            <img :src="'/storage/' + activeDetailItem.invoice_path" class="max-h-[250px] w-auto object-contain rounded-lg shadow-md transition-transform duration-300 group-hover:scale-[1.02]" alt="Imagen de Soporte">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-6 flex items-center justify-end">
+                    <button type="button" @click="showDetailModal = false" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-black uppercase rounded-xl transition-all shadow-md shadow-indigo-600/10">Cerrar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div v-if="showDeleteConfirmModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm" @click="showDeleteConfirmModal = false"></div>
+            <div class="relative bg-white dark:bg-slate-900 w-full max-w-sm rounded-3xl shadow-2xl border border-gray-100 dark:border-slate-800 p-6 sm:p-8 text-center animate-in zoom-in-95 duration-200">
+                <div class="w-16 h-16 bg-rose-50 dark:bg-rose-950/30 rounded-full flex items-center justify-center mx-auto mb-4 text-rose-500">
+                    <i class="fa-solid fa-triangle-exclamation text-2xl"></i>
+                </div>
+                <h3 class="text-base font-black text-gray-900 dark:text-white uppercase mb-2">¿Eliminar Repuesto / Servicio?</h3>
+                <p class="text-xs text-gray-500 dark:text-slate-400 font-semibold mb-6 uppercase">Esta acción es permanente y el costo se recalculará automáticamente.</p>
+                
+                <div class="flex items-center justify-center gap-3">
+                    <button type="button" @click="showDeleteConfirmModal = false" class="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-gray-700 dark:text-white text-xs font-black uppercase rounded-xl transition-all">Cancelar</button>
+                    <button type="button" @click="executeDelete" class="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-black uppercase rounded-xl transition-all shadow-md shadow-rose-600/10">Sí, Eliminar</button>
                 </div>
             </div>
         </div>

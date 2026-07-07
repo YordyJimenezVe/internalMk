@@ -25,6 +25,8 @@ class Maintenance extends Model
         'costo',
     ];
 
+    protected $appends = ['costo_real', 'costo_b_i_g'];
+
     public function inventario()
     {
         return $this->belongsTo(Inventario::class, 'partida_id');
@@ -68,5 +70,44 @@ class Maintenance extends Model
     public function team()
     {
         return $this->hasMany(MaintenanceTeam::class, 'maintenance_id');
+    }
+
+    public function getCostoRealAttribute()
+    {
+        $total = 0;
+        
+        $material = $this->materials()->first();
+        if ($material) {
+            $fields = [
+                'concha_biela', 'concha_bancada', 'anillos', 'empacadura_camara',
+                'empacadura_carter', 'kit_empacaduras', 'baño_quimico', 'goma_valvula',
+                'planos', 'valvulas', 'rectificadora', 'asientos', 'camisas', 'levas', 'pistones'
+            ];
+            foreach ($fields as $field) {
+                $value = str_replace(',', '.', $material->$field ?? '0');
+                $total += floatval($value);
+            }
+        }
+
+        $accesorios = $this->accesorios_engine()->first();
+        if ($accesorios) {
+            $fields = ['valve_cover', 'chain_cover', 'carter', 'pescador'];
+            foreach ($fields as $field) {
+                $value = str_replace(',', '.', $accesorios->$field ?? '0');
+                $total += floatval($value);
+            }
+        }
+
+        $total += $this->items()->sum('cost');
+
+        return $total;
+    }
+
+    public function getCostoBIGAttribute()
+    {
+        return (float) $this->items()
+            ->where('document_type', 'FACTURA')
+            ->where('status', 'CONCILIADO')
+            ->sum('base_imponible');
     }
 }

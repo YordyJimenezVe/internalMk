@@ -1,7 +1,18 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { Head, Link, useForm, router } from '@inertiajs/vue3';
-import { ref, reactive } from 'vue';
+import { Head, Link, useForm, router, usePage } from '@inertiajs/vue3';
+import { ref, reactive, computed } from 'vue';
+
+const page = usePage();
+const user = computed(() => page.props.auth.user);
+const isFacturacion = computed(() => {
+    const rol = (user.value?.rol || '').toLowerCase();
+    return rol.includes('fact') || (user.value?.roles || []).some(r => (r?.name || '').toLowerCase().includes('fact'));
+});
+const isAdminOrSuper = computed(() => {
+    const rol = (user.value?.rol || '').toLowerCase();
+    return rol.includes('admin') || rol.includes('super') || (user.value?.roles || []).some(r => ['superusuario', 'administrador'].includes((r?.name || '').toLowerCase()));
+});
 
 const props = defineProps({
     requests: Array,
@@ -139,7 +150,7 @@ const goToCreateBilling = (id, requestId) => {
                                     <th class="px-8 py-5 text-left text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">
                                         <i class="fa-solid fa-user mr-2 text-emerald-400"></i>Cliente
                                     </th>
-                                    <th class="px-8 py-5 text-center text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">
+                                    <th v-if="!isFacturacion" class="px-8 py-5 text-center text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">
                                         Finanzas
                                     </th>
                                     <th class="px-8 py-5 text-left text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">
@@ -177,7 +188,7 @@ const goToCreateBilling = (id, requestId) => {
                                             <span v-if="req.client_cedula" class="text-[10px] font-medium text-gray-400">{{ req.client_cedula }}</span>
                                         </div>
                                     </td>
-                                    <td class="px-8 py-6 whitespace-nowrap text-center">
+                                    <td v-if="!isFacturacion" class="px-8 py-6 whitespace-nowrap text-center">
                                         <div class="flex flex-col items-center">
                                             <span class="text-xs font-black text-indigo-600 dark:text-indigo-400">${{ parseFloat(req.price).toFixed(2) }}</span>
                                             <div class="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 rounded-full border border-indigo-100 dark:border-indigo-800/30 mt-1">
@@ -246,7 +257,7 @@ const goToCreateBilling = (id, requestId) => {
                             </div>
                             
                             <div class="space-y-6">
-                                <div class="grid grid-cols-2 gap-4">
+                                <div class="grid gap-4" :class="isFacturacion ? 'grid-cols-1' : 'grid-cols-2'">
                                     <div class="space-y-2">
                                         <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest ml-1">Cantidad</label>
                                         <div class="relative group">
@@ -254,7 +265,7 @@ const goToCreateBilling = (id, requestId) => {
                                             <input v-model="editForm.quantity" type="number" class="block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-3.5 pl-12 pr-4 focus:ring-2 focus:ring-blue-500 transition-all font-bold outline-none" min="1">
                                         </div>
                                     </div>
-                                    <div class="space-y-2">
+                                    <div v-if="!isFacturacion" class="space-y-2">
                                         <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest ml-1">Precio Unitario ($)</label>
                                         <div class="relative group">
                                             <i class="fa-solid fa-dollar-sign absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors"></i>

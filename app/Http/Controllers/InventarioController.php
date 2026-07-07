@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Inventario;
 use App\Models\Container;
 use App\Models\Bills;
+use Inertia\Inertia;
 
 class InventarioController extends Controller
 {
@@ -20,17 +21,20 @@ class InventarioController extends Controller
 
         // --- Smart Redirect Logic (Global) ---
         if ($searchRaw) {
-            // 1. Try exact match
-            $partida = Inventario::where('id', $searchRaw)
-                ->orWhere('codInv', $searchRaw)
-                ->first();
-            
-            // 2. Try cleaning prefix if not found (e.g. CRSU-623-135 -> 623-135)
-            if (!$partida && str_contains($searchRaw, '-')) {
-                $parts = explode('-', $searchRaw);
-                if (count($parts) >= 2) {
-                    $strippedCode = implode('-', array_slice($parts, -2));
-                    $partida = Inventario::where('codInv', $strippedCode)->first();
+            $partida = null;
+            if (str_contains($searchRaw, '-') || (strlen($searchRaw) >= 4 && !is_numeric($searchRaw))) {
+                // 1. Try exact match
+                $partida = Inventario::where('id', $searchRaw)
+                    ->orWhere('codInv', $searchRaw)
+                    ->first();
+                
+                // 2. Try cleaning prefix if not found (e.g. CRSU-623-135 -> 623-135)
+                if (!$partida && str_contains($searchRaw, '-')) {
+                    $parts = explode('-', $searchRaw);
+                    if (count($parts) >= 2) {
+                        $strippedCode = implode('-', array_slice($parts, -2));
+                        $partida = Inventario::where('codInv', $strippedCode)->first();
+                    }
                 }
             }
             
@@ -94,6 +98,8 @@ class InventarioController extends Controller
             });
         } elseif ($statusFilter === 'GARANTIA') {
             $inventarios->whereIn('status', ['GARANTIA', 'GARANTÍA']);
+        } elseif ($statusFilter === 'PRECIO PENDIENTE') {
+            $inventarios->where('status', 'PRECIO PENDIENTE');
         }
         // If 'ALL', we don't filter by billing/status, just show everything.
 
@@ -109,6 +115,12 @@ class InventarioController extends Controller
                     ->orWhereRaw('LOWER(modelo) LIKE ?', ['%' . $search . '%'])
                     ->orWhereRaw('LOWER(tipo) LIKE ?', ['%' . $search . '%'])
                     ->orWhereRaw('LOWER(codInv) LIKE ?', ['%' . $search . '%'])
+                    ->orWhereRaw('LOWER(serial) LIKE ?', ['%' . $search . '%'])
+                    ->orWhereRaw('LOWER(expediente) LIKE ?', ['%' . $search . '%'])
+                    ->orWhereRaw('LOWER(categorie) LIKE ?', ['%' . $search . '%'])
+                    ->orWhereRaw('LOWER(observation) LIKE ?', ['%' . $search . '%'])
+                    ->orWhere('año', 'like', "%{$search}%")
+                    ->orWhere('cantidad', 'like', "%{$search}%")
                     ->orWhereHas('container', function ($q) use ($search) {
                         $q->whereRaw("CONCAT(SUBSTR(cod, 1, 4), '-', codInv) LIKE CONCAT('%', ?, '%')", [
                             $search
@@ -139,7 +151,19 @@ class InventarioController extends Controller
         // Sorting
         $sort = $request->input('sort', 'created_at');
         $direction = $request->input('direction', 'desc');
-        $inventarios->orderBy($sort, $direction);
+        
+        if ($sort === 'container.cod') {
+            $inventarios->select('inventarios.*')
+                ->leftJoin('containers', 'inventarios.container_id', '=', 'containers.id')
+                ->orderBy('containers.cod', $direction);
+        } elseif ($sort === 'model_display') {
+            $inventarios->orderBy('marca', $direction)
+                ->orderBy('modelo', $direction);
+        } else {
+            $allowedSorts = ['id', 'codInv', 'expediente', 'tipo', 'serial', 'año', 'categorie', 'cantidad', 'created_at'];
+            $sortBy = in_array($sort, $allowedSorts) ? $sort : 'created_at';
+            $inventarios->orderBy($sortBy, $direction);
+        }
 
         $motorTypes = ['MOTOR 7/8', 'MOTOR 3/4', 'MOTOR COMPLETO', 'MOTOR 5/8'];
         $tipos = Inventario::whereDoesntHave('bill')
@@ -249,6 +273,7 @@ class InventarioController extends Controller
         }
 
         $data = Inventario::with(['container', 'maintenances', 'bill', 'billingRequests'])->findOrFail($id);
+        $data->append('costo_taller');
 
         // Barcode Data (Standardized internal code)
         $containerCode = $data->container ? substr($data->container->cod, 0, 4) : 'MK';
@@ -266,11 +291,15 @@ class InventarioController extends Controller
         $generator = new \Picqer\Barcode\BarcodeGeneratorSVG();
         $barcode = $generator->getBarcode($barcodeData, $generator::TYPE_CODE_128, 1);
 
+        $latestRate = \App\Models\ExchangeRate::where('source', 'BCV')->latest()->first();
+        $tasaBCV = $latestRate ? (float) $latestRate->rate : 0;
+
         return inertia('Inventario/Show', [
             'inventario' => $data,
             'qrCode' => (string) $qrCode,
             'barcode' => (string) $barcode,
             'barcodeData' => $barcodeData,
+            'tasa_bcv' => $tasaBCV,
         ]);
     }
 
@@ -355,7 +384,92 @@ class InventarioController extends Controller
      */
     public function generatorDashboard()
     {
-        return view('labels.generator');
+        $containers = Container::orderBy('cod', 'asc')->get();
+        $brands = Inventario::whereNotNull('marca')
+            ->where('marca', '!=', '')
+            ->select('marca')
+            ->distinct()
+            ->orderBy('marca', 'asc')
+            ->pluck('marca');
+
+        return view('labels.generator', [
+            'containers' => $containers,
+            'brands' => $brands,
+        ]);
+    }
+
+    /**
+     * Genera un pliego masivo de etiquetas en formato Carta, filtradas por contenedor, tipo de parte y marca.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\View\View|\Illuminate\Http\RedirectResponse
+     */
+    public function printContainerLabels(Request $request)
+    {
+        $request->validate([
+            'container_id' => 'required|string',
+            'type' => 'nullable|string',
+            'brand' => 'nullable|string',
+        ]);
+
+        $query = Inventario::with('container')
+            ->whereIn('status', ['DISPONIBLE', 'DEVUELTO']);
+
+        // Filtrado por Contenedor
+        if ($request->container_id !== 'all') {
+            $request->validate([
+                'container_id' => 'exists:containers,id',
+            ]);
+            $query->where('container_id', $request->container_id);
+        }
+
+        // Filtrado por Tipo
+        if ($request->filled('type') && $request->type !== 'all') {
+            $type = $request->type;
+            if ($type === 'motors') {
+                $query->where('tipo', 'LIKE', '%MOTOR%');
+            } elseif ($type === 'boxes') {
+                $query->where('tipo', 'LIKE', '%CAJA%');
+            } elseif ($type === 'cameras') {
+                $query->where('tipo', 'LIKE', '%CÁMARA%');
+            } elseif ($type === 'autopartes') {
+                $query->where('tipo', 'AUTOPARTE');
+            }
+        }
+
+        // Filtrado por Marca
+        if ($request->filled('brand') && $request->brand !== 'all') {
+            $query->where('marca', $request->brand);
+        }
+
+        $items = $query->orderBy('id', 'asc')->get();
+
+        if ($items->isEmpty()) {
+            return back()->with('error', 'No se encontraron repuestos disponibles en este contenedor con los filtros seleccionados.');
+        }
+
+        $renderer = new \BaconQrCode\Renderer\ImageRenderer(
+            new \BaconQrCode\Renderer\RendererStyle\RendererStyle(100),
+            new \BaconQrCode\Renderer\Image\SvgImageBackEnd()
+        );
+        $writer = new \BaconQrCode\Writer($renderer);
+        $barcodeGenerator = new \Picqer\Barcode\BarcodeGeneratorPNG();
+
+        $labels = $items->map(function($item) use ($writer, $barcodeGenerator) {
+            $containerCode = $item->container ? substr($item->container->cod, 0, 4) : 'MK';
+            $barcodeData = strtoupper($containerCode . '-' . $item->codInv);
+            
+            return [
+                'inventario' => $item,
+                'barcodeData' => $barcodeData,
+                'qrCode' => base64_encode($writer->writeString($barcodeData)),
+                'barcode' => base64_encode($barcodeGenerator->getBarcode($barcodeData, $barcodeGenerator::TYPE_CODE_128, 2, 40)),
+            ];
+        })->toArray();
+
+        return view('labels.container-sheet', [
+            'labels' => $labels,
+        ]);
     }
 
     /**
@@ -475,6 +589,300 @@ class InventarioController extends Controller
             'logoBase64' => $logoBase64,
             'qrData' => $qrData,
         ]);
+    }
+
+    /**
+     * Muestra la lista de motores/ítems en estatus PRECIO PENDIENTE.
+     */
+    public function precioPendienteIndex(Request $request)
+    {
+        $user = auth()->user();
+        $isBillingOrAdmin = stripos($user->rol, 'fact') !== false 
+            || stripos($user->rol, 'admin') !== false 
+            || stripos($user->rol, 'super') !== false 
+            || $user->hasAnyRole(['Facturacion', 'Facturación', 'Administrador', 'Superusuario', 'SUPERUSUARIO', 'ADMINISTRADOR']);
+
+        if (!$isBillingOrAdmin) {
+            abort(403, 'No autorizado.');
+        }
+
+        $search = $request->input('search');
+
+        // Base query for counting overall totals (without search filter)
+        $baseQuery = Inventario::where(function ($query) {
+            $query->whereNull('costo_importacion_unitario')
+                  ->orWhere('costo_importacion_unitario', 0);
+        })->where(function ($query) {
+            $query->where(function ($q) {
+                $q->where('tipo', 'NOT LIKE', '%AUTOPARTE%')
+                  ->where('tipo', 'NOT LIKE', '%autoparte%');
+            })->orWhere('status', 'PRECIO PENDIENTE');
+        });
+
+        $totals = [
+            'motores' => (clone $baseQuery)->where('tipo', 'LIKE', '%MOTOR%')->count(),
+            'cajas' => (clone $baseQuery)->where('tipo', 'LIKE', '%CAJA%')->count(),
+            'camaras' => (clone $baseQuery)->where(function($q) {
+                $q->where('tipo', 'LIKE', '%CÁMARA%')
+                  ->orWhere('tipo', 'LIKE', '%CAMARA%');
+            })->count(),
+            'autopartes' => (clone $baseQuery)->where('tipo', 'LIKE', '%AUTOPARTE%')->count(),
+            'otros' => (clone $baseQuery)->where('tipo', 'NOT LIKE', '%MOTOR%')
+                                         ->where('tipo', 'NOT LIKE', '%CAJA%')
+                                         ->where('tipo', 'NOT LIKE', '%CÁMARA%')
+                                         ->where('tipo', 'NOT LIKE', '%CAMARA%')
+                                         ->where('tipo', 'NOT LIKE', '%AUTOPARTE%')
+                                         ->count(),
+        ];
+
+        // Search query
+        $query = Inventario::query()
+            ->select('inventarios.*')
+            ->leftJoin('containers', 'inventarios.container_id', '=', 'containers.id')
+            ->where(function ($query) {
+                $query->whereNull('inventarios.costo_importacion_unitario')
+                      ->orWhere('inventarios.costo_importacion_unitario', 0);
+            })->where(function ($query) {
+                $query->where(function ($q) {
+                    $q->where('inventarios.tipo', 'NOT LIKE', '%AUTOPARTE%')
+                      ->where('inventarios.tipo', 'NOT LIKE', '%autoparte%');
+                })->orWhere('inventarios.status', 'PRECIO PENDIENTE');
+            });
+
+        if ($search) {
+            $query->where(function ($inner) use ($search) {
+                $inner->where('inventarios.expediente', 'like', "%{$search}%")
+                      ->orWhere('containers.cod', 'like', "%{$search}%")
+                      ->orWhere('inventarios.item', 'like', "%{$search}%")
+                      ->orWhere('inventarios.modelo', 'like', "%{$search}%")
+                      ->orWhere('inventarios.marca', 'like', "%{$search}%")
+                      ->orWhere('inventarios.tipo', 'like', "%{$search}%")
+                      ->orWhere('inventarios.serial', 'like', "%{$search}%")
+                      ->orWhere('inventarios.codInv', 'like', "%{$search}%");
+            });
+        }
+
+        $items = $query->with('container')
+            ->orderBy('inventarios.id', 'desc')
+            ->paginate(15)
+            ->withQueryString();
+
+
+        $latestRate = \App\Models\ExchangeRate::where('source', 'BCV')->latest()->first();
+        $tasaBCV = $latestRate ? (float) $latestRate->rate : 0;
+
+        return Inertia::render('Inventario/PrecioPendiente', [
+            'items' => $items,
+            'filters' => $request->only(['search']),
+            'totals' => $totals,
+            'tasa_bcv' => $tasaBCV,
+        ]);
+    }
+
+    /**
+     * Actualiza el Costo de Importación de un motor y lo pone en DISPONIBLE.
+     */
+    public function updatePrecioPendiente(Request $request, $id)
+    {
+        $user = auth()->user();
+        $isBillingOrAdmin = stripos($user->rol, 'fact') !== false 
+            || stripos($user->rol, 'admin') !== false 
+            || stripos($user->rol, 'super') !== false 
+            || $user->hasAnyRole(['Facturacion', 'Facturación', 'Administrador', 'Superusuario', 'SUPERUSUARIO', 'ADMINISTRADOR']);
+
+        if (!$isBillingOrAdmin) {
+            abort(403, 'No autorizado.');
+        }
+
+        $request->validate([
+            'costo_importacion_unitario' => 'required',
+        ]);
+
+        $item = Inventario::findOrFail($id);
+        
+        $cleanCost = $request->costo_importacion_unitario;
+        if (is_string($cleanCost)) {
+            $cleanCost = str_ireplace(['$', 'bs.', 'bs', ' '], '', $cleanCost);
+            if (strpos($cleanCost, ',') !== false && strpos($cleanCost, '.') !== false) {
+                $cleanCost = str_replace('.', '', $cleanCost);
+                $cleanCost = str_replace(',', '.', $cleanCost);
+            } elseif (strpos($cleanCost, ',') !== false) {
+                $parts = explode(',', $cleanCost);
+                if (count($parts) === 2 && strlen($parts[1]) === 2) {
+                    $cleanCost = str_replace(',', '.', $cleanCost);
+                } else {
+                    $cleanCost = str_replace(',', '', $cleanCost);
+                }
+            }
+        }
+
+        $item->costo_importacion_unitario = (float) $cleanCost;
+        
+        if ($item->status === 'PRECIO PENDIENTE') {
+            $item->status = 'DISPONIBLE';
+        }
+        $item->save();
+
+        return redirect()->back()->with('success', 'Costo de importación guardado con éxito.');
+    }
+
+    /**
+     * Devuelve el tipo de vehículo y un ejemplo estimado en base a la marca, modelo y año (con caché y consulta API).
+     */
+    public function getVehicleType(Request $request)
+    {
+        $marca = $request->input('marca', '');
+        $modelo = $request->input('modelo', '');
+        $anoStr = $request->input('ano', '');
+
+        $result = $this->resolveVehicleTypeInfo($marca, $modelo, $anoStr);
+
+        return response()->json($result);
+    }
+
+    /**
+     * Resuelve el tipo de vehículo y ejemplo usando caché y la API de la NHTSA.
+     */
+    protected function resolveVehicleTypeInfo($marca, $modelo, $anoStr)
+    {
+        $marca = strtoupper(trim($marca ?? ''));
+        $modelo = strtoupper(trim($modelo ?? ''));
+        $anoStr = trim($anoStr ?? '');
+
+        // Generar clave única para guardar en memoria temporal (Caché)
+        $cacheKey = 'vehicle_type_' . md5($marca . '_' . $modelo . '_' . $anoStr);
+
+        return \Illuminate\Support\Facades\Cache::remember($cacheKey, 3600 * 24, function () use ($marca, $modelo, $anoStr) {
+            $tipo = 'Otro';
+            $ejemplo = '';
+
+            // 1. Intentar parsear el año de inicio
+            $year = null;
+            if (preg_match('/(\d{4})/', $anoStr, $matches)) {
+                $year = intval($matches[1]);
+            } else {
+                $year = date('Y');
+            }
+
+            // 2. Diccionario local inteligente para motores e ítems comunes de Maikel Cars
+            if (str_contains($marca, 'TOYOTA')) {
+                if (str_contains($modelo, 'TUNDRA')) {
+                    $tipo = 'Camioneta';
+                    $ejemplo = 'Tundra';
+                } elseif (str_contains($modelo, 'TACOMA')) {
+                    $tipo = 'Camioneta';
+                    $ejemplo = 'Tacoma';
+                } elseif (str_contains($modelo, '1ZZ') || str_contains($modelo, '3ZZ') || str_contains($modelo, '2ZR') || str_contains($modelo, '3ZR') || str_contains($modelo, '1ZR')) {
+                    $tipo = 'Automóvil';
+                    $ejemplo = 'Corolla';
+                } elseif (str_contains($modelo, '2TR') || str_contains($modelo, '1KD') || str_contains($modelo, '2KD') || str_contains($modelo, '3L') || str_contains($modelo, '5L')) {
+                    $tipo = 'Camioneta';
+                    $ejemplo = 'Hilux-Fortuner';
+                } elseif (str_contains($modelo, '1GR') || str_contains($modelo, '5VZ')) {
+                    $tipo = 'Camioneta / SUV';
+                    $ejemplo = 'Fortuner-Merú-4Runner';
+                } elseif (str_contains($modelo, '2AZ')) {
+                    $tipo = 'SUV / Automóvil';
+                    $ejemplo = 'RAV4-Camry';
+                } elseif (str_contains($modelo, '1NZ') || str_contains($modelo, '1ND')) {
+                    $tipo = 'Automóvil';
+                    $ejemplo = 'Yaris';
+                } else {
+                    // Si se pasa un modelo directo de carrocería
+                    if (str_contains($modelo, 'HILUX') || str_contains($modelo, 'FORTUNER') || str_contains($modelo, 'PRADO') || str_contains($modelo, 'MERU') || str_contains($modelo, '4RUNNER') || str_contains($modelo, 'LAND CRUISER')) {
+                        $tipo = 'Camioneta';
+                        $ejemplo = 'Hilux-Fortuner';
+                    } elseif (str_contains($modelo, 'COROLLA') || str_contains($modelo, 'YARIS') || str_contains($modelo, 'CAMRY')) {
+                        $tipo = 'Automóvil';
+                        $ejemplo = 'Corolla';
+                    }
+                }
+            } elseif (str_contains($marca, 'JEEP')) {
+                $tipo = 'SUV';
+                if (str_contains($modelo, '3.7L') || str_contains($modelo, 'KJ') || str_contains($modelo, 'KK')) {
+                    $ejemplo = 'Cherokee KJ/KK';
+                } elseif (str_contains($modelo, '4.7L') || str_contains($modelo, '5.7L') || str_contains($modelo, 'COMANDER') || str_contains($modelo, 'COMMANDER')) {
+                    $ejemplo = 'Grand Cherokee-Commander';
+                } else {
+                    $ejemplo = 'Grand Cherokee';
+                }
+            } elseif (str_contains($marca, 'FORD')) {
+                if (str_contains($modelo, 'RANGER') || str_contains($modelo, '4.2L') || str_contains($modelo, 'COYOTE') || str_contains($modelo, '5.0L') || str_contains($modelo, '5.4L')) {
+                    $tipo = 'Camioneta';
+                    $ejemplo = 'Ranger-F150';
+                } elseif (str_contains($modelo, 'EXPLORER') || str_contains($modelo, '3.5L') || str_contains($modelo, '4.6L') || str_contains($modelo, 'ESCAPE')) {
+                    $tipo = 'SUV';
+                    $ejemplo = 'Explorer-Escape';
+                } elseif (str_contains($modelo, 'FUSION')) {
+                    $tipo = 'Automóvil';
+                    $ejemplo = 'Fusion';
+                } else {
+                    $tipo = 'Camioneta / SUV';
+                    $ejemplo = 'Ranger-F150';
+                }
+            } elseif (str_contains($marca, 'DODGE') || str_contains($marca, 'RAM')) {
+                $tipo = 'Camioneta';
+                $ejemplo = 'Dodge Ram';
+            } elseif (str_contains($marca, 'CHEVROLET')) {
+                if (str_contains($modelo, 'SILVERADO') || str_contains($modelo, 'AVALANCHE')) {
+                    $tipo = 'Camioneta';
+                    $ejemplo = 'Silverado-Avalanche';
+                } elseif (str_contains($modelo, 'TRAILBLAZER') || str_contains($modelo, '4.2L') || str_contains($modelo, 'TAHOE') || str_contains($modelo, 'SUBURBAN') || str_contains($modelo, '5.3L')) {
+                    $tipo = 'SUV';
+                    $ejemplo = 'Trailblazer-Tahoe';
+                } else {
+                    $tipo = 'Automóvil / SUV';
+                    $ejemplo = 'Tahoe';
+                }
+            }
+
+            // 3. Consultar la API pública de la NHTSA para obtener/validar modelos oficiales de la marca y año
+            if ($marca && $year) {
+                try {
+                    $response = \Illuminate\Support\Facades\Http::timeout(5)
+                        ->get("https://vpic.nhtsa.dot.gov/api/vehicles/GetModelsForMakeYear/make/" . urlencode(strtolower($marca)) . "/modelyear/" . urlencode($year) . "?format=json");
+                    
+                    if ($response->successful()) {
+                        $data = $response->json();
+                        $models = $data['Results'] ?? [];
+                        
+                        foreach ($models as $m) {
+                            $name = strtoupper($m['Model_Name'] ?? '');
+                            if (str_contains($name, 'COROLLA') || str_contains($name, 'YARIS') || str_contains($name, 'CAMRY')) {
+                                if (str_contains($modelo, 'COROLLA') || str_contains($modelo, 'YARIS') || str_contains($modelo, 'CAMRY')) {
+                                    $tipo = 'Automóvil';
+                                }
+                            } elseif (str_contains($name, 'HILUX') || str_contains($name, 'TUNDRA') || str_contains($name, 'TACOMA') || str_contains($name, 'F-150') || str_contains($name, 'RAM') || str_contains($name, 'SILVERADO')) {
+                                if (str_contains($modelo, 'HILUX') || str_contains($modelo, 'RAM') || str_contains($modelo, 'SILVERADO') || str_contains($modelo, '2TR')) {
+                                    $tipo = 'Camioneta';
+                                }
+                            }
+                        }
+                    }
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::warning("NHTSA API call failed: " . $e->getMessage());
+                }
+            }
+
+            if ($tipo === 'Otro') {
+                if (str_contains($modelo, 'TRUCK') || str_contains($modelo, 'PICKUP') || str_contains($modelo, 'CABIN')) {
+                    $tipo = 'Camioneta';
+                    $ejemplo = 'General';
+                } elseif (str_contains($modelo, 'SEDAN') || str_contains($modelo, 'HATCHBACK')) {
+                    $tipo = 'Automóvil';
+                    $ejemplo = 'General';
+                } else {
+                    $tipo = 'Otro / No Clasificado';
+                    $ejemplo = 'N/A';
+                }
+            }
+
+            return [
+                'tipo_vehiculo' => $tipo,
+                'ejemplo' => $tipo . ' (' . $ejemplo . ')',
+                'cached_at' => now()->toIso8601String(),
+            ];
+        });
     }
 }
 

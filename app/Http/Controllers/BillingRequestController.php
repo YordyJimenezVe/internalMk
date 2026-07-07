@@ -6,8 +6,21 @@ use Illuminate\Http\Request;
 use App\Models\BillingRequest;
 use Inertia\Inertia;
 
+/**
+ * Controlador para la gestión de Solicitudes de Facturación.
+ * 
+ * Permite a los vendedores y mecánicos solicitar el proceso de facturación
+ * de artículos del inventario al departamento administrativo (Facturación),
+ * gestionando el flujo desde la solicitud inicial con datos del cliente y captura de cédula
+ * hasta su procesamiento por lotes y posterior conversión en factura de venta.
+ */
 class BillingRequestController extends Controller
 {
+    /**
+     * Muestra la bandeja de solicitudes de facturación pendientes.
+     *
+     * @return \Inertia\Response
+     */
     public function index()
     {
         $requests = BillingRequest::with(['inventario', 'partida', 'user'])
@@ -20,6 +33,14 @@ class BillingRequestController extends Controller
         ]);
     }
 
+    /**
+     * Registra una nueva solicitud de facturación para una partida del inventario.
+     * 
+     * Admite y almacena opcionalmente un archivo de captura de cédula del cliente.
+     *
+     * @param  \Illuminate\Http\Request  $request  Petición HTTP con datos del cliente y montos solicitados.
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function store(Request $request)
     {
         $request->validate([
@@ -27,6 +48,10 @@ class BillingRequestController extends Controller
             'quantity' => 'required|integer|min:1',
             'price' => 'required|numeric',
             'client_cedula_file' => 'nullable|image|max:2048',
+            'client_name' => 'nullable|string|max:255',
+            'client_cedula' => 'nullable|string|max:20',
+            'client_phone' => 'nullable|string|max:30',
+            'client_address' => 'nullable|string|max:500',
         ]);
 
         $cedulaFilePath = null;
@@ -34,22 +59,38 @@ class BillingRequestController extends Controller
             $cedulaFilePath = $request->file('client_cedula_file')->store('billing_captures', 'public');
         }
 
-        BillingRequest::create([
+        $billingRequest = BillingRequest::create([
             'partida_id' => $request->partida_id,
             'user_id' => auth()->id(),
             'quantity' => $request->quantity,
             'price' => $request->price,
-            'client_name' => $request->client_name,
-            'client_cedula' => $request->client_cedula,
+            'client_name' => $request->client_name ? strip_tags($request->client_name) : null,
+            'client_cedula' => $request->client_cedula ? strip_tags($request->client_cedula) : null,
             'client_cedula_file' => $cedulaFilePath,
-            'client_phone' => $request->client_phone,
-            'client_address' => $request->client_address,
+            'client_phone' => $request->client_phone ? strip_tags($request->client_phone) : null,
+            'client_address' => $request->client_address ? strip_tags($request->client_address) : null,
             'status' => 'pending',
         ]);
+
+        $partida = \App\Models\Inventario::find($request->partida_id);
+        if ($partida) {
+            $partida->price_sale = $request->price;
+            $partida->saveQuietly();
+        }
 
         return redirect()->back()->with('success', 'Solicitud enviada correctamente.');
     }
 
+    /**
+     * Procesa y factura por lotes las solicitudes de facturación seleccionadas.
+     * 
+     * Genera automáticamente las facturas asociadas a cada solicitud pendiente,
+     * descuenta/actualiza el inventario si el stock llega a cero, y marca
+     * las solicitudes como procesadas ('processed').
+     *
+     * @param  \Illuminate\Http\Request  $request  Petición HTTP con el array de IDs de solicitudes a procesar.
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function process(Request $request)
     {
         $request->validate([
@@ -107,6 +148,13 @@ class BillingRequestController extends Controller
         return redirect()->back()->with('success', 'Solicitudes procesadas y ventas registradas.')->with('billing_ids', $createdBillingIds ?? []);
     }
 
+    /**
+     * Actualiza la información (cantidad, precio, datos del cliente) de una solicitud pendiente.
+     *
+     * @param  \Illuminate\Http\Request  $request  Petición HTTP con los datos modificados.
+     * @param  string|int  $id  Identificador único de la solicitud a actualizar.
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function update(Request $request, $id)
     {
         $billingRequest = BillingRequest::findOrFail($id);
@@ -120,9 +168,21 @@ class BillingRequestController extends Controller
 
         $billingRequest->update($request->only(['quantity', 'price', 'client_name', 'client_cedula']));
 
+        $partida = $billingRequest->inventario;
+        if ($partida && $request->has('price')) {
+            $partida->price_sale = $request->price;
+            $partida->saveQuietly();
+        }
+
         return redirect()->back()->with('success', 'Solicitud actualizada.');
     }
 
+    /**
+     * Elimina una solicitud de facturación específica.
+     *
+     * @param  string|int  $id  Identificador único de la solicitud a eliminar.
+     * @return \Illuminate\Http\RedirectResponse
+     */
     public function destroy($id)
     {
         $billingRequest = BillingRequest::findOrFail($id);

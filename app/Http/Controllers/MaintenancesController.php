@@ -10,11 +10,27 @@ use App\Models\Employee;
 use Inertia\Inertia;
 use App\Models\AccesorioEngine;
 use App\Models\Material;
+use App\Models\MaintenanceItem;
+use App\Models\Bitacora;
+use App\Models\NotificationSetting;
+use App\Notifications\SystemAlertNotification;
+use App\Models\User;
 
+/**
+ * Controlador para la gestión de Mantenimientos y Órdenes de Servicio.
+ * 
+ * Este controlador administra todo el ciclo de diagnóstico, reparación y control
+ * de calidad de los artículos en taller (principalmente motores y transmisiones).
+ * Gestiona el registro de mecánicos, prorrateo y liquidación de comisiones,
+ * control de costos por accesorios y materiales, y generación de informes de servicio en PDF.
+ */
 class MaintenancesController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Muestra la bandeja de órdenes de mantenimiento activas e históricas con filtros avanzados.
+     *
+     * @param  \Illuminate\Http\Request  $request  Petición HTTP con filtros de búsqueda, estado y ordenación.
+     * @return \Inertia\Response
      */
     public function index(Request $request)
     {
@@ -23,24 +39,46 @@ class MaintenancesController extends Controller
         $direction = $request->input('direction', 'desc');
         $status = $request->input('status');
 
-        $maintenances = Maintenance::with('partida')
-            ->when($status, function ($query, $status) {
-                return $query->where('status', $status);
-            })
-            ->when($search, function ($query, $search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('nombre_mecanico', 'like', "%{$search}%")
-                        ->orWhere('apellido_mecanico', 'like', "%{$search}%")
-                        ->orWhere('tipo', 'like', "%{$search}%")
-                        ->orWhere('status', 'like', "%{$search}%")
-                        ->orWhereHas('partida', function ($q2) use ($search) {
-                            $q2->where('marca', 'like', "%{$search}%")
-                                ->orWhere('modelo', 'like', "%{$search}%")
-                                ->orWhere('tipo', 'like', "%{$search}%");
-                        });
-                });
-            })
-            ->orderBy($sort, $direction)
+        $query = Maintenance::query()
+            ->select('maintenances.*')
+            ->leftJoin('inventarios', 'maintenances.partida_id', '=', 'inventarios.id')
+            ->when($status, function ($q, $status) {
+                return $q->where('maintenances.status', $status);
+            });
+
+        if ($search) {
+            $query->where(function ($inner) use ($search) {
+                $inner->where('maintenances.id', 'like', "%{$search}%")
+                    ->orWhere('maintenances.nombre_mecanico', 'like', "%{$search}%")
+                    ->orWhere('maintenances.apellido_mecanico', 'like', "%{$search}%")
+                    ->orWhere('maintenances.tipo', 'like', "%{$search}%")
+                    ->orWhere('maintenances.status', 'like', "%{$search}%")
+                    ->orWhere('maintenances.costo', 'like', "%{$search}%")
+                    ->orWhere('inventarios.codInv', 'like', "%{$search}%")
+                    ->orWhere('inventarios.marca', 'like', "%{$search}%")
+                    ->orWhere('inventarios.modelo', 'like', "%{$search}%")
+                    ->orWhere('inventarios.tipo', 'like', "%{$search}%");
+            });
+        }
+
+        if ($sort === 'partida.codInv') {
+            $query->orderBy('inventarios.codInv', $direction);
+        } elseif ($sort === 'partida.tipo') {
+            $query->orderBy('inventarios.tipo', $direction);
+        } elseif ($sort === 'partida.marca') {
+            $query->orderBy('inventarios.marca', $direction);
+        } elseif ($sort === 'partida.modelo') {
+            $query->orderBy('inventarios.modelo', $direction);
+        } elseif ($sort === 'mecanico') {
+            $query->orderBy('maintenances.nombre_mecanico', $direction)
+                  ->orderBy('maintenances.apellido_mecanico', $direction);
+        } else {
+            $allowedSorts = ['id', 'partida_id', 'tipo', 'costo', 'status', 'created_at'];
+            $sortBy = in_array($sort, $allowedSorts) ? 'maintenances.' . $sort : 'maintenances.id';
+            $query->orderBy($sortBy, $direction);
+        }
+
+        $maintenances = $query->with('partida')
             ->paginate(10)
             ->withQueryString();
 
@@ -49,8 +87,71 @@ class MaintenancesController extends Controller
             'filters' => $request->only(['search', 'sort', 'direction', 'status']),
         ]);
     }
+
     /**
-     * Show the form for creating a new resource.
+     * Muestra el historial de mantenimientos terminados con filtros avanzados de búsqueda y ordenación.
+     */
+    public function history(Request $request)
+    {
+        $search = $request->input('search');
+        $sort = $request->input('sort', 'id');
+        $direction = $request->input('direction', 'desc');
+
+        $query = Maintenance::query()
+            ->select('maintenances.*')
+            ->leftJoin('inventarios', 'maintenances.partida_id', '=', 'inventarios.id')
+            ->where('maintenances.status', 'TERMINADO');
+
+        if ($search) {
+            $query->where(function ($inner) use ($search) {
+                $inner->where('maintenances.id', 'like', "%{$search}%")
+                    ->orWhere('maintenances.nombre_mecanico', 'like', "%{$search}%")
+                    ->orWhere('maintenances.apellido_mecanico', 'like', "%{$search}%")
+                    ->orWhere('maintenances.tipo', 'like', "%{$search}%")
+                    ->orWhere('maintenances.status', 'like', "%{$search}%")
+                    ->orWhere('maintenances.costo', 'like', "%{$search}%")
+                    ->orWhere('inventarios.codInv', 'like', "%{$search}%")
+                    ->orWhere('inventarios.marca', 'like', "%{$search}%")
+                    ->orWhere('inventarios.modelo', 'like', "%{$search}%")
+                    ->orWhere('inventarios.tipo', 'like', "%{$search}%");
+            });
+        }
+
+        if ($sort === 'partida.codInv') {
+            $query->orderBy('inventarios.codInv', $direction);
+        } elseif ($sort === 'partida.tipo') {
+            $query->orderBy('inventarios.tipo', $direction);
+        } elseif ($sort === 'partida.marca') {
+            $query->orderBy('inventarios.marca', $direction);
+        } elseif ($sort === 'partida.modelo') {
+            $query->orderBy('inventarios.modelo', $direction);
+        } elseif ($sort === 'mecanico') {
+            $query->orderBy('maintenances.nombre_mecanico', $direction)
+                  ->orderBy('maintenances.apellido_mecanico', $direction);
+        } else {
+            $allowedSorts = ['id', 'partida_id', 'tipo', 'costo', 'status', 'created_at'];
+            $sortBy = in_array($sort, $allowedSorts) ? 'maintenances.' . $sort : 'maintenances.id';
+            $query->orderBy($sortBy, $direction);
+        }
+
+        $maintenances = $query->with('partida')
+            ->paginate(10)
+            ->withQueryString();
+
+        return inertia('Maintenance/History', [
+            'maintenances' => $maintenances,
+            'filters' => $request->only(['search', 'sort', 'direction']),
+        ]);
+    }
+    /**
+     * Muestra el formulario para crear una nueva orden de mantenimiento.
+     * 
+     * Incorpora redirecciones especiales si el usuario posee rol de facturación.
+     * Filtra los artículos de inventario disponibles o devueltos que no se encuentren
+     * en un proceso de mantenimiento activo.
+     *
+     * @param  \Illuminate\Http\Request  $request  Petición HTTP con el parámetro opcional de artículo.
+     * @return \Inertia\Response|\Illuminate\Http\RedirectResponse
      */
     public function create(Request $request)
     {
@@ -83,7 +184,10 @@ class MaintenancesController extends Controller
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Almacena una nueva orden de mantenimiento en la base de datos.
+     *
+     * @param  \Illuminate\Http\Request  $request  Petición HTTP con los datos de mantenimiento.
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function store(Request $request)
     {
@@ -95,7 +199,12 @@ class MaintenancesController extends Controller
     }
 
     /**
-     * Display the specified resource.
+     * Muestra los detalles de una orden de mantenimiento específica.
+     * 
+     * Carga de forma ansiosa (Eager Loading) las facturas, materiales consumidos y accesorios asociados.
+     *
+     * @param  string|int  $id  Identificador único de la orden de mantenimiento.
+     * @return \Inertia\Response|\Illuminate\Http\RedirectResponse
      */
     public function show($id)
     {
@@ -116,11 +225,18 @@ class MaintenancesController extends Controller
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Muestra el formulario para editar una orden de mantenimiento,
+     * cargando sus relaciones de facturación, materiales y accesorios asociados.
+     *
+     * @param  \App\Models\Maintenance  $maintenance  Instancia de mantenimiento (herencia de ruta).
+     * @param  string|int  $id  Identificador único del mantenimiento.
+     * @return \Inertia\Response|\Illuminate\Http\RedirectResponse
      */
     public function edit(Maintenance $maintenance, $id)
     {
-        $maintenance = Maintenance::with('bills')->findOrFail($id);
+        $maintenance = Maintenance::with(['bills', 'items' => function ($q) {
+            $q->orderBy('id', 'desc');
+        }])->findOrFail($id);
 
         if ($maintenance->status === 'TERMINADO' && !auth()->user()->hasAnyRole(['Superusuario', 'SUPERUSUARIO', 'Administrador', 'ADMINISTRADOR'])) {
             return redirect()->route('maintenance.history')->with('error', 'No tienes permisos para editar un mantenimiento terminado.');
@@ -134,17 +250,28 @@ class MaintenancesController extends Controller
         $bill = $maintenance->bills->first() ?? (object) [];
         $materials = $maintenance->materials->first() ?? (object) [];
         $accesorios = $maintenance->accesorios_engine->first() ?? (object) [];
+        $items = $maintenance->items;
+
         return inertia('Maintenance/Edit', [
             'maintenance' => $maintenance,
             'partida' => $partida,
             'bill' => $bill,
             'materials' => $materials,
             'accesorios' => $accesorios,
+            'items' => $items,
         ]);
     }
 
     /**
-     * Update the specified resource in storage.
+     * Actualiza la orden de mantenimiento en la base de datos.
+     * 
+     * Procesa, limpia y actualiza en cascada las comisiones/factura asociadas,
+     * los materiales consumidos en la reparación y los costos de accesorios.
+     * Auto-actualiza el estado del artículo en inventario cuando la orden pasa a 'TERMINADO'.
+     *
+     * @param  \Illuminate\Http\Request  $request  Petición HTTP con datos de mantenimiento, materiales y comisiones.
+     * @param  int  $id  Identificador único del mantenimiento a actualizar.
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function update(Request $request, int $id)
     {
@@ -233,7 +360,11 @@ class MaintenancesController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * Actualiza exclusivamente los costos de los accesorios de un mantenimiento y recalcula el total.
+     *
+     * @param  \Illuminate\Http\Request  $request  Petición HTTP con los costos de accesorios.
+     * @param  int  $id  Identificador único de la orden de mantenimiento.
+     * @return void|\Illuminate\Http\JsonResponse
      */
     public function updateAccesorios(Request $request, int $id)
     {
@@ -251,6 +382,12 @@ class MaintenancesController extends Controller
         $maintenance->update(['costo' => $totalCost]);
     }
 
+    /**
+     * Calcula la sumatoria de costos de materiales y accesorios registrados para una orden.
+     *
+     * @param  int  $maintenanceId  Identificador único de la orden de mantenimiento.
+     * @return float
+     */
     private function calculateTotalCost($maintenanceId)
     {
         $material = Material::where('maintenances_id', $maintenanceId)->first();
@@ -278,11 +415,18 @@ class MaintenancesController extends Controller
             }
         }
 
+        // Sumar costos de repuestos cargados dinámicamente
+        $total += (float) MaintenanceItem::where('maintenance_id', $maintenanceId)->sum('cost');
+
         return $total;
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Elimina una orden de mantenimiento de la base de datos.
+     *
+     * @param  \Illuminate\Http\Request  $request  Petición HTTP.
+     * @param  int  $id  Identificador único de la orden a eliminar.
+     * @return \Illuminate\Http\RedirectResponse
      */
     public function destroy(Request $request, int $id)
     {
@@ -296,6 +440,12 @@ class MaintenancesController extends Controller
         return redirect()->route('maintenance');
     }
 
+    /**
+     * Consulta y retorna datos de inventario y empleados para poblar la vista de creación.
+     *
+     * @param  \Illuminate\Http\Request  $request  Petición HTTP.
+     * @return \Inertia\Response
+     */
     public function getInventario(Request $request)
     {
         $inputPartida = $request->input('partida');
@@ -310,6 +460,15 @@ class MaintenancesController extends Controller
         ]);
     }
 
+    /**
+     * Genera e imprime el reporte PDF de la ficha de mantenimiento técnico.
+     * 
+     * Incorpora obtención dinámica de imágenes de vehículos de referencia basados en marca y modelo,
+     * y maneja fallbacks automáticos para motores diésel de maquinaria pesada.
+     *
+     * @param  string|int  $id  Identificador único de la orden de mantenimiento.
+     * @return \Illuminate\Http\Response
+     */
     public function pdf($id)
     {
         $maintenance = Maintenance::with(['partida', 'bills', 'materials', 'accesorios_engine'])->findOrFail($id);
@@ -371,5 +530,345 @@ class MaintenancesController extends Controller
 
         $filename = 'Ficha-Mantenimiento-' . str_pad($maintenance->id, 5, '0', STR_PAD_LEFT) . '.pdf';
         return $pdf->stream($filename);
+    }
+
+    /**
+     * Registra un repuesto/servicio dinámico en el mantenimiento.
+     */
+    public function storeItem(Request $request, $id)
+    {
+        $request->validate([
+            'description' => 'required|string|max:255',
+            'type' => 'required|in:REPUESTO,SERVICIO',
+            'source' => 'required|in:INVENTARIO,COMPRADO',
+            'cost' => 'nullable|numeric|min:0',
+            'document_type' => 'required|in:FACTURA,RECIBO,NINGUNO',
+            'invoice_number' => 'nullable|string|max:255',
+            'base_imponible' => 'nullable|numeric|min:0|lte:cost',
+            'status' => 'required|in:COMPLETADO,FUERA,RETORNADO,CONCILIADO',
+            'notes' => 'nullable|string',
+            'invoice_file' => 'nullable|image|max:2048',
+        ], [
+            'base_imponible.lte' => 'La Base Imponible (BIG) no puede ser mayor al Costo Real.',
+            'base_imponible.min' => 'La Base Imponible no puede ser un valor negativo.',
+            'cost.min' => 'El costo real no puede ser un valor negativo.',
+        ]);
+
+        $cost = $request->input('cost') ?? 0;
+        $baseImponible = $request->input('base_imponible') ?? 0;
+
+        if ($request->input('source') === 'INVENTARIO') {
+            $cost = 0;
+            $baseImponible = 0;
+        }
+
+        $invoicePath = null;
+        if ($request->hasFile('invoice_file')) {
+            $invoicePath = $request->file('invoice_file')->store('maintenance_captures', 'public');
+        }
+
+        $item = new MaintenanceItem();
+        $item->maintenance_id = $id;
+        $item->description = mb_strtoupper($request->input('description'));
+        $item->type = $request->input('type');
+        $item->source = $request->input('source');
+        $item->cost = $cost;
+        $item->document_type = $request->input('document_type');
+        $item->invoice_number = mb_strtoupper($request->input('invoice_number'));
+        $item->base_imponible = $baseImponible;
+        $item->status = $request->input('status');
+        $item->notes = $request->input('notes');
+        $item->invoice_path = $invoicePath;
+
+        if ($item->status === 'FUERA') {
+            $item->outflow_date = now();
+        } else if ($item->status === 'RETORNADO' || $item->status === 'CONCILIADO' || $item->status === 'COMPLETADO') {
+            $item->return_date = now();
+        }
+
+        $item->save();
+
+        // Recalcular costo de mantenimiento
+        $totalCost = $this->calculateTotalCost($id);
+        Maintenance::findOrFail($id)->update(['costo' => $totalCost]);
+
+        return redirect()->back()->with('success', 'Ítem de mantenimiento registrado con éxito.');
+    }
+
+    /**
+     * Elimina un repuesto/servicio dinámico del mantenimiento.
+     */
+    public function deleteItem($itemId)
+    {
+        $item = MaintenanceItem::findOrFail($itemId);
+        $maintenanceId = $item->maintenance_id;
+        $item->delete();
+
+        // Recalcular costo de mantenimiento
+        $totalCost = $this->calculateTotalCost($maintenanceId);
+        Maintenance::findOrFail($maintenanceId)->update(['costo' => $totalCost]);
+
+        return redirect()->back()->with('success', 'Ítem eliminado con éxito.');
+    }
+
+    /**
+     * Registra la salida de una pieza a la rectificadora.
+     */
+    public function registerOutflow($itemId)
+    {
+        $item = MaintenanceItem::findOrFail($itemId);
+        $item->update([
+            'status' => 'FUERA',
+            'outflow_date' => now(),
+        ]);
+
+        if (NotificationSetting::isNotificationEnabled('notify_outflow')) {
+            $admins = User::where('rol', 'Administrador')->get();
+            $notification = new SystemAlertNotification(
+                'Pieza a Rectificadora',
+                "La pieza '{$item->description}' salió a la rectificadora (Orden #{$item->maintenance_id}).",
+                route('maintenance.edit', $item->maintenance_id),
+                'fa-truck-arrow-right',
+                'amber'
+            );
+            foreach ($admins as $admin) {
+                $admin->notify($notification);
+            }
+        }
+
+        return redirect()->back()->with('success', 'Salida a rectificadora registrada.');
+    }
+
+    /**
+     * Registra el retorno de una pieza desde la rectificadora.
+     */
+    public function registerReturn(Request $request, $itemId)
+    {
+        $request->validate([
+            'cost' => 'required|numeric|min:0',
+            'document_type' => 'required|in:FACTURA,RECIBO',
+            'invoice_number' => 'nullable|string|max:255',
+            'base_imponible' => 'nullable|numeric|min:0|lte:cost',
+            'notes' => 'nullable|string',
+            'invoice_file' => 'nullable|image|max:2048',
+        ], [
+            'base_imponible.lte' => 'La Base Imponible (BIG) no puede ser mayor al Costo Real.',
+            'base_imponible.min' => 'La Base Imponible no puede ser un valor negativo.',
+            'cost.min' => 'El costo real no puede ser un valor negativo.',
+        ]);
+
+        $item = MaintenanceItem::findOrFail($itemId);
+        
+        $status = 'COMPLETADO';
+        if ($request->input('document_type') === 'FACTURA') {
+            $status = 'RETORNADO'; // PENDIENTE por conciliar
+        }
+
+        $invoicePath = $item->invoice_path;
+        if ($request->hasFile('invoice_file')) {
+            $invoicePath = $request->file('invoice_file')->store('maintenance_captures', 'public');
+        }
+
+        $item->update([
+            'status' => $status,
+            'cost' => $request->input('cost'),
+            'document_type' => $request->input('document_type'),
+            'invoice_number' => mb_strtoupper($request->input('invoice_number')),
+            'base_imponible' => $request->input('base_imponible'),
+            'return_date' => now(),
+            'notes' => $request->input('notes'),
+            'invoice_path' => $invoicePath,
+        ]);
+
+        // Recalcular costo de mantenimiento
+        $totalCost = $this->calculateTotalCost($item->maintenance_id);
+        Maintenance::findOrFail($item->maintenance_id)->update(['costo' => $totalCost]);
+
+        // Trigger notifications
+        if (NotificationSetting::isNotificationEnabled('notify_return')) {
+            $admins = User::where('rol', 'Administrador')->get();
+            $notification = new SystemAlertNotification(
+                'Entrada de Rectificadora',
+                "La pieza '{$item->description}' retornó de la rectificadora (Orden #{$item->maintenance_id}).",
+                route('maintenance.edit', $item->maintenance_id),
+                'fa-right-to-bracket',
+                'emerald'
+            );
+            foreach ($admins as $admin) {
+                $admin->notify($notification);
+            }
+        }
+
+        if ($status === 'RETORNADO' && NotificationSetting::isNotificationEnabled('notify_pending_conciliation')) {
+            $billingUsers = User::whereIn('rol', ['Administrador', 'Administrador Consulta', 'Facturación'])->get();
+            $notification = new SystemAlertNotification(
+                'Conciliación Pendiente',
+                "Se cargó la factura Nro. '{$item->invoice_number}' para la pieza '{$item->description}' (Orden #{$item->maintenance_id}). Pendiente de conciliación.",
+                route('maintenance.conciliacion'),
+                'fa-calculator',
+                'indigo'
+            );
+            foreach ($billingUsers as $bUser) {
+                $bUser->notify($notification);
+            }
+        }
+
+        return redirect()->back()->with('success', 'Retorno de rectificadora registrado.');
+    }
+
+    /**
+     * Bandeja de conciliación de facturas de taller.
+     *
+     * @return \Inertia\Response
+     */
+    public function conciliacionIndex()
+    {
+        $items = MaintenanceItem::with(['maintenance', 'maintenance.partida'])
+            ->where('document_type', 'FACTURA')
+            ->where('status', 'RETORNADO')
+            ->orderBy('id', 'desc')
+            ->get();
+
+        $finalizedItems = MaintenanceItem::with(['maintenance', 'maintenance.partida'])
+            ->where('document_type', 'FACTURA')
+            ->where('status', 'CONCILIADO')
+            ->orderBy('id', 'desc')
+            ->limit(150)
+            ->get();
+
+        return Inertia::render('Maintenance/Conciliacion', [
+            'items' => $items,
+            'finalizedItems' => $finalizedItems,
+        ]);
+    }
+
+    /**
+     * Concilia una factura de taller.
+     *
+     * @param  int  $itemId  ID del ítem de mantenimiento a conciliar.
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function conciliarItem($itemId)
+    {
+        $item = MaintenanceItem::with('maintenance')->findOrFail($itemId);
+        $item->update(['status' => 'CONCILIADO']);
+
+        $partidaId = $item->maintenance ? $item->maintenance->partida_id : 'N/A';
+
+        // Registrar auditoría en Bitácora
+        Bitacora::create([
+            'users_id' => auth()->id(),
+            'action' => 'CONCILIAR',
+            'description' => mb_strtoupper("CONCILIADA FACTURA DE TALLER: {$item->invoice_number} (BIG: {$item->base_imponible}$) PARA MOTOR ID: {$partidaId}"),
+        ]);
+
+        return redirect()->back()->with('success', 'Factura conciliada con éxito.');
+    }
+
+    /**
+     * Revierte una factura de taller conciliada a estado pendiente.
+     *
+     * @param  int  $itemId  ID del ítem de mantenimiento a revertir.
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function revertConciliarItem($itemId)
+    {
+        $item = MaintenanceItem::with('maintenance')->findOrFail($itemId);
+        $item->update(['status' => 'RETORNADO']);
+
+        $partidaId = $item->maintenance ? $item->maintenance->partida_id : 'N/A';
+
+        // Registrar auditoría en Bitácora
+        Bitacora::create([
+            'users_id' => auth()->id(),
+            'action' => 'REVERTIR CONCILIACION',
+            'description' => mb_strtoupper("REVERTIDA CONCILIACION DE FACTURA DE TALLER: {$item->invoice_number} A ESTADO PENDIENTE PARA MOTOR ID: {$partidaId}"),
+        ]);
+
+        return redirect()->back()->with('success', 'Conciliación revertida a pendiente con éxito.');
+    }
+
+    /**
+     * Actualiza los datos de costo y factura de un ítem de mantenimiento antes de ser conciliado.
+     */
+    public function updateItem(Request $request, $itemId)
+    {
+        $item = MaintenanceItem::findOrFail($itemId);
+
+        if ($item->status === 'CONCILIADO') {
+            return redirect()->back()->with('error', 'No se puede editar un ítem que ya ha sido conciliado.');
+        }
+
+        $request->validate([
+            'cost' => 'nullable|numeric|min:0',
+            'document_type' => 'required|in:FACTURA,RECIBO,NINGUNO',
+            'invoice_number' => 'nullable|string|max:255',
+            'base_imponible' => 'nullable|numeric|min:0|lte:cost',
+            'notes' => 'nullable|string',
+            'invoice_file' => 'nullable|image|max:2048',
+        ], [
+            'base_imponible.lte' => 'La Base Imponible (BIG) no puede ser mayor al Costo Real.',
+            'base_imponible.min' => 'La Base Imponible no puede ser un valor negativo.',
+            'cost.min' => 'El costo real no puede ser un valor negativo.',
+        ]);
+
+        $cost = $request->input('cost') ?? 0;
+        $baseImponible = $request->input('base_imponible') ?? 0;
+        $documentType = $request->input('document_type');
+
+        // Si el origen es inventario, forzar costo y base imponible a 0
+        if ($item->source === 'INVENTARIO') {
+            $cost = 0;
+            $baseImponible = 0;
+            $documentType = 'NINGUNO';
+        }
+
+        $invoicePath = $item->invoice_path;
+        if ($request->hasFile('invoice_file')) {
+            $invoicePath = $request->file('invoice_file')->store('maintenance_captures', 'public');
+        }
+
+        // Si el estado actual es COMPLETADO o RETORNADO, y cambia el tipo de documento, actualizar el estado
+        $status = $item->status;
+        if ($status === 'COMPLETADO' || $status === 'RETORNADO') {
+            if ($documentType === 'FACTURA') {
+                $status = 'RETORNADO'; // PENDIENTE por conciliar
+            } else {
+                $status = 'COMPLETADO';
+            }
+        }
+
+        $item->update([
+            'cost' => $cost,
+            'document_type' => $documentType,
+            'invoice_number' => $request->input('invoice_number') ? mb_strtoupper($request->input('invoice_number')) : null,
+            'base_imponible' => $baseImponible,
+            'notes' => $request->input('notes'),
+            'invoice_path' => $invoicePath,
+            'status' => $status,
+        ]);
+
+        // Recalcular costo de mantenimiento
+        $maintenance = $item->maintenance;
+        if ($maintenance) {
+            $totalCost = $maintenance->items()->sum('cost');
+            $maintenance->update(['costo' => $totalCost]);
+        }
+
+        if ($status === 'RETORNADO' && NotificationSetting::isNotificationEnabled('notify_pending_conciliation')) {
+            $billingUsers = User::whereIn('rol', ['Administrador', 'Administrador Consulta', 'Facturación'])->get();
+            $notification = new SystemAlertNotification(
+                'Conciliación Pendiente',
+                "Se actualizó la factura Nro. '{$item->invoice_number}' para la pieza '{$item->description}' (Orden #{$item->maintenance_id}). Pendiente de conciliación.",
+                route('maintenance.conciliacion'),
+                'fa-calculator',
+                'indigo'
+            );
+            foreach ($billingUsers as $bUser) {
+                $bUser->notify($notification);
+            }
+        }
+
+        return redirect()->back()->with('success', 'Detalles del ítem actualizados correctamente.');
     }
 }

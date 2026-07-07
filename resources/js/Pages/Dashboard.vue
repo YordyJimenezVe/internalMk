@@ -1,7 +1,7 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
 import StatCard from '@/Components/StatCard.vue';
-import { Link } from '@inertiajs/vue3';
+import { Link, useForm } from '@inertiajs/vue3';
 import {
   Chart as ChartJS,
   Title,
@@ -21,6 +21,7 @@ const props = defineProps({
     stats: Object,
     recentActivity: Array,
     charts: Object, // { revenue: { labels, data }, inventory: { labels, data } }
+    utilityPercentage: Number,
 });
 
 // Chart Options
@@ -59,12 +60,49 @@ const pieData = props.charts ? {
     }]
 } : null;
 
+import { computed } from 'vue';
+import { usePage } from '@inertiajs/vue3';
+
+const page = usePage();
+const user = computed(() => page.props.auth.user);
+const isFacturacion = computed(() => {
+    const rol = (user.value?.rol || '').toLowerCase();
+    return rol.includes('fact') || (user.value?.roles || []).some(r => (r?.name || '').toLowerCase().includes('fact'));
+});
+const isMechanic = computed(() => {
+    const rol = (user.value?.rol || '').toLowerCase();
+    return rol.includes('mecan') || rol.includes('tecn') || rol.includes('tall') || (user.value?.roles || []).some(r => {
+        const name = (r?.name || '').toLowerCase();
+        return name.includes('mecan') || name.includes('tecn') || name.includes('tall');
+    });
+});
+const isInventory = computed(() => {
+    const rol = (user.value?.rol || '').toLowerCase();
+    return rol.includes('inv') || (user.value?.roles || []).some(r => (r?.name || '').toLowerCase().includes('inv'));
+});
+const isAdminOrSuper = computed(() => {
+    const rol = (user.value?.rol || '').toLowerCase();
+    return rol.includes('admin') || rol.includes('super') || (user.value?.roles || []).some(r => ['superusuario', 'administrador'].includes((r?.name || '').toLowerCase()));
+});
+
 // Using inline SVGs to avoid dependency issues with @heroicons/vue
 const icons = {
     users: 'fa-solid fa-users',
     money: 'fa-solid fa-hand-holding-dollar',
     cart: 'fa-solid fa-boxes-stacked',
-    box: 'fa-solid fa-screwdriver-wrench'
+    box: 'fa-solid fa-screwdriver-wrench',
+    invoice: 'fa-solid fa-file-invoice-dollar',
+    balance: 'fa-solid fa-scale-balanced'
+};
+
+const utilityForm = useForm({
+    utility_percentage: props.utilityPercentage || 30,
+});
+
+const submitUtility = () => {
+    utilityForm.post(route('settings.update_utility'), {
+        preserveScroll: true
+    });
 };
 
 </script>
@@ -233,17 +271,6 @@ const icons = {
                                             <div class="car-light headlight animate-flicker"></div>
                                             <div class="car-light taillight animate-flicker" style="animation-delay: 0.1s"></div>
                                         </div>
-                                        
-                                        <!-- Smoke trail attached correctly -->
-                                        <div class="smoke-particle">
-                                            <div class="flex gap-3">
-                                                <span v-for="(letter, i) in 'GASOLINE'.split('')" :key="i" 
-                                                      class="text-white text-xl font-black tracking-widest animate-gasoline-smoke italic opacity-0 drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]"
-                                                      :style="{ animationDelay: (i * 0.2) + 's' }">
-                                                    {{ letter }}
-                                                </span>
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -254,47 +281,216 @@ const icons = {
                     </div>
                 </div>
 
+                <!-- Global Utility Setting Widget for Contador and Admin roles -->
+                <div v-if="isFacturacion || isAdminOrSuper" class="mb-8 p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div class="flex items-center gap-4">
+                        <div class="h-12 w-12 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center text-2xl shadow-inner">
+                            <i class="fa-solid fa-percent"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-white">Porcentaje de Utilidad Global</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">
+                                Usado para calcular dinámicamente el precio/costo del motor.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- If Facturacion (Contador/Raiza), they can edit -->
+                    <div v-if="isFacturacion" class="flex items-center gap-2">
+                        <form @submit.prevent="submitUtility" class="flex items-center gap-3">
+                            <div class="relative rounded-xl shadow-sm">
+                                <input 
+                                    v-model="utilityForm.utility_percentage" 
+                                    type="number" 
+                                    step="0.01" 
+                                    min="0" 
+                                    max="100" 
+                                    class="block w-28 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl py-2 px-3 text-right font-bold text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-lg"
+                                >
+                                <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500 dark:text-gray-400 font-bold">%</span>
+                                </div>
+                            </div>
+                            <button 
+                                type="submit" 
+                                :disabled="utilityForm.processing"
+                                class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md transition-all active:scale-95 text-sm whitespace-nowrap"
+                            >
+                                <i class="fa-solid fa-floppy-disk mr-1"></i> Actualizar
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- If Admin / Super, they only see read-only -->
+                    <div v-else class="flex items-center gap-2 bg-indigo-50/50 dark:bg-indigo-950/20 px-4 py-2 rounded-xl border border-indigo-100/50 dark:border-indigo-900/30">
+                        <span class="text-sm text-indigo-700 dark:text-indigo-300 font-semibold">Valor Actual:</span>
+                        <span class="text-lg font-black text-indigo-600 dark:text-indigo-400 font-mono">{{ utilityPercentage }}%</span>
+                        <span class="text-xs text-gray-400 dark:text-gray-500 ml-2">(Solo Lectura)</span>
+                    </div>
+                </div>
+
                 <!-- Stats Grid -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" v-if="stats">
-                    <StatCard 
-                        v-if="$page.props.auth.user.roles.some(r => ['Superusuario', 'Administrador'].includes(r.name))"
-                        title="Total Usuarios" 
-                        :value="stats.totalUsers" 
-                        :icon="icons.users" 
-                        color="bg-blue-500" 
-                        trend="Registrados"
-                        :trendUp="true"
-                        :link="route('users.index')"
-                    />
-                    <StatCard 
-                        v-if="$page.props.auth.user.roles.some(r => ['Superusuario', 'Administrador', 'Facturacion'].includes(r.name))"
-                        title="Ingresos (Mes)" 
-                        :value="'$' + stats.monthlyRevenue" 
-                        :icon="icons.money" 
-                        color="bg-green-500"
-                        trend="Facturado"
-                        :trendUp="true"
-                        :link="route('billing')"
-                    />
-                    <StatCard 
-                        v-if="$page.props.auth.user.roles.some(r => ['Superusuario', 'Administrador', 'Inventario', 'GESTOR DE INVENTARIO'].includes(r.name))"
-                        title="Partidas Hoy" 
-                        :value="stats.newPartidas" 
-                        :icon="icons.cart" 
-                        color="bg-purple-500" 
-                        trend="Movimientos"
-                        :trendUp="true"
-                        :link="route('inventario')"
-                    />
-                    <StatCard 
-                        title="Mantenimientos" 
-                        :value="stats.activeMaintenances" 
-                        :icon="icons.box" 
-                        color="bg-red-500" 
-                        trend="Activos"
-                        :trendUp="false"
-                        :link="route('maintenance')"
-                    />
+                    <!-- Facturación / Invoicing View -->
+                    <template v-if="isFacturacion && !isAdminOrSuper">
+                        <StatCard 
+                            title="Ingresos (Mes)" 
+                            :value="'$' + stats.monthlyRevenue" 
+                            :icon="icons.money" 
+                            color="bg-green-500" 
+                            trend="Total Facturado"
+                            :trendUp="true"
+                            :link="route('billing')"
+                        />
+                        <StatCard 
+                            title="Facturas Emitidas" 
+                            :value="stats.monthlyBillingsCount" 
+                            :icon="icons.invoice" 
+                            color="bg-blue-500" 
+                            trend="Mes Actual"
+                            :trendUp="true"
+                            :link="route('billing')"
+                        />
+                        <StatCard 
+                            title="Conciliaciones Pendientes" 
+                            :value="stats.pendingConciliationsCount" 
+                            :icon="icons.balance" 
+                            color="bg-indigo-500" 
+                            trend="Por Conciliar"
+                            :trendUp="false"
+                            :link="route('maintenance.conciliacion')"
+                        />
+                        <StatCard 
+                            title="Ingresos (Hoy)" 
+                            :value="'$' + stats.todayRevenue" 
+                            :icon="icons.money" 
+                            color="bg-teal-500" 
+                            :trend="stats.todayBillingsCount + ' transacciones hoy'"
+                            :trendUp="true"
+                            :link="route('billing')"
+                        />
+                    </template>
+
+                    <!-- Mechanics / Workshop View -->
+                    <template v-else-if="isMechanic && !isAdminOrSuper">
+                        <StatCard 
+                            title="Mantenimientos Activos" 
+                            :value="stats.activeMaintenances" 
+                            :icon="icons.box" 
+                            color="bg-red-500" 
+                            trend="Actualmente en taller"
+                            :trendUp="false"
+                            :link="route('maintenance')"
+                        />
+                        <StatCard 
+                            title="Mantenimientos Completados" 
+                            :value="stats.completedMaintenancesCount" 
+                            :icon="icons.box" 
+                            color="bg-green-500" 
+                            trend="Listos para despacho"
+                            :trendUp="true"
+                            :link="route('maintenance')"
+                        />
+                        <StatCard 
+                            title="Partidas Hoy" 
+                            :value="stats.newPartidas" 
+                            :icon="icons.cart" 
+                            color="bg-purple-500" 
+                            trend="Nuevos ingresos"
+                            :trendUp="true"
+                            :link="route('inventario')"
+                        />
+                        <StatCard 
+                            title="Total Artículos" 
+                            :value="stats.totalInventoryCount" 
+                            :icon="icons.cart" 
+                            color="bg-blue-500" 
+                            trend="Registrados en sistema"
+                            :trendUp="true"
+                            :link="route('inventario')"
+                        />
+                    </template>
+
+                    <!-- Inventory Gestor View -->
+                    <template v-else-if="isInventory && !isAdminOrSuper">
+                        <StatCard 
+                            title="Artículos Disponibles" 
+                            :value="stats.availableInventoryCount" 
+                            :icon="icons.cart" 
+                            color="bg-green-500" 
+                            trend="Stock disponible"
+                            :trendUp="true"
+                            :link="route('inventario')"
+                        />
+                        <StatCard 
+                            title="Artículos en Taller" 
+                            :value="stats.inMaintenanceInventoryCount" 
+                            :icon="icons.box" 
+                            color="bg-red-500" 
+                            trend="En mantenimiento / taller"
+                            :trendUp="false"
+                            :link="route('maintenance')"
+                        />
+                        <StatCard 
+                            title="Total Artículos" 
+                            :value="stats.totalInventoryCount" 
+                            :icon="icons.cart" 
+                            color="bg-blue-500" 
+                            trend="Historial de stock"
+                            :trendUp="true"
+                            :link="route('inventario')"
+                        />
+                        <StatCard 
+                            title="Ingresos Hoy" 
+                            :value="stats.newPartidas" 
+                            :icon="icons.cart" 
+                            color="bg-purple-500" 
+                            trend="Registrados hoy"
+                            :trendUp="true"
+                            :link="route('inventario')"
+                        />
+                    </template>
+
+                    <!-- Standard/Admin View -->
+                    <template v-else>
+                        <StatCard 
+                            v-if="isAdminOrSuper"
+                            title="Total Usuarios" 
+                            :value="stats.totalUsers" 
+                            :icon="icons.users" 
+                            color="bg-blue-500" 
+                            trend="Registrados"
+                            :trendUp="true"
+                            :link="route('users.index')"
+                        />
+                        <StatCard 
+                            title="Ingresos (Mes)" 
+                            :value="'$' + stats.monthlyRevenue" 
+                            :icon="icons.money" 
+                            color="bg-green-500"
+                            trend="Facturado"
+                            :trendUp="true"
+                            :link="route('billing')"
+                        />
+                        <StatCard 
+                            title="Partidas Hoy" 
+                            :value="stats.newPartidas" 
+                            :icon="icons.cart" 
+                            color="bg-purple-500" 
+                            trend="Movimientos"
+                            :trendUp="true"
+                            :link="route('inventario')"
+                        />
+                        <StatCard 
+                            title="Mantenimientos" 
+                            :value="stats.activeMaintenances" 
+                            :icon="icons.box" 
+                            color="bg-red-500" 
+                            trend="Activos"
+                            :trendUp="false"
+                            :link="route('maintenance')"
+                        />
+                    </template>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -308,9 +504,9 @@ const icons = {
                                      <Bar :data="barData" :options="barOptions" />
                                 </div>
                                 
-                                <!-- Inventory Chart -->
+                                <!-- Inventory / Currency Chart -->
                                 <div>
-                                    <h4 class="text-md font-semibold text-gray-700 dark:text-gray-300 mb-2">Distribución de Inventario</h4>
+                                     <h4 class="text-md font-semibold text-gray-700 dark:text-gray-300 mb-2">{{ charts.inventory.title || 'Distribución de Inventario' }}</h4>
                                     <div class="h-64 flex justify-center">
                                          <Pie :data="pieData" :options="pieOptions" />
                                     </div>

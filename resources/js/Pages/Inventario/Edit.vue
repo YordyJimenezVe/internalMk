@@ -1,13 +1,27 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
 import InputError from '@/Components/InputError.vue';
-import { useForm } from '@inertiajs/vue3';
+import { useForm, usePage } from '@inertiajs/vue3';
 import { ref, watch, computed, onMounted } from 'vue';
 
 const props = defineProps({
     inventario: Object,
     containers: Object,
     tipos: Object,
+});
+
+const page = usePage();
+const isContador = computed(() => {
+    const user = page.props.auth.user;
+    if (!user) return false;
+    const directRol = (user.rol || '').toLowerCase();
+    const spatieRoles = (user.roles || []).map(r => typeof r === 'string' ? r.toLowerCase() : (r.name || '').toLowerCase());
+    return directRol.includes('contador') || 
+           spatieRoles.includes('contador') || 
+           directRol.includes('admin') || 
+           directRol.includes('super') || 
+           spatieRoles.includes('superusuario') || 
+           spatieRoles.includes('administrador');
 });
 
 const form = useForm({
@@ -25,8 +39,10 @@ const form = useForm({
     cantidad: props.inventario.cantidad || '',
     price: props.inventario.price || '',
     price_sale: props.inventario.price_sale || '',
+    costo_importacion_unitario: props.inventario.costo_importacion_unitario || '',
     condicion: props.inventario.condicion || 'APLICA',
     status: props.inventario.status || 'DISPONIBLE',
+    observation: props.inventario.observation || '',
 });
 
 const isAutoparte = computed(() => form.tipo === 'AUTOPARTE');
@@ -41,8 +57,13 @@ watch(() => form.container_id, (newVal) => {
 
 // Format currency helpers
 const formatCurrency = (value) => {
-    if (!value) return '';
-    return String(value)
+    if (value === null || value === undefined || value === '') return '';
+    let strVal = String(value).trim();
+    if (strVal.endsWith('.00')) {
+        strVal = strVal.slice(0, -3);
+    }
+    if (strVal === '0' || strVal === '0.00') return '';
+    return strVal
         .replace(/\D/g, "")
         .replace(/([0-9])([0-9]{3})$/, "$1.$2")
         .replace(/\B(?=(\d{3})+(?!\d)\.?)/g, ".");
@@ -53,6 +74,9 @@ const handlePriceInput = (field) => {
 };
 
 const submit = () => {
+    form.marca = form.marca?.toUpperCase();
+    form.modelo = form.modelo?.toUpperCase();
+    form.serial = form.serial?.toUpperCase();
     form.post(route('updateInventario', props.inventario.id));
 };
 
@@ -60,6 +84,7 @@ onMounted(() => {
     // Initial formatting if needed
     if (form.price) form.price = formatCurrency(form.price);
     if (form.price_sale) form.price_sale = formatCurrency(form.price_sale);
+    if (form.costo_importacion_unitario) form.costo_importacion_unitario = formatCurrency(form.costo_importacion_unitario);
 });
 </script>
 
@@ -157,7 +182,7 @@ onMounted(() => {
                                     <label class="block uppercase tracking-wide text-gray-700 dark:text-gray-300 text-xs font-bold mb-2">
                                         <i class="fa-solid fa-copyright mr-1 text-indigo-500"></i>Marca
                                     </label>
-                                    <input v-model="form.marca" class="appearance-none block w-full bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg py-3 px-4 leading-tight focus:outline-none focus:bg-white dark:focus:bg-gray-600 focus:border-indigo-500 transition-colors" type="text" required>
+                                    <input v-model="form.marca" class="appearance-none block w-full bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg py-3 px-4 leading-tight focus:outline-none focus:bg-white dark:focus:bg-gray-600 focus:border-indigo-500 transition-colors uppercase" type="text" required>
                                     <InputError :message="form.errors.marca" class="mt-2" />
                                 </div>
 
@@ -165,7 +190,7 @@ onMounted(() => {
                                     <label class="block uppercase tracking-wide text-gray-700 dark:text-gray-300 text-xs font-bold mb-2">
                                         <i class="fa-solid fa-car-side mr-1 text-indigo-500"></i>Modelo
                                     </label>
-                                    <input v-model="form.modelo" class="appearance-none block w-full bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg py-3 px-4 leading-tight focus:outline-none focus:bg-white dark:focus:bg-gray-600 focus:border-indigo-500 transition-colors" type="text" required>
+                                    <input v-model="form.modelo" class="appearance-none block w-full bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg py-3 px-4 leading-tight focus:outline-none focus:bg-white dark:focus:bg-gray-600 focus:border-indigo-500 transition-colors uppercase" type="text" required>
                                     <InputError :message="form.errors.modelo" class="mt-2" />
                                 </div>
                                 
@@ -173,7 +198,7 @@ onMounted(() => {
                                     <label class="block uppercase tracking-wide text-gray-700 dark:text-gray-300 text-xs font-bold mb-2">
                                         <i class="fa-solid fa-barcode mr-1 text-indigo-500"></i>Serial
                                     </label>
-                                    <input v-model="form.serial" class="appearance-none block w-full bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg py-3 px-4 leading-tight focus:outline-none focus:bg-white dark:focus:bg-gray-600 focus:border-indigo-500 transition-colors" type="text">
+                                    <input v-model="form.serial" class="appearance-none block w-full bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg py-3 px-4 leading-tight focus:outline-none focus:bg-white dark:focus:bg-gray-600 focus:border-indigo-500 transition-colors uppercase" type="text">
                                     <InputError :message="form.errors.serial" class="mt-2" />
                                 </div>
                                 
@@ -201,6 +226,7 @@ onMounted(() => {
                                         <i class="fa-solid fa-signal mr-1 text-indigo-500"></i>Estatus
                                     </label>
                                     <select v-model="form.status" class="block w-full bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg py-3 px-4 leading-tight focus:outline-none focus:border-indigo-500 transition-colors">
+                                        <option value="PRECIO PENDIENTE">PRECIO PENDIENTE</option>
                                         <option value="DISPONIBLE">DISPONIBLE</option>
                                         <option value="EN TALLER">EN TALLER</option>
                                         <option value="VENDIDO">VENDIDO</option>
@@ -234,26 +260,49 @@ onMounted(() => {
                              </div>
                         </div>
 
-                        <!-- Pricing Section -->
-                        <div class="bg-indigo-50/30 dark:bg-gray-900/30 p-8 rounded-2xl border border-indigo-100 dark:border-indigo-900/30 grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
-                            <div>
-                                <label class="block uppercase tracking-wide text-indigo-700 dark:text-indigo-400 text-xs font-bold mb-3">
-                                    <i class="fa-solid fa-money-bill-transfer mr-1"></i>Precio / Costo ($)
-                                </label>
-                                <input :value="form.price" @input="e => { form.price = e.target.value; handlePriceInput('price') }" class="appearance-none block w-full bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/50 rounded-xl py-3 px-6 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-2xl font-bold font-mono" type="text" placeholder="0.00">
-                                <InputError :message="form.errors.price" class="mt-2" />
+                        <!-- Observation Field -->
+                        <div class="space-y-6">
+                            <h3 class="font-bold text-gray-800 dark:text-white flex items-center pt-4 border-t border-gray-100 dark:border-gray-700">
+                                <i class="fa-solid fa-comment-dots mr-2 text-indigo-500"></i>Observaciones
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="md:col-span-1">
+                                    <label class="block uppercase tracking-wide text-gray-700 dark:text-gray-300 text-xs font-bold mb-2">
+                                        <i class="fa-solid fa-comment-dots mr-1 text-indigo-500"></i>Observación
+                                    </label>
+                                    <textarea v-model="form.observation" @input="form.observation = form.observation.toUpperCase()" rows="3" class="appearance-none block w-full bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg py-3 px-4 leading-tight focus:outline-none focus:bg-white dark:focus:bg-gray-600 focus:border-indigo-500 transition-colors resize-none uppercase" placeholder="OBSERVACIÓN O DETALLE ADICIONAL..."></textarea>
+                                    <InputError :message="form.errors.observation" class="mt-2" />
+                                </div>
                             </div>
+                        </div>
 
-                            <div>
-                                <label class="block uppercase tracking-wide text-indigo-700 dark:text-indigo-400 text-xs font-bold mb-3">
-                                    <i class="fa-solid fa-tag mr-1"></i>Precio de Venta ($)
-                                </label>
-                                <input :value="form.price_sale" @input="e => { form.price_sale = e.target.value; handlePriceInput('price_sale') }" class="appearance-none block w-full bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/50 rounded-xl py-3 px-6 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-2xl font-bold font-mono" type="text" placeholder="0.00">
-                                <InputError :message="form.errors.price_sale" class="mt-2" />
+                        <!-- Pricing/Import Cost Section -->
+                        <div class="bg-indigo-50/30 dark:bg-gray-900/30 p-8 rounded-2xl border border-indigo-100 dark:border-indigo-900/30">
+                            <div v-if="isContador" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                                <div>
+                                    <label class="block uppercase tracking-wide text-indigo-700 dark:text-indigo-400 text-xs font-bold mb-3">
+                                        <i class="fa-solid fa-ship mr-1"></i>Costo de Importación ($)
+                                    </label>
+                                    <input :value="form.costo_importacion_unitario" readonly class="appearance-none block w-full bg-gray-50 dark:bg-gray-700/50 text-indigo-600 dark:text-indigo-400 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-6 leading-tight focus:outline-none transition-all text-xl font-bold font-mono cursor-not-allowed" type="text" placeholder="0.00">
+                                    <InputError :message="form.errors.costo_importacion_unitario" class="mt-2" />
+                                </div>
+                                <div>
+                                    <label class="block uppercase tracking-wide text-indigo-700 dark:text-indigo-400 text-xs font-bold mb-3">
+                                        <i class="fa-solid fa-money-bill-transfer mr-1"></i>Precio / Costo ($)
+                                    </label>
+                                    <input :value="form.price" readonly class="appearance-none block w-full bg-gray-50 dark:bg-gray-700/50 text-indigo-600 dark:text-indigo-400 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-6 leading-tight focus:outline-none transition-all text-xl font-bold font-mono cursor-not-allowed" type="text" placeholder="0.00">
+                                    <InputError :message="form.errors.price" class="mt-2" />
+                                </div>
+                                <div>
+                                    <label class="block uppercase tracking-wide text-indigo-700 dark:text-indigo-400 text-xs font-bold mb-3">
+                                        <i class="fa-solid fa-tag mr-1"></i>Precio de Venta ($)
+                                    </label>
+                                    <input :value="form.price_sale" readonly class="appearance-none block w-full bg-gray-50 dark:bg-gray-700/50 text-indigo-600 dark:text-indigo-400 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-6 leading-tight focus:outline-none transition-all text-xl font-bold font-mono cursor-not-allowed" type="text" placeholder="0.00">
+                                    <InputError :message="form.errors.price_sale" class="mt-2" />
+                                </div>
                             </div>
-
-                            <div class="md:col-span-2 flex justify-center pt-4">
-                                <button type="submit" :disabled="form.processing" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-12 rounded-xl shadow-lg shadow-indigo-200 dark:shadow-none transition-all transform hover:scale-[1.02] active:scale-95 flex items-center gap-2">
+                            <div class="flex justify-end pt-4">
+                                <button type="submit" :disabled="form.processing" class="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-12 rounded-xl shadow-lg shadow-indigo-200 dark:shadow-none transition-all transform hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2">
                                     <i class="fa-solid fa-floppy-disk text-xl"></i>
                                     Actualizar Registro
                                 </button>
