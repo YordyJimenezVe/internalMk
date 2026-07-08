@@ -112,26 +112,16 @@
             <div class="grid-container">
                 @foreach($pageLabels as $label)
                     <div class="label-cell">
-                        @if($label)
-                            <div class="info-value">
-                                {{ $label['inventario']->marca }} {{ $label['inventario']->modelo }}
-                            </div>
-                            <div class="qr-code">
-                                <img src="data:image/svg+xml;base64,{{ $label['qrCode'] }}" width="58" height="58">
-                            </div>
-                            <div class="barcode">
-                                <img src="data:image/png;base64,{{ $label['barcode'] }}" width="135" height="14">
-                                <div class="barcode-text">EXP: {{ $label['inventario']->expediente }} | Item: {{ str_pad($label['inventario']->codInv, 4, '0', STR_PAD_LEFT) }}</div>
-                            </div>
-                        @else
-                            <div class="info-value">&nbsp;</div>
-                            <div class="qr-code" style="visibility: hidden;">
-                                <div style="width: 58px; height: 58px;"></div>
-                            </div>
-                            <div class="barcode" style="visibility: hidden;">
-                                <div style="width: 135px; height: 25px;"></div>
-                            </div>
-                        @endif
+                        <div class="info-value">
+                            {{ $label['inventario']->marca }} {{ $label['inventario']->modelo }}
+                        </div>
+                        <div class="qr-code">
+                            <img src="data:image/svg+xml;base64,{{ $label['qrCode'] }}" width="58" height="58">
+                        </div>
+                        <div class="barcode">
+                            <img src="data:image/png;base64,{{ $label['barcode'] }}" width="135" height="14">
+                            <div class="barcode-text">EXP: {{ $label['inventario']->expediente }} | Item: {{ str_pad($label['inventario']->codInv, 4, '0', STR_PAD_LEFT) }}</div>
+                        </div>
                     </div>
                 @endforeach
             </div>
