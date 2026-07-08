@@ -120,7 +120,7 @@
                         </div>
                         <div class="barcode">
                             <img src="data:image/png;base64,{{ $label['barcode'] }}" width="135" height="14">
-                            <div class="barcode-text">EXP: {{ $label['inventario']->expediente }} | Item: {{ str_pad($label['inventario']->id, 4, '0', STR_PAD_LEFT) }}</div>
+                            <div class="barcode-text">EXP: {{ $label['inventario']->expediente }} | Item: {{ str_pad($label['inventario']->codInv, 4, '0', STR_PAD_LEFT) }}</div>
                         </div>
                     </div>
                 @endforeach
