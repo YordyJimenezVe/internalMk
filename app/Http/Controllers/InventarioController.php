@@ -467,6 +467,11 @@ class InventarioController extends Controller
             ];
         })->toArray();
 
+        // Temporary: Insert empty label at index 35 (the 36th label slot) to push label 36 to the next page
+        if (count($labels) >= 36) {
+            array_splice($labels, 35, 0, [null]);
+        }
+
         return view('labels.container-sheet', [
             'labels' => $labels,
         ]);
