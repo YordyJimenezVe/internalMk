@@ -1,3 +1,6 @@
-*
-!public/
+/*
+!/public/
 !.gitignore
+
+/public/billing_captures/*
+/public/maintenance_captures/*
