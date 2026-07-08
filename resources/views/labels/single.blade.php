@@ -83,7 +83,7 @@
         </div>
         <div class="barcode">
             <img src="data:image/png;base64,{{ $barcode }}" width="130" height="15">
-            <div class="barcode-text">EXP: {{ $inventario->expediente }}</div>
+            <div class="barcode-text">EXP: {{ $inventario->expediente }} | Item: {{ str_pad($inventario->codInv, 4, '0', STR_PAD_LEFT) }}</div>
         </div>
     </div>
 </body>
