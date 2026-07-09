@@ -54,6 +54,11 @@ class BillingRequestController extends Controller
             'client_address' => 'nullable|string|max:500',
         ]);
 
+        $partida = \App\Models\Inventario::findOrFail($request->partida_id);
+        if ($partida->status === 'INOPERATIVO-DESARMADO') {
+            return redirect()->back()->withErrors(['partida_id' => 'No se puede facturar un ítem inoperativo o desarmado.']);
+        }
+
         $cedulaFilePath = null;
         if ($request->hasFile('client_cedula_file')) {
             $cedulaFilePath = $request->file('client_cedula_file')->store('billing_captures', 'public');
@@ -102,8 +107,8 @@ class BillingRequestController extends Controller
             $billingRequest = BillingRequest::with(['inventario', 'partida'])->find($id);
             $partida = $billingRequest->inventario;
 
-            if ($partida->status === 'VENDIDO') {
-                continue; // Skip if already sold
+            if ($partida->status === 'VENDIDO' || $partida->status === 'INOPERATIVO-DESARMADO') {
+                continue; // Skip if already sold or inoperative/disassembled
             }
 
             // 1. Create Billing Record (Sale Log)

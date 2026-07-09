@@ -276,9 +276,19 @@ const submitBilling = () => {
                                     <i class="fa-solid fa-paper-plane mr-2"></i>Facturación
                                 </h3>
                                 
-                                <div v-if="alreadyRequested || props.inventario.status === 'VENDIDO'" class="bg-white/10 dark:bg-black/20 p-6 rounded-2xl border border-white/20 dark:border-indigo-800/50 flex flex-col items-center text-center space-y-4">
+                                <div v-if="props.inventario.status === 'INOPERATIVO-DESARMADO'" class="bg-white/10 dark:bg-black/20 p-6 rounded-2xl border border-white/20 dark:border-indigo-800/50 flex flex-col items-center text-center space-y-4">
                                     <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
-                                        <i class="fa-solid fa-lock-open text-3xl opacity-50"></i>
+                                        <i class="fa-solid fa-ban text-3xl opacity-55"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-bold text-lg">Inoperativo / Desarmado</p>
+                                        <p class="text-sm opacity-80 mt-1">Este ítem se encuentra inoperativo o desarmado. No está disponible para la venta o facturación.</p>
+                                    </div>
+                                </div>
+
+                                <div v-else-if="alreadyRequested || props.inventario.status === 'VENDIDO'" class="bg-white/10 dark:bg-black/20 p-6 rounded-2xl border border-white/20 dark:border-indigo-800/50 flex flex-col items-center text-center space-y-4">
+                                    <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+                                        <i class="fa-solid fa-lock text-3xl opacity-50"></i>
                                     </div>
                                     <div>
                                         <p class="font-bold text-lg">Vendido o Solicitado</p>
