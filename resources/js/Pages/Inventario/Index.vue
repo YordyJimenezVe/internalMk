@@ -50,6 +50,8 @@ const getBrandSlug = (brand) => {
         'chrysler': 'chrysler',
         'renault': 'renault',
         'peugeot': 'peugeot',
+        'cummins': 'cummins',
+        'cumins': 'cummins',
     };
 
     for (const key in slugMap) {
@@ -64,6 +66,10 @@ const imageAttempts = ref({});
 const getBrandIcon = (brand, id) => {
     const slug = getBrandSlug(brand);
     if (!slug) return null;
+    
+    if (slug === 'cummins') {
+        return '/cummins-logo.svg';
+    }
     
     const urls = [
         `https://cdn.simpleicons.org/${slug}/9ca3af`,
