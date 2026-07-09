@@ -836,6 +836,98 @@ class InventarioController extends Controller
                     $tipo = 'Automóvil / SUV';
                     $ejemplo = 'Tahoe';
                 }
+            } elseif (str_contains($marca, 'HYUNDAI')) {
+                if (str_contains($modelo, 'SANTA FE') || str_contains($modelo, 'TUCSON') || str_contains($modelo, 'VERACRUZ')) {
+                    $tipo = 'SUV';
+                    $ejemplo = 'Santa Fe-Tucson';
+                } elseif (str_contains($modelo, 'GETZ') || str_contains($modelo, 'ACCENT') || str_contains($modelo, 'ELANTRA') || str_contains($modelo, 'I10') || str_contains($modelo, 'I30')) {
+                    $tipo = 'Automóvil';
+                    $ejemplo = 'Getz-Accent-Elantra';
+                } elseif (str_contains($modelo, 'H1') || str_contains($modelo, 'H-1')) {
+                    $tipo = 'Van / Minivan';
+                    $ejemplo = 'H1';
+                } else {
+                    $tipo = 'Automóvil / SUV';
+                    $ejemplo = 'Accent-Tucson';
+                }
+            } elseif (str_contains($marca, 'HONDA')) {
+                if (str_contains($modelo, 'CRV') || str_contains($modelo, 'CR-V') || str_contains($modelo, 'PILOT')) {
+                    $tipo = 'SUV';
+                    $ejemplo = 'CR-V';
+                } elseif (str_contains($modelo, 'CIVIC') || str_contains($modelo, 'ACCORD') || str_contains($modelo, 'FIT')) {
+                    $tipo = 'Automóvil';
+                    $ejemplo = 'Civic-Fit';
+                } else {
+                    $tipo = 'Automóvil';
+                    $ejemplo = 'Civic';
+                }
+            } elseif (str_contains($marca, 'MITSUBISHI')) {
+                if (str_contains($modelo, 'MONTERO') || str_contains($modelo, 'OUTLANDER') || str_contains($modelo, 'NATIVA')) {
+                    $tipo = 'SUV';
+                    $ejemplo = 'Montero-Outlander';
+                } elseif (str_contains($modelo, 'L200')) {
+                    $tipo = 'Camioneta';
+                    $ejemplo = 'L200';
+                } elseif (str_contains($modelo, 'LANCER') || str_contains($modelo, 'MIVEC') || str_contains($modelo, 'CK') || str_contains($modelo, 'SIGNUM')) {
+                    $tipo = 'Automóvil';
+                    $ejemplo = 'Lancer';
+                } else {
+                    $tipo = 'Automóvil / SUV';
+                    $ejemplo = 'Lancer-Montero';
+                }
+            } elseif (str_contains($marca, 'NISSAN')) {
+                if (str_contains($modelo, 'PATHFINDER') || str_contains($modelo, 'XTRAIL') || str_contains($modelo, 'X-TRAIL') || str_contains($modelo, 'PATROL') || str_contains($modelo, 'MURANO')) {
+                    $tipo = 'SUV';
+                    $ejemplo = 'Patrol-Xtrail';
+                } elseif (str_contains($modelo, 'FRONTIER') || str_contains($modelo, 'NAVARA')) {
+                    $tipo = 'Camioneta';
+                    $ejemplo = 'Frontier';
+                } elseif (str_contains($modelo, 'SENTRA') || str_contains($modelo, 'TIIDA') || str_contains($modelo, 'ALMERA') || str_contains($modelo, 'VERSA') || str_contains($modelo, 'MARCH')) {
+                    $tipo = 'Automóvil';
+                    $ejemplo = 'Sentra-Tiida';
+                } else {
+                    $tipo = 'Automóvil / SUV';
+                    $ejemplo = 'Sentra-Patrol';
+                }
+            } elseif (str_contains($marca, 'KIA')) {
+                if (str_contains($modelo, 'SPORTAGE') || str_contains($modelo, 'SORENTO')) {
+                    $tipo = 'SUV';
+                    $ejemplo = 'Sportage';
+                } elseif (str_contains($modelo, 'RIO') || str_contains($modelo, 'PICANTO') || str_contains($modelo, 'CERATO')) {
+                    $tipo = 'Automóvil';
+                    $ejemplo = 'Rio-Picanto';
+                } elseif (str_contains($modelo, 'PREGIO') || str_contains($modelo, 'CARNIVAL')) {
+                    $tipo = 'Minivan';
+                    $ejemplo = 'Pregio';
+                } else {
+                    $tipo = 'Automóvil';
+                    $ejemplo = 'Rio';
+                }
+            } elseif (str_contains($marca, 'MAZDA')) {
+                if (str_contains($modelo, 'MAZDA 3') || str_contains($modelo, 'MAZDA 6') || str_contains($modelo, 'MAZDA 2') || str_contains($modelo, 'ALLEGRO')) {
+                    $tipo = 'Automóvil';
+                    $ejemplo = 'Mazda 3';
+                } elseif (str_contains($modelo, 'BT-50') || str_contains($modelo, 'BT50')) {
+                    $tipo = 'Camioneta';
+                    $ejemplo = 'BT-50';
+                } elseif (str_contains($modelo, 'CX')) {
+                    $tipo = 'SUV';
+                    $ejemplo = 'CX-5';
+                } else {
+                    $tipo = 'Automóvil / SUV';
+                    $ejemplo = 'Mazda 3';
+                }
+            } elseif (str_contains($marca, 'CHERY')) {
+                if (str_contains($modelo, 'TIGGO')) {
+                    $tipo = 'SUV';
+                    $ejemplo = 'Tiggo';
+                } elseif (str_contains($modelo, 'QQ') || str_contains($modelo, 'ARAUCANA') || str_contains($modelo, 'ORINOCO')) {
+                    $tipo = 'Automóvil';
+                    $ejemplo = 'QQ-Orinoco';
+                } else {
+                    $tipo = 'Automóvil';
+                    $ejemplo = 'QQ';
+                }
             }
 
             // 3. Consultar la API pública de la NHTSA para obtener/validar modelos oficiales de la marca y año
@@ -867,10 +959,20 @@ class InventarioController extends Controller
             }
 
             if ($tipo === 'Otro') {
-                if (str_contains($modelo, 'TRUCK') || str_contains($modelo, 'PICKUP') || str_contains($modelo, 'CABIN')) {
+                $modeloUpper = strtoupper($modelo);
+                if (preg_match('/(SANTA\s?FE|TUCSON|SPORTAGE|SORENTO|EXPLORER|CHEROKEE|VITARA|MONTERO|OUTLANDER|NATIVA|PATHFINDER|X-?TRAIL|MURANO|TAHOE|BLAZER|RUNNER|FORTUNER|PRADO|MERU|ESCAPE|DUSTER|TIGGO)/', $modeloUpper)) {
+                    $tipo = 'SUV';
+                    $ejemplo = 'Modelo Detectado';
+                } elseif (preg_match('/(HILUX|TUNDRA|TACOMA|D-?MAX|RANGER|SILVERADO|RAM|L200|FRONTIER|NAVARA|BT-?50|TIGER|F-?150|CAMIONETA|PICKUP)/', $modeloUpper)) {
+                    $tipo = 'Camioneta';
+                    $ejemplo = 'Modelo Detectado';
+                } elseif (preg_match('/(COROLLA|YARIS|CIVIC|AVEO|OPTRA|SPARK|FIT|LANCER|GETZ|RIO|ACCENT|ELANTRA|PICANTO|CERATO|MAZDA\s?[236]|ALLEGRO|CLIO|LOGAN|SYMBOL|MEGANE|UNO|PALIO|SIENA|QQ|ORINOCO|MIVEC)/', $modeloUpper)) {
+                    $tipo = 'Automóvil';
+                    $ejemplo = 'Modelo Detectado';
+                } elseif (str_contains($modeloUpper, 'TRUCK') || str_contains($modeloUpper, 'PICKUP') || str_contains($modeloUpper, 'CABIN')) {
                     $tipo = 'Camioneta';
                     $ejemplo = 'General';
-                } elseif (str_contains($modelo, 'SEDAN') || str_contains($modelo, 'HATCHBACK')) {
+                } elseif (str_contains($modeloUpper, 'SEDAN') || str_contains($modeloUpper, 'HATCHBACK')) {
                     $tipo = 'Automóvil';
                     $ejemplo = 'General';
                 } else {
