@@ -108,6 +108,19 @@ class BillingRequestController extends Controller
             $userToNotify->notify($notification);
         }
 
+        // Notify via Telegram Group
+        $itemName = $partida ? "{$partida->marca} {$partida->modelo}" : 'Ítem';
+        $vendedor = auth()->user()->name;
+        $priceFormatted = number_format($request->price, 2);
+        
+        $telegramMessage = "🔔 <b>Nueva Solicitud de Facturación</b>\n\n"
+            . "👤 <b>Asesor:</b> {$vendedor}\n"
+            . "📦 <b>Artículo:</b> {$itemName}\n"
+            . "💵 <b>Precio:</b> \${$priceFormatted}\n\n"
+            . "🔗 <a href=\"" . route('billing.requests.index') . "\">Ver bandeja de facturación</a>";
+
+        \App\Services\TelegramService::sendMessage($telegramMessage);
+
         return redirect()->back()->with('success', 'Solicitud enviada correctamente.');
     }
 
