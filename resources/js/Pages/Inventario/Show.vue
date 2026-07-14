@@ -53,6 +53,7 @@ const form = useForm({
     client_cedula: '',
     client_phone: '',
     client_address: '',
+    client_email: '',
     quantity: 1,
     client_cedula_file: null,
 });
@@ -413,15 +414,19 @@ const submitBilling = () => {
                                         <p v-if="!imagePreviewUrl" class="mt-2 text-[10px] text-white/50 text-center">Formatos permitidos: JPG, PNG (Máx 2MB)</p>
                                     </div>
 
-                                    <div class="grid grid-cols-1 gap-4">
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
                                             <label class="block text-xs font-bold mb-2 uppercase opacity-80">Teléfono (Opcional)</label>
                                             <input v-model="form.client_phone" type="text" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:ring-2 focus:ring-white outline-none" placeholder="0412-1234567">
                                         </div>
                                         <div>
-                                            <label class="block text-xs font-bold mb-2 uppercase opacity-80">Dirección (Opcional)</label>
-                                            <textarea v-model="form.client_address" rows="2" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:ring-2 focus:ring-white outline-none resize-none" placeholder="Dirección del cliente"></textarea>
+                                            <label class="block text-xs font-bold mb-2 uppercase opacity-80">Correo Electrónico (Opcional)</label>
+                                            <input v-model="form.client_email" type="email" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:ring-2 focus:ring-white outline-none" placeholder="cliente@correo.com">
                                         </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold mb-2 uppercase opacity-80">Dirección (Opcional)</label>
+                                        <textarea v-model="form.client_address" rows="2" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:ring-2 focus:ring-white outline-none resize-none" placeholder="Dirección del cliente"></textarea>
                                     </div>
                                     
                                     <button type="submit" :disabled="form.processing" class="w-full bg-white text-indigo-700 font-bold py-4 px-6 rounded-2xl shadow-xl transition-all transform hover:scale-[1.05] active:scale-95 disabled:opacity-50 flex items-center justify-center text-lg">

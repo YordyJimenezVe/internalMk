@@ -24,6 +24,7 @@ const form = useForm({
     client_cedula: props.bill.client_cedula,
     client_phone: props.bill.client_phone,
     client_address: props.bill.client_address,
+    client_email: props.bill.client_email,
 });
 
 const submitForm = () => {
@@ -164,10 +165,14 @@ const submitForm = () => {
                                         <input v-model="form.client_phone" class="appearance-none block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-3.5 px-4 focus:ring-2 focus:ring-indigo-500 transition-all font-bold" type="text">
                                     </div>
                                     <div class="space-y-2">
-                                        <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase ml-1">Dirección</label>
-                                        <input v-model="form.client_address" class="appearance-none block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-3.5 px-4 focus:ring-2 focus:ring-indigo-500 transition-all font-bold" type="text">
+                                        <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase ml-1">Correo Electrónico</label>
+                                        <input v-model="form.client_email" class="appearance-none block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-3.5 px-4 focus:ring-2 focus:ring-indigo-500 transition-all font-bold" type="email">
                                     </div>
                                 </div>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase ml-1">Dirección</label>
+                                <input v-model="form.client_address" class="appearance-none block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-3.5 px-4 focus:ring-2 focus:ring-indigo-500 transition-all font-bold" type="text">
                             </div>
                         </div>
 

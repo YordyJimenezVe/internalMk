@@ -194,6 +194,7 @@ const exportPdf = () => {
                                 <tr class="bg-gray-50/50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-700 transition-colors">
                                     <th class="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 dark:text-gray-500">Factura / Control</th>
                                     <th class="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 dark:text-gray-500">Ítem Vendido</th>
+                                    <th class="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 dark:text-gray-500">Cliente</th>
                                     <th class="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 dark:text-gray-500">Monto Total</th>
                                     <th class="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 dark:text-gray-500 text-center">Fecha</th>
                                     <th class="px-6 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 dark:text-gray-500 text-right">Opciones</th>
@@ -228,6 +229,19 @@ const exportPdf = () => {
                                         </div>
                                     </td>
                                     <td class="px-6 py-6">
+                                        <div class="space-y-1">
+                                            <div class="text-xs font-black text-gray-800 dark:text-white uppercase leading-none">
+                                                {{ factura.client_name || 'N/A' }}
+                                            </div>
+                                            <div v-if="factura.client_cedula" class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-tighter">
+                                                <i class="fa-solid fa-id-card text-[8px] mr-1"></i>{{ factura.client_cedula }}
+                                            </div>
+                                            <div v-if="factura.client_email" class="text-[10px] text-indigo-500 dark:text-indigo-400 lowercase truncate max-w-[150px]" :title="factura.client_email">
+                                                <i class="fa-solid fa-envelope text-[8px] mr-1"></i>{{ factura.client_email }}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-6">
                                         <div class="text-sm font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 px-3 py-1 rounded-lg w-fit">
                                             {{ factura.precio_total }} <span class="text-[10px] opacity-70">Bs</span>
                                         </div>
@@ -258,7 +272,7 @@ const exportPdf = () => {
                                     </td>
                                 </tr>
                                 <tr v-if="filteredFacturas.length === 0">
-                                    <td colspan="5" class="px-6 py-24 text-center">
+                                    <td colspan="6" class="px-6 py-24 text-center">
                                         <div class="flex flex-col items-center gap-6">
                                             <div class="h-24 w-24 rounded-[2rem] bg-gray-50 dark:bg-gray-900/50 flex items-center justify-center border-2 border-dashed border-gray-100 dark:border-gray-800">
                                                 <i class="fa-solid fa-file-circle-xmark text-5xl text-gray-200 dark:text-gray-800"></i>

@@ -17,6 +17,7 @@ class BillingRequest extends Model
         'client_cedula_file',
         'client_phone',
         'client_address',
+        'client_email',
         'status',
     ];
 

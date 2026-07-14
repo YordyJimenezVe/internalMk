@@ -186,9 +186,13 @@ const showCedulaModal = ref(false);
                                             <input class="appearance-none block w-full bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 transition-all font-bold" name="client_phone" type="text" v-model="clientPhone" placeholder="EJ: 0412-1234567">
                                         </div>
                                         <div>
-                                            <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="client_address">Dirección</label>
-                                            <input class="appearance-none block w-full bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 transition-all font-bold" name="client_address" type="text" v-model="clientAddress" placeholder="Dirección del cliente">
+                                            <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="client_email">Correo Electrónico</label>
+                                            <input class="appearance-none block w-full bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 transition-all font-bold" name="client_email" type="email" v-model="clientEmail" placeholder="EJ: CLIENTE@CORREO.COM">
                                         </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="client_address">Dirección</label>
+                                        <input class="appearance-none block w-full bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 transition-all font-bold" name="client_address" type="text" v-model="clientAddress" placeholder="Dirección del cliente">
                                     </div>
                                 </div>
 
@@ -278,6 +282,7 @@ export default {
             clientCedula: '',
             clientPhone: '',
             clientAddress: '',
+            clientEmail: '',
             fecha: '',
             hora: '',
             formData: {
@@ -357,6 +362,7 @@ export default {
         this.clientCedula = this.data['client_cedula'] || '';
         this.clientPhone = this.data['client_phone'] || '';
         this.clientAddress = this.data['client_address'] || '';
+        this.clientEmail = this.data['client_email'] || '';
         this.partida = this.data.id;
         
         // El pago real en divisa por el cual se vende el motor (ej: $1600) se usa para calcular el cobro y el IGTF

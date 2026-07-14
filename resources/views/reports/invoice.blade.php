@@ -42,6 +42,12 @@
                 <td style="font-weight: bold;">Teléfono:</td>
                 <td>{{ $bill->client_phone ?? 'N/A' }}</td>
             </tr>
+            @if(!empty($bill->client_email))
+            <tr>
+                <td style="font-weight: bold;">Correo:</td>
+                <td>{{ $bill->client_email }}</td>
+            </tr>
+            @endif
             <tr>
                 <td style="font-weight: bold;">Dirección:</td>
                 <td>{{ $bill->client_address ?? 'N/A' }}</td>

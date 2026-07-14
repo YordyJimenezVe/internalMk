@@ -52,6 +52,7 @@ class BillingRequestController extends Controller
             'client_cedula' => 'nullable|string|max:20',
             'client_phone' => 'nullable|string|max:30',
             'client_address' => 'nullable|string|max:500',
+            'client_email' => 'nullable|email|max:255',
         ]);
 
         $partida = \App\Models\Inventario::findOrFail($request->partida_id);
@@ -74,6 +75,7 @@ class BillingRequestController extends Controller
             'client_cedula_file' => $cedulaFilePath,
             'client_phone' => $request->client_phone ? strip_tags($request->client_phone) : null,
             'client_address' => $request->client_address ? strip_tags($request->client_address) : null,
+            'client_email' => $request->client_email ? strip_tags($request->client_email) : null,
             'status' => 'pending',
         ]);
 
@@ -95,9 +97,11 @@ class BillingRequestController extends Controller
                   });
         })->get();
 
+        $clientName = $request->client_name ? strip_tags($request->client_name) : 'No especificado';
+
         $notification = new \App\Notifications\SystemAlertNotification(
             'Nueva Solicitud',
-            "El asesor " . auth()->user()->name . " solicitó facturar: " . ($partida ? $partida->marca . ' ' . $partida->modelo : 'Item') . " por $" . number_format($request->price, 2),
+            "El asesor " . auth()->user()->name . " solicitó facturar: " . ($partida ? $partida->marca . ' ' . $partida->modelo : 'Item') . " (Cliente: {$clientName}) por $" . number_format($request->price, 2),
             route('billing.requests.index'),
             'fa-file-circle-exclamation',
             'amber',
@@ -114,7 +118,8 @@ class BillingRequestController extends Controller
         
         $telegramMessage = "🔔 <b>Nueva Solicitud de Facturación</b>\n\n"
             . "👤 <b>Asesor:</b> {$vendedor}\n"
-            . "📦 <b>Artículo:</b> {$itemName}\n\n"
+            . "📦 <b>Artículo:</b> {$itemName}\n"
+            . "👤 <b>Cliente:</b> {$clientName}\n\n"
             . "🔗 <a href=\"" . route('billing.requests.index') . "\">Ver bandeja de facturación</a>";
 
         \App\Services\TelegramService::sendMessage($telegramMessage);
@@ -159,6 +164,7 @@ class BillingRequestController extends Controller
                 'client_cedula' => $billingRequest->client_cedula,
                 'client_phone' => $billingRequest->client_phone,
                 'client_address' => $billingRequest->client_address,
+                'client_email' => $billingRequest->client_email,
                 'bs' => 0, // Default values if needed
                 'divisa' => $billingRequest->price * $billingRequest->quantity, // Total amount
             ]);
@@ -208,11 +214,17 @@ class BillingRequestController extends Controller
         $request->validate([
             'quantity' => 'required|integer|min:1',
             'price' => 'required|numeric',
-            'client_name' => 'nullable|string',
-            'client_cedula' => 'nullable|string',
+            'client_name' => 'nullable|string|max:255',
+            'client_cedula' => 'nullable|string|max:20',
+            'client_phone' => 'nullable|string|max:30',
+            'client_address' => 'nullable|string|max:500',
+            'client_email' => 'nullable|email|max:255',
         ]);
 
-        $billingRequest->update($request->only(['quantity', 'price', 'client_name', 'client_cedula']));
+        $billingRequest->update($request->only([
+            'quantity', 'price', 'client_name', 'client_cedula',
+            'client_phone', 'client_address', 'client_email'
+        ]));
 
         $partida = $billingRequest->inventario;
         if ($partida && $request->has('price')) {

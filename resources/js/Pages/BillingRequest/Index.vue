@@ -33,14 +33,20 @@ const editForm = useForm({
     price: 0,
     client_name: '',
     client_cedula: '',
+    client_phone: '',
+    client_address: '',
+    client_email: '',
 });
 
 const startEdit = (req) => {
     editingRequest.value = req;
     editForm.quantity = req.quantity;
     editForm.price = req.price;
-    editForm.client_name = req.client_name;
-    editForm.client_cedula = req.client_cedula;
+    editForm.client_name = req.client_name || '';
+    editForm.client_cedula = req.client_cedula || '';
+    editForm.client_phone = req.client_phone || '';
+    editForm.client_address = req.client_address || '';
+    editForm.client_email = req.client_email || '';
 };
 
 const cancelEdit = () => {
@@ -183,9 +189,20 @@ const goToCreateBilling = (id, requestId) => {
                                         </div>
                                     </td>
                                     <td class="px-8 py-6 whitespace-nowrap">
-                                        <div class="flex flex-col">
+                                        <div class="flex flex-col gap-0.5">
                                             <span class="text-sm font-bold text-gray-700 dark:text-gray-300">{{ req.client_name || 'COBRADOR PENDIENTE' }}</span>
-                                            <span v-if="req.client_cedula" class="text-[10px] font-medium text-gray-400">{{ req.client_cedula }}</span>
+                                            <span v-if="req.client_cedula" class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-tighter">
+                                                <i class="fa-solid fa-id-card text-[8px] mr-1 text-indigo-400"></i>{{ req.client_cedula }}
+                                            </span>
+                                            <span v-if="req.client_phone" class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-tighter">
+                                                <i class="fa-solid fa-phone text-[8px] mr-1 text-emerald-400"></i>{{ req.client_phone }}
+                                            </span>
+                                            <span v-if="req.client_email" class="text-[10px] text-indigo-500 dark:text-indigo-400 lowercase truncate max-w-[180px]" :title="req.client_email">
+                                                <i class="fa-solid fa-envelope text-[8px] mr-1 text-indigo-400"></i>{{ req.client_email }}
+                                            </span>
+                                            <span v-if="req.client_address" class="text-[9px] text-gray-400 dark:text-gray-500 max-w-[200px] truncate" :title="req.client_address">
+                                                <i class="fa-solid fa-location-dot text-[8px] mr-1 text-rose-400"></i>{{ req.client_address }}
+                                            </span>
                                         </div>
                                     </td>
                                     <td v-if="!isFacturacion" class="px-8 py-6 whitespace-nowrap text-center">
@@ -287,6 +304,31 @@ const goToCreateBilling = (id, requestId) => {
                                     <div class="relative group">
                                         <i class="fa-solid fa-address-card absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors"></i>
                                         <input v-model="editForm.client_cedula" type="text" class="block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-3.5 pl-12 pr-4 focus:ring-2 focus:ring-blue-500 transition-all font-bold outline-none" placeholder="V-00.000.000">
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div class="space-y-2">
+                                        <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest ml-1">Teléfono</label>
+                                        <div class="relative group">
+                                            <i class="fa-solid fa-phone absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors"></i>
+                                            <input v-model="editForm.client_phone" type="text" class="block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-3.5 pl-12 pr-4 focus:ring-2 focus:ring-blue-500 transition-all font-bold outline-none" placeholder="0412-1234567">
+                                        </div>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest ml-1">Correo Electrónico</label>
+                                        <div class="relative group">
+                                            <i class="fa-solid fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors"></i>
+                                            <input v-model="editForm.client_email" type="email" class="block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-3.5 pl-12 pr-4 focus:ring-2 focus:ring-blue-500 transition-all font-bold outline-none" placeholder="cliente@correo.com">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest ml-1">Dirección</label>
+                                    <div class="relative group">
+                                        <i class="fa-solid fa-location-dot absolute left-4 top-[18px] text-gray-400 group-focus-within:text-blue-500 transition-colors"></i>
+                                        <textarea v-model="editForm.client_address" rows="2" class="block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-3.5 pl-12 pr-[14px] focus:ring-2 focus:ring-blue-500 transition-all font-bold outline-none resize-none" placeholder="Dirección completa del cliente"></textarea>
                                     </div>
                                 </div>
                             </div>
