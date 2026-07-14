@@ -167,7 +167,8 @@ class BillingsController extends Controller
         }
 
         $utilidad = (float) \App\Models\Setting::get('utility_percentage', 30);
-        $costoDeclarado = ($baseCosto + $mantenimientosFacturables) * (1 + $utilidad / 100);
+        $costoDeclaradoBs = ($baseCosto + $mantenimientosFacturables) * (1 + $utilidad / 100);
+        $costoDeclarado = $tasa > 0 ? ($costoDeclaradoBs / $tasa) : 0;
 
         return inertia('Bill/Create', [
             'data' => $billing,
