@@ -305,58 +305,27 @@ export default {
         bsAmount(newValue){
             this.bsAmount=this.thousandsSeparator(newValue)
         },
-       
-// Resultado: 370,25
-        priceDivisa(newValue) {
-            var valor=newValue
-        },
         pagoDivisa(newValue) {
-            //Sacar Igtf
-            // valueDivisa represents cents (e.g., "36.50" -> "3650")
-            // newValue (pagoDivisa) represents cents (e.g., "10.00" -> "1000")
-            const valueDivisaSinCaracter = (String(this.valueDivisa)).replace(/[,.]/g, "");
-            const newValueSinCaracter = newValue.replace(/[,.]/g, "");
-            
-            // pre = Bs * 10000 (multiplication of two cent values)
-            const pre = parseInt(valueDivisaSinCaracter) * parseInt(newValueSinCaracter);
-            
-            // igtf = 3% of pre = (3 * pre) / 100
-            // To get igtf in cents (Bs * 100), we need to divide by 10000
-            const igtfCents = Math.round((3 * pre) / 10000);
-            
-            this.igtf = this.thousandsSeparator(String(igtfCents));
-
-            //Monto Cancelado
-            const precioTotalCents = parseInt((String(this.totalAmount)).replace(/[,.]/g, ""));
-            const totalCents = precioTotalCents + igtfCents;
-            this.montoCancelado = this.thousandsSeparator(String(totalCents));
+            this.calculatePaymentDetails();
         },
+        valueDivisa(newValue) {
+            this.calculateInvoiceDetails();
+        }
     },
     mounted() {
         // Convertimos a número, redondeamos a 2 decimales y aseguramos que sea string para tus regex
         this.valueDivisa = parseFloat(this.tasa_bcv).toFixed(2);
 
-        // El costo declarado en dólares (BIG en USD) se usa para la base fiscal
+        // El precio sugerido de facturación (costo_declarado) se asigna a priceDivisa
         const declaredUSD = parseFloat(this.$page.props.costo_declarado || 0).toFixed(2);
         this.priceDivisa = declaredUSD;
 
-        const declaredUSDSinCaracter = String(declaredUSD).replace(/[,.]/g, "");
-        const valueDivisaSinCaracter = String(this.valueDivisa).replace(/[,.]/g, "");
+        // El pago real en divisa por el cual se vende el motor (ej: $3000) se asigna a pagoDivisa
+        const initialUSD = this.data['price'] || this.$page.props.costo_declarado || 0;
+        this.pagoDivisa = parseFloat(initialUSD).toFixed(2);
 
-        // Multiplicación en centavos (escala 10,000)
-        const bigScale10000 = parseInt(declaredUSDSinCaracter) * parseInt(valueDivisaSinCaracter);
-        const bigCents = Math.round(bigScale10000 / 100); // Base Imponible en Bs (100% de la base declarada)
-
-        // BIG (Base Imponible)
-        this.big = this.thousandsSeparator(String(bigCents));
-
-        // IVA (16% sobre la Base Imponible)
-        const ivaCents = Math.round(bigCents * 0.16);
-        this.iva = this.thousandsSeparator(String(ivaCents));
-
-        // Precio Total de Facturación (BIG + IVA)
-        const generalCents = bigCents + ivaCents;
-        this.totalAmount = this.thousandsSeparator(String(generalCents));
+        // Realizar cálculos iniciales
+        this.calculateInvoiceDetails();
 
         this.clientName = this.data['client_name'] || '';
         this.clientCedula = this.data['client_cedula'] || '';
@@ -364,9 +333,6 @@ export default {
         this.clientAddress = this.data['client_address'] || '';
         this.clientEmail = this.data['client_email'] || '';
         this.partida = this.data.id;
-        
-        // El pago real en divisa por el cual se vende el motor (ej: $1600) se usa para calcular el cobro y el IGTF
-        this.pagoDivisa = this.data['price'] || ''; 
 
         // Set current date and time
         const now = new Date();
@@ -390,11 +356,68 @@ export default {
             .replace(/\D/g, "") // Remover caracteres no numéricos
             .replace(/([0-9])([0-9]{2})$/, "$1,$2") // agregar , luego de 2 digitos
             .replace(/\B(?=(\d{3})+(?!\d)\.?)/g, "."); // Agegar decimal
-            // actualizar la variable global con la variable local
-            
+        },
+        normalizeUSD(usdValue) {
+            let cleanStr = String(usdValue);
+            if (cleanStr.includes(',') && cleanStr.includes('.')) {
+                if (cleanStr.indexOf('.') < cleanStr.indexOf(',')) {
+                    cleanStr = cleanStr.replace(/\./g, "").replace(",", ".");
+                } else {
+                    cleanStr = cleanStr.replace(/,/g, "");
+                }
+            } else if (cleanStr.includes(',')) {
+                if (cleanStr.match(/,\d{2}$/)) {
+                    cleanStr = cleanStr.replace(/\./g, "").replace(",", ".");
+                } else {
+                    cleanStr = cleanStr.replace(/,/g, "");
+                }
+            }
+            return parseFloat(cleanStr) || 0;
+        },
+        calculateInvoiceDetails() {
+            if (!this.priceDivisa) return;
+
+            const usdFloat = this.normalizeUSD(this.priceDivisa);
+            const rateFloat = parseFloat(this.valueDivisa) || 0;
+
+            const usdCents = Math.round(usdFloat * 100);
+            const rateCents = Math.round(rateFloat * 100);
+
+            // 1. BIG (Base Imponible en Bs)
+            const bigScale10000 = usdCents * rateCents;
+            const bigCents = Math.round(bigScale10000 / 100);
+            this.big = this.thousandsSeparator(String(bigCents));
+
+            // 2. IVA (16%)
+            const ivaCents = Math.round(bigCents * 0.16);
+            this.iva = this.thousandsSeparator(String(ivaCents));
+
+            // 3. Monto Total Facturado (BIG + IVA)
+            const generalCents = bigCents + ivaCents;
+            this.totalAmount = this.thousandsSeparator(String(generalCents));
+
+            // Recalculamos los detalles del pago ya que cambió el total facturado
+            this.calculatePaymentDetails();
+        },
+        calculatePaymentDetails() {
+            if (!this.pagoDivisa) return;
+
+            const usdFloat = this.normalizeUSD(this.pagoDivisa);
+            const rateFloat = parseFloat(this.valueDivisa) || 0;
+
+            const usdCents = Math.round(usdFloat * 100);
+            const rateCents = Math.round(rateFloat * 100);
+
+            // 4. IGTF (3% del pago en USD convertido a Bs)
+            const scale10000 = usdCents * rateCents;
+            const igtfCents = Math.round((3 * scale10000) / 10000);
+            this.igtf = this.thousandsSeparator(String(igtfCents));
+
+            // 5. Monto Cancelado (Monto Total + IGTF)
+            const totalAmountCents = parseInt(String(this.totalAmount).replace(/[,.]/g, "")) || 0;
+            const totalCents = totalAmountCents + igtfCents;
+            this.montoCancelado = this.thousandsSeparator(String(totalCents));
         }
-       
-        
     }
 };
 </script>

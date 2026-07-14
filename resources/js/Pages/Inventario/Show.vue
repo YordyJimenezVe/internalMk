@@ -377,11 +377,11 @@ const submitBilling = () => {
                                     <div class="grid grid-cols-1 gap-4">
                                         <div>
                                             <label class="block text-xs font-bold mb-2 uppercase opacity-80">Cédula / RIF</label>
-                                            <input v-model="form.client_cedula" type="text" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:ring-2 focus:ring-white outline-none" placeholder="V-12345678">
+                                            <input v-model="form.client_cedula" type="text" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:ring-2 focus:ring-white outline-none" placeholder="V-12345678" required>
                                         </div>
                                         <div>
                                             <label class="block text-xs font-bold mb-2 uppercase opacity-80">Razón Social / Nombre</label>
-                                            <input v-model="form.client_name" type="text" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:ring-2 focus:ring-white outline-none" placeholder="Nombre completo">
+                                            <input v-model="form.client_name" type="text" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:ring-2 focus:ring-white outline-none" placeholder="Nombre completo" required>
                                         </div>
                                     </div>
 

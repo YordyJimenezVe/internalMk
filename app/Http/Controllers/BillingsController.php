@@ -376,10 +376,10 @@ class BillingsController extends Controller
         // 3. Register Reverse Bill
         ReverseBill::create([
             'users_id' => Auth::user()->id,
-            'numero_factura' => $request->input('numero_factura'),
-            'numero_control' => $request->input('numero_control'),
-            'numero_nota_credito' => $request->input('numero_nota_credito'),
-            'numero_factura_afect' => $request->input('numero_factura_afect'),
+            'numero_factura' => $request->input('numero_factura') ?? $billing->numero_factura ?? 'S/N',
+            'numero_control' => $request->input('numero_control') ?? $billing->numero_control ?? 'S/N',
+            'numero_nota_credito' => $request->input('numero_nota_credito') ?? 'S/N',
+            'numero_factura_afect' => $request->input('numero_factura_afect') ?? $billing->numero_factura_afect ?? $billing->numero_factura ?? 'S/N',
         ]);
 
         // 4. Bitácora Entry

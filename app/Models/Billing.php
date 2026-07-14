@@ -29,6 +29,7 @@ class Billing extends Model
         'client_cedula',
         'client_phone',
         'client_address',
+        'client_email',
         'total',
     ];
 

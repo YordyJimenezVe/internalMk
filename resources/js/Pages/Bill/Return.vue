@@ -7,10 +7,10 @@ const props = defineProps({
 });
 
 const form = useForm({
-    numero_factura: props.bill.numero_factura,
-    numero_control: props.bill.numero_control,
+    numero_factura: props.bill.numero_factura || 'S/N',
+    numero_control: props.bill.numero_control || 'S/N',
     numero_nota_credito: props.bill.numero_nota_credito || '',
-    numero_factura_afect: props.bill.numero_factura_afect || props.bill.numero_factura,
+    numero_factura_afect: props.bill.numero_factura_afect || props.bill.numero_factura || 'S/N',
     return_type: 'TOTAL', // Default to total return
 });
 
