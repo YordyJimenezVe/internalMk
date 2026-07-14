@@ -155,7 +155,7 @@ class BillingsController extends Controller
             }
         }
 
-        $baseCosto = (float) ($billing->costo ?? 0);
+        $baseCosto = (float) ($billing->costo_importacion_unitario ?? $billing->costo ?? 0);
         
         // Sumar la base imponible de todos los repuestos/servicios externos conciliados con Factura
         $mantenimientosFacturables = 0;
@@ -166,7 +166,8 @@ class BillingsController extends Controller
                 ->sum('base_imponible');
         }
 
-        $costoDeclarado = $baseCosto + $mantenimientosFacturables;
+        $utilidad = (float) \App\Models\Setting::get('utility_percentage', 30);
+        $costoDeclarado = ($baseCosto + $mantenimientosFacturables) * (1 + $utilidad / 100);
 
         return inertia('Bill/Create', [
             'data' => $billing,
