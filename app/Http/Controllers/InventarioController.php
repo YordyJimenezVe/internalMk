@@ -259,16 +259,16 @@ class InventarioController extends Controller
         $isBilling = $user && $user->hasAnyRole(['FACTURACION', 'Facturacion', 'facturacion']) && !$user->hasAnyRole(['Superusuario', 'Administrador', 'SUPERUSUARIO', 'ADMINISTRADOR']);
         $isMechanic = $user && $user->hasAnyRole(['MECANICO', 'Tecnico', 'Mecanico', 'TECNICO']);
 
-        if ($isBilling) {
-            $partida = Inventario::with('bill')->findOrFail($id);
-            if ($partida->status === 'VENDIDO' || $partida->bill->count() > 0) {
-                $bill = $partida->bill->last();
-                if ($bill) {
-                    return redirect()->route('editBilling', $bill->id);
-                }
-            }
-            return redirect()->route('createBilling', $id);
-        }
+        // if ($isBilling) {
+        //     $partida = Inventario::with('bill')->findOrFail($id);
+        //     if ($partida->status === 'VENDIDO' || $partida->bill->count() > 0) {
+        //         $bill = $partida->bill->last();
+        //         if ($bill) {
+        //             return redirect()->route('editBilling', $bill->id);
+        //         }
+        //     }
+        //     return redirect()->route('createBilling', $id);
+        // }
 
         if ($isMechanic) {
             return app(\App\Http\Controllers\ScanController::class)->directToMaintenance($id);
