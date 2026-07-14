@@ -63,6 +63,84 @@ const form = useForm({
     client_cedula_file: null,
 });
 
+// Camera and Preview state
+const isCameraOpen = ref(false);
+const videoElement = ref(null);
+const canvasElement = ref(null);
+const stream = ref(null);
+const imagePreviewUrl = ref(null);
+const cameraError = ref(null);
+
+const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        // Limit to 2MB
+        if (file.size > 2 * 1024 * 1024) {
+            alert('La imagen no debe superar los 2MB');
+            return;
+        }
+        form.client_cedula_file = file;
+        if (imagePreviewUrl.value) {
+            URL.revokeObjectURL(imagePreviewUrl.value);
+        }
+        imagePreviewUrl.value = URL.createObjectURL(file);
+    }
+};
+
+const removeImage = () => {
+    form.client_cedula_file = null;
+    if (imagePreviewUrl.value) {
+        URL.revokeObjectURL(imagePreviewUrl.value);
+        imagePreviewUrl.value = null;
+    }
+};
+
+const startCamera = async () => {
+    isCameraOpen.value = true;
+    cameraError.value = null;
+    try {
+        stream.value = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+        });
+        if (videoElement.value) {
+            videoElement.value.srcObject = stream.value;
+        }
+    } catch (err) {
+        console.error("Error al acceder a la cámara:", err);
+        cameraError.value = "No se pudo acceder a la cámara. Asegúrate de dar los permisos necesarios o que ningún otro programa la esté usando.";
+    }
+};
+
+const capturePhoto = () => {
+    if (videoElement.value && canvasElement.value) {
+        const context = canvasElement.value.getContext('2d');
+        canvasElement.value.width = videoElement.value.videoWidth;
+        canvasElement.value.height = videoElement.value.videoHeight;
+        context.drawImage(videoElement.value, 0, 0);
+        
+        canvasElement.value.toBlob((blob) => {
+            if (blob) {
+                const file = new File([blob], "capture_cedula.jpg", { type: "image/jpeg" });
+                form.client_cedula_file = file;
+                if (imagePreviewUrl.value) {
+                    URL.revokeObjectURL(imagePreviewUrl.value);
+                }
+                imagePreviewUrl.value = URL.createObjectURL(file);
+                closeCamera();
+            }
+        }, 'image/jpeg', 0.9);
+    }
+};
+
+const closeCamera = () => {
+    if (stream.value) {
+        stream.value.getTracks().forEach(track => track.stop());
+        stream.value = null;
+    }
+    isCameraOpen.value = false;
+    cameraError.value = null;
+};
+
 const submitBilling = () => {
     form.transform((data) => ({
         ...data,
@@ -74,6 +152,10 @@ const submitBilling = () => {
         forceFormData: true,
         onSuccess: () => {
             form.reset('client_name', 'client_cedula_file', 'quantity');
+            if (imagePreviewUrl.value) {
+                URL.revokeObjectURL(imagePreviewUrl.value);
+                imagePreviewUrl.value = null;
+            }
             router.visit(route('inventario'));
         },
     });
@@ -314,8 +396,31 @@ const submitBilling = () => {
 
                                     <div>
                                         <label class="block text-xs font-bold mb-2 uppercase opacity-80">Capture de Cédula / RIF (Opcional)</label>
-                                        <input @input="form.client_cedula_file = $event.target.files[0]" type="file" accept="image/*" class="block w-full text-sm text-white/80 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-white/20 file:text-white hover:file:bg-white/30 border border-white/20 rounded-xl py-2 px-2 focus:outline-none bg-white/10">
-                                        <p class="mt-1 text-xs text-white/50">Formatos permitidos: JPG, PNG (Máx 2MB)</p>
+                                        
+                                        <!-- Image Preview with Deletion Option -->
+                                        <div v-if="imagePreviewUrl" class="relative mt-2 p-2 bg-white/10 border border-white/20 rounded-2xl overflow-hidden flex flex-col items-center">
+                                            <img :src="imagePreviewUrl" class="max-h-48 w-full object-contain rounded-xl" alt="Preview de Cédula">
+                                            <button type="button" @click="removeImage" class="mt-2 w-full flex items-center justify-center gap-2 bg-rose-500 hover:bg-rose-600 text-white font-bold py-2 rounded-xl transition-all active:scale-[0.98]">
+                                                <i class="fa-solid fa-trash"></i> Eliminar Foto
+                                            </button>
+                                        </div>
+                                        
+                                        <!-- Upload / Shutter Options -->
+                                        <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+                                            <!-- File Upload Wrapper -->
+                                            <label class="flex flex-col items-center justify-center p-3 bg-white/10 hover:bg-white/20 border border-dashed border-white/30 hover:border-white/50 rounded-2xl cursor-pointer transition-all text-center">
+                                                <i class="fa-solid fa-upload text-xl mb-1 opacity-80"></i>
+                                                <span class="text-[10px] font-bold uppercase tracking-wider">Cargar Archivo</span>
+                                                <input type="file" accept="image/*" class="hidden" @change="handleFileChange">
+                                            </label>
+                                            
+                                            <!-- Camera Button -->
+                                            <button type="button" @click="startCamera" class="flex flex-col items-center justify-center p-3 bg-white/10 hover:bg-white/20 border border-dashed border-white/30 hover:border-white/50 rounded-2xl transition-all text-center">
+                                                <i class="fa-solid fa-camera text-xl mb-1 opacity-80"></i>
+                                                <span class="text-[10px] font-bold uppercase tracking-wider">Tomar Foto</span>
+                                            </button>
+                                        </div>
+                                        <p v-if="!imagePreviewUrl" class="mt-2 text-[10px] text-white/50 text-center">Formatos permitidos: JPG, PNG (Máx 2MB)</p>
                                     </div>
 
                                     <div class="grid grid-cols-1 gap-4">
@@ -384,6 +489,42 @@ const submitBilling = () => {
                         </div>
                     </div>
 
+                </div>
+            </div>
+        </div>
+
+        <!-- Camera Modal Overlay -->
+        <div v-if="isCameraOpen" class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md">
+            <div class="relative bg-gray-905 bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden max-w-lg w-full p-6 flex flex-col items-center shadow-2xl">
+                <div class="w-full flex justify-between items-center mb-4">
+                    <h4 class="text-white font-black text-lg uppercase tracking-tight flex items-center">
+                        <i class="fa-solid fa-camera mr-2 text-indigo-500"></i>Tomar Foto de Cédula
+                    </h4>
+                    <button type="button" @click="closeCamera" class="text-gray-400 hover:text-white transition-colors">
+                        <i class="fa-solid fa-times text-lg"></i>
+                    </button>
+                </div>
+                
+                <!-- Camera Feed / Error -->
+                <div class="relative w-full aspect-[4/3] rounded-3xl bg-black overflow-hidden border border-slate-800 flex items-center justify-center shadow-inner">
+                    <video ref="videoElement" autoplay playsinline class="w-full h-full object-cover"></video>
+                    <div v-if="cameraError" class="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-rose-500 bg-black/90">
+                        <i class="fa-solid fa-triangle-exclamation text-3xl mb-2"></i>
+                        <p class="font-bold text-sm">{{ cameraError }}</p>
+                    </div>
+                </div>
+                
+                <canvas ref="canvasElement" class="hidden"></canvas>
+                
+                <!-- Shutter & Controls -->
+                <div class="w-full flex justify-center items-center gap-6 mt-6">
+                    <button type="button" @click="closeCamera" class="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-gray-300 font-bold rounded-2xl transition-colors">
+                        Cancelar
+                    </button>
+                    <button type="button" @click="capturePhoto" :disabled="cameraError" class="h-16 w-16 bg-white hover:bg-gray-100 rounded-full flex items-center justify-center text-gray-900 hover:scale-105 active:scale-95 transition-all shadow-xl disabled:opacity-50 disabled:pointer-events-none" title="Capturar Foto">
+                        <div class="h-12 w-12 rounded-full border-4 border-slate-900 bg-white"></div>
+                    </button>
+                    <div class="w-[92px]"></div> <!-- Spacer to center the shutter button -->
                 </div>
             </div>
         </div>

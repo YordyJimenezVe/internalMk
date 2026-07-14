@@ -15,16 +15,19 @@ class SystemAlertNotification extends Notification
     protected $icon;
     protected $color;
 
+    protected $extraData;
+
     /**
      * Create a new notification instance.
      */
-    public function __construct(string $title, string $message, ?string $actionUrl = null, string $icon = 'fa-bell', string $color = 'indigo')
+    public function __construct(string $title, string $message, ?string $actionUrl = null, string $icon = 'fa-bell', string $color = 'indigo', array $extraData = [])
     {
         $this->title = $title;
         $this->message = $message;
         $this->actionUrl = $actionUrl;
         $this->icon = $icon;
         $this->color = $color;
+        $this->extraData = $extraData;
     }
 
     /**
@@ -44,12 +47,12 @@ class SystemAlertNotification extends Notification
      */
     public function toArray(object $notifiable): array
     {
-        return [
+        return array_merge([
             'title' => $this->title,
             'message' => $this->message,
             'action_url' => $this->actionUrl,
             'icon' => $this->icon,
             'color' => $this->color,
-        ];
+        ], $this->extraData);
     }
 }

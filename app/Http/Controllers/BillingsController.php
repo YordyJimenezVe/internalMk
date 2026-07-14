@@ -98,6 +98,11 @@ class BillingsController extends Controller
                 $billing->billing_request_id = $requestId;
                 $billing->client_cedula_url = $billingRequest->client_cedula_file ? asset('storage/' . $billingRequest->client_cedula_file) : null;
             }
+
+            // Remove the notification for the current user who is taking the request
+            $user->notifications()
+                ->where('data->billing_request_id', $requestId)
+                ->delete();
         }
 
         $now = Carbon::now();
@@ -241,6 +246,10 @@ class BillingsController extends Controller
             if ($billingRequest) {
                 $billingRequest->update(['status' => 'processed']);
             }
+            // Delete notifications for ALL users since the sale is finished!
+            \Illuminate\Support\Facades\DB::table('notifications')
+                ->where('data->billing_request_id', $requestId)
+                ->delete();
         }
 
         return redirect()->route('billing')->with('success', 'Factura registrada con éxito.')->with('billing_ids', [$partida->id]);

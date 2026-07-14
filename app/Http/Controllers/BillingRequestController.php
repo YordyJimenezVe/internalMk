@@ -83,6 +83,31 @@ class BillingRequestController extends Controller
             $partida->saveQuietly();
         }
 
+        // Notify billing and admin users
+        $usersToNotify = \App\Models\User::where(function($query) {
+            $query->where('rol', 'LIKE', '%fact%')
+                  ->orWhere('rol', 'LIKE', '%admin%')
+                  ->orWhere('rol', 'LIKE', '%super%')
+                  ->orWhereHas('roles', function($q) {
+                      $q->where('name', 'LIKE', '%fact%')
+                        ->orWhere('name', 'LIKE', '%admin%')
+                        ->orWhere('name', 'LIKE', '%super%');
+                  });
+        })->get();
+
+        $notification = new \App\Notifications\SystemAlertNotification(
+            'Nueva Solicitud',
+            "El asesor " . auth()->user()->name . " solicitó facturar: " . ($partida ? $partida->marca . ' ' . $partida->modelo : 'Item') . " por $" . number_format($request->price, 2),
+            route('billing.requests.index'),
+            'fa-file-circle-exclamation',
+            'amber',
+            ['billing_request_id' => $billingRequest->id]
+        );
+
+        foreach ($usersToNotify as $userToNotify) {
+            $userToNotify->notify($notification);
+        }
+
         return redirect()->back()->with('success', 'Solicitud enviada correctamente.');
     }
 
@@ -145,6 +170,11 @@ class BillingRequestController extends Controller
 
             // 3. Mark Request as Processed
             $billingRequest->update(['status' => 'processed']);
+
+            // Delete notifications for ALL users since the sale is finished!
+            \Illuminate\Support\Facades\DB::table('notifications')
+                ->where('data->billing_request_id', $id)
+                ->delete();
 
             // Collect ID
             $createdBillingIds[] = $newBill->id;

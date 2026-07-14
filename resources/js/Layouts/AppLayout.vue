@@ -6,11 +6,16 @@ import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import axios from 'axios';
 
-defineProps({
+const props = defineProps({
     title: String,
+});
+
+const displayTitle = computed(() => {
+    const prefix = unreadCount.value > 0 ? `(${unreadCount.value}) ` : '';
+    return `${prefix}${props.title || 'InternalMk'}`;
 });
 
 const showingNavigationDropdown = ref(false);
@@ -138,7 +143,7 @@ const logout = () => {
 
 <template>
     <div class="min-h-screen bg-gray-100 dark:bg-gray-900 font-sans text-gray-900 antialiased">
-        <Head :title="title" />
+        <Head :title="displayTitle" />
 
         <Banner />
 
