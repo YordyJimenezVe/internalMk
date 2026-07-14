@@ -221,6 +221,12 @@ class BillingRequestController extends Controller
     public function destroy($id)
     {
         $billingRequest = BillingRequest::findOrFail($id);
+
+        // Delete notifications for ALL users since the request is deleted/rejected!
+        \Illuminate\Support\Facades\DB::table('notifications')
+            ->where('data->billing_request_id', $id)
+            ->delete();
+
         $billingRequest->delete();
 
         return redirect()->back()->with('success', 'Solicitud eliminada.');
