@@ -44,13 +44,7 @@ const baseImponible = computed(() => {
     return parseFloat(props.inventario.costo_importacion_unitario || 0) + parseFloat(props.inventario.costo_taller || 0);
 });
 
-const iva = computed(() => {
-    return baseImponible.value * 0.16;
-});
 
-const totalConIva = computed(() => {
-    return baseImponible.value * 1.16;
-});
 
 const form = useForm({
     partida_id: props.inventario.id,
@@ -276,26 +270,22 @@ const submitBilling = () => {
                                     </label>
                                     <div class="w-full bg-gray-50 dark:bg-gray-700/50 text-gray-800 dark:text-gray-300 rounded-xl py-3.5 px-5 border border-gray-100 dark:border-gray-700 flex justify-between items-center">
                                         <div class="flex flex-col">
-                                            <span class="text-[9px] text-gray-400 uppercase tracking-wide">Total + IVA 16% (Bs.)</span>
-                                            <span class="text-xl font-black text-indigo-600 dark:text-indigo-400">Bs. {{ totalConIva.toLocaleString('es-VE', {minimumFractionDigits: 2}) }}</span>
+                                            <span class="text-[9px] text-gray-400 uppercase tracking-wide">Costo Total (Bs.)</span>
+                                            <span class="text-xl font-black text-indigo-600 dark:text-indigo-400">Bs. {{ baseImponible.toLocaleString('es-VE', {minimumFractionDigits: 2}) }}</span>
                                         </div>
                                         
                                         <div class="flex items-center gap-6">
                                             <!-- Detailed Breakdown -->
-                                            <div class="flex flex-col text-right text-[11px] text-gray-500 font-semibold gap-0.5">
-                                                <span>Base Imponible: Bs. {{ baseImponible.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</span>
-                                                <span class="text-xs">IVA (16%): Bs. {{ iva.toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</span>
-                                                <span v-if="props.inventario.costo_taller > 0" class="text-[9px] text-gray-400 font-normal">
-                                                    (Imp: Bs. {{ parseFloat(props.inventario.costo_importacion_unitario || 0).toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }} 
-                                                    + Taller: Bs. {{ parseFloat(props.inventario.costo_taller || 0).toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }})
-                                                </span>
+                                            <div v-if="props.inventario.costo_taller > 0" class="flex flex-col text-right text-[11px] text-gray-500 font-semibold gap-0.5">
+                                                <span>Importación: Bs. {{ parseFloat(props.inventario.costo_importacion_unitario || 0).toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</span>
+                                                <span>Taller: Bs. {{ parseFloat(props.inventario.costo_taller || 0).toLocaleString('es-VE', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</span>
                                             </div>
 
                                             <!-- Conversion to Dolar -->
                                             <div v-if="props.tasa_bcv > 0" class="flex flex-col items-end border-l border-gray-200 dark:border-gray-700 pl-4">
-                                                <span class="text-[9px] text-indigo-500 dark:text-indigo-400 uppercase font-black">Conversión BCV (Con IVA)</span>
+                                                <span class="text-[9px] text-indigo-500 dark:text-indigo-400 uppercase font-black">Conversión BCV (USD)</span>
                                                 <span class="text-xs font-black text-indigo-600 dark:text-indigo-400">
-                                                    $ {{ (totalConIva / parseFloat(props.tasa_bcv)).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}
+                                                    $ {{ (baseImponible / parseFloat(props.tasa_bcv)).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}
                                                 </span>
                                                 <span class="text-[8px] text-gray-400 font-medium">Tasa: Bs. {{ parseFloat(props.tasa_bcv).toFixed(2) }}</span>
                                             </div>
