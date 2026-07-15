@@ -256,6 +256,16 @@ class BillingsController extends Controller
                 ->delete();
         }
 
+        // Notify via Telegram Group
+        $itemName = $inventario ? "{$inventario->marca} {$inventario->modelo}" : 'Ítem';
+        $telegramMessage = "✅ <b>Factura Registrada</b>\n\n"
+            . "📄 <b>Factura:</b> #{$partida->numero_factura}\n"
+            . "📦 <b>Artículo:</b> {$itemName}\n"
+            . "👤 <b>Cliente:</b> {$partida->client_name}\n"
+            . "💵 <b>Monto:</b> $" . number_format($partida->total, 2) . "\n"
+            . "👤 <b>Registrada por:</b> " . Auth::user()->name;
+        \App\Services\TelegramService::sendMessage($telegramMessage);
+
         return redirect()->route('billing')->with('success', 'Factura registrada con éxito.')->with('billing_ids', [$partida->id]);
     }
 
@@ -413,6 +423,17 @@ class BillingsController extends Controller
         if ($returnType !== 'TEMPORAL') {
             $billing->update(['status' => 'ANULADA']);
         }
+
+        // Notify via Telegram Group
+        $itemName = $inventario ? "{$inventario->marca} {$inventario->modelo}" : 'Ítem';
+        $notaCredito = $request->input('numero_nota_credito') ?? 'S/N';
+        $telegramMessage = "⚠️ <b>Registro de Devolución</b>\n\n"
+            . "⚙️ <b>Tipo:</b> {$actionVerb}\n"
+            . "📄 <b>Factura Afectada:</b> #{$billing->numero_factura}\n"
+            . "🧾 <b>Nota de Crédito:</b> #{$notaCredito}\n"
+            . "📦 <b>Motor:</b> {$itemName}\n"
+            . "👤 <b>Procesado por:</b> " . Auth::user()->name;
+        \App\Services\TelegramService::sendMessage($telegramMessage);
 
         return redirect()->route('billing')->with('success', "{$actionVerb} procesada con éxito.");
     }

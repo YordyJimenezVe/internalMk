@@ -226,6 +226,28 @@ class MaintenancesController extends Controller
             'photo_path' => $photoPath,
         ]);
 
+        // Notify via Telegram Group
+        $partidaModel = $maintenance->partida;
+        $itemName = $partidaModel ? "{$partidaModel->marca} {$partidaModel->modelo}" : 'Ítem';
+        $mecanico = trim("{$maintenance->nombre_mecanico} {$maintenance->apellido_mecanico}");
+        if ($mecanico === 'POR ASIGNAR') {
+            $mecanico = '⚠️ POR ASIGNAR';
+        }
+        
+        $statusLabel = 'RECIBIDO';
+        if ($maintenance->status === 'EN PROCESO') $statusLabel = 'ARMANDO';
+        elseif ($maintenance->status === 'TERMINADO') $statusLabel = 'TERMINADO';
+        elseif ($maintenance->status === 'CANCELADO') $statusLabel = 'CANCELADO';
+
+        $telegramMessage = "🔧 <b>Nuevo Ingreso a Taller (Mantenimiento)</b>\n\n"
+            . "📦 <b>Motor:</b> {$itemName}\n"
+            . "⚙️ <b>Tipo:</b> {$maintenance->tipo}\n"
+            . "👤 <b>Mecánico:</b> {$mecanico}\n"
+            . "📋 <b>Estatus:</b> {$statusLabel}\n"
+            . "📝 <b>Descripción:</b> " . ($maintenance->descripcion ?? 'N/A') . "\n\n"
+            . "🔗 <a href=\"" . route('maintenance') . "\">Ver bandeja de taller</a>";
+        \App\Services\TelegramService::sendMessage($telegramMessage);
+
         return redirect()->route('maintenance');
     }
 
@@ -406,6 +428,29 @@ class MaintenancesController extends Controller
                 'status' => $newStatus,
                 'photo_path' => $photoPath,
             ]);
+
+            // Notify via Telegram Group
+            $partidaModel = $maintenance->partida;
+            $itemName = $partidaModel ? "{$partidaModel->marca} {$partidaModel->modelo}" : 'Ítem';
+            
+            $statusLabelOld = 'RECIBIDO';
+            if ($oldStatus === 'EN PROCESO') $statusLabelOld = 'ARMANDO';
+            elseif ($oldStatus === 'TERMINADO') $statusLabelOld = 'TERMINADO';
+            elseif ($oldStatus === 'CANCELADO') $statusLabelOld = 'CANCELADO';
+            
+            $statusLabelNew = 'RECIBIDO';
+            if ($newStatus === 'EN PROCESO') $statusLabelNew = 'ARMANDO';
+            elseif ($newStatus === 'TERMINADO') $statusLabelNew = 'TERMINADO';
+            elseif ($newStatus === 'CANCELADO') $statusLabelNew = 'CANCELADO';
+
+            $telegramMessage = "🔄 <b>Cambio de Estatus de Mantenimiento</b>\n\n"
+                . "📦 <b>Motor:</b> {$itemName}\n"
+                . "⚙️ <b>Tipo:</b> {$maintenance->tipo}\n"
+                . "📉 <b>Estatus anterior:</b> {$statusLabelOld}\n"
+                . "📈 <b>Nuevo estatus:</b> {$statusLabelNew}\n"
+                . "👤 <b>Modificado por:</b> " . auth()->user()->name . "\n\n"
+                . "🔗 <a href=\"" . route('maintenance.item', $maintenance->id) . "\">Ver detalle de mantenimiento</a>";
+            \App\Services\TelegramService::sendMessage($telegramMessage);
         }
 
         // Auto-transition inventory status if maintenance is finished or cancelled
@@ -573,6 +618,15 @@ class MaintenancesController extends Controller
             'action' => 'REVERTIR_MANTENIMIENTO_ERROR',
             'description' => "Mantenimiento #{$maintenance->id} revertido por error administrativo.",
         ]);
+
+        // Notify via Telegram Group
+        $partidaModel = $maintenance->partida;
+        $itemName = $partidaModel ? "{$partidaModel->marca} {$partidaModel->modelo}" : 'Ítem';
+        $telegramMessage = "⚠️ <b>Mantenimiento Revertido por Error</b>\n\n"
+            . "📦 <b>Motor:</b> {$itemName}\n"
+            . "👤 <b>Revertido por:</b> " . $user->name . "\n"
+            . "📝 <b>Acción:</b> El motor ha vuelto a estatus VENDIDO y la factura a ACTIVA.";
+        \App\Services\TelegramService::sendMessage($telegramMessage);
 
         return redirect()->route('maintenance')->with('success', 'Mantenimiento revertido por error con éxito.');
     }

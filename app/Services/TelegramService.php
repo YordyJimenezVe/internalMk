@@ -8,18 +8,18 @@ use Illuminate\Support\Facades\Log;
 class TelegramService
 {
     /**
-     * Envía un mensaje de texto al chat de Telegram configurado (Grupo o Canal).
+     * Envía un mensaje al grupo de Telegram configurado.
      *
      * @param string $message
      * @return bool
      */
     public static function sendMessage(string $message): bool
     {
-        $token = config('services.telegram.bot_token');
-        $chatId = config('services.telegram.chat_id');
+        $token = env('TELEGRAM_BOT_TOKEN');
+        $chatId = env('TELEGRAM_CHAT_ID');
 
-        if (empty($token) || empty($chatId)) {
-            Log::warning('Telegram: Bot Token o Chat ID no están configurados en el archivo .env');
+        if (!$token || !$chatId) {
+            Log::warning('Telegram notification skipped: TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not configured in .env');
             return false;
         }
 
@@ -28,17 +28,16 @@ class TelegramService
                 'chat_id' => $chatId,
                 'text' => $message,
                 'parse_mode' => 'HTML',
-                'disable_web_page_preview' => true,
             ]);
 
-            if ($response->failed()) {
-                Log::error('Telegram: Error al enviar mensaje. Respuesta: ' . $response->body());
-                return false;
+            if ($response->successful()) {
+                return true;
             }
 
-            return true;
+            Log::error('Telegram API error: ' . $response->body());
+            return false;
         } catch (\Exception $e) {
-            Log::error('Telegram: Excepción al enviar mensaje: ' . $e->getMessage());
+            Log::error('Telegram notification exception: ' . $e->getMessage());
             return false;
         }
     }
