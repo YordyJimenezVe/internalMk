@@ -74,7 +74,12 @@
                     </td>
                     <td
                         style="border: 1px solid #000000; text-align: center; font-weight: bold; color: {{ $statusColor }}; background-color: {{ $bg }};">
-                        {{ $m->status }}
+                        @php
+                            $statusDisplay = $m->status;
+                            if ($m->status === 'EN ESPERA') $statusDisplay = 'RECIBIDO';
+                            if ($m->status === 'EN PROCESO') $statusDisplay = 'ARMANDO';
+                        @endphp
+                        {{ $statusDisplay }}
                     </td>
                     <td style="border: 1px solid #000000; text-align: center; background-color: {{ $bg }};">
                         {{ \Carbon\Carbon::parse($m->fecha)->format('d/m/Y') }}

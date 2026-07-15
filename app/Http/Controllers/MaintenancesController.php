@@ -195,6 +195,15 @@ class MaintenancesController extends Controller
         $maintenance->fill($request->all());
         $maintenance->save();
 
+        // Auto-transition inventory status if maintenance is finished
+        if ($maintenance->status === 'TERMINADO') {
+            $inventario = $maintenance->partida;
+            if ($inventario && ($inventario->status === 'DEVUELTO' || $inventario->status === 'GARANTIA' || $inventario->status === 'GARANTÍA')) {
+                $newInvStatus = ($inventario->status === 'GARANTIA' || $inventario->status === 'GARANTÍA') ? 'VENDIDO' : 'DISPONIBLE';
+                $inventario->update(['status' => $newInvStatus]);
+            }
+        }
+
         return redirect()->route('maintenance');
     }
 

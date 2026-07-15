@@ -198,7 +198,14 @@
                             <td><span class="label">Tipo Mantenimiento:</span> <span
                                     class="value">{{ $maintenance->tipo }}</span></td>
                             <td><span class="label">Estado Final:</span> <span
-                                    class="value">{{ $maintenance->status }}</span></td>
+                                    class="value">
+                                    @php
+                                        $statusDisplay = $maintenance->status;
+                                        if ($maintenance->status === 'EN ESPERA') $statusDisplay = 'RECIBIDO';
+                                        if ($maintenance->status === 'EN PROCESO') $statusDisplay = 'ARMANDO';
+                                    @endphp
+                                    {{ $statusDisplay }}
+                                </span></td>
                         </tr>
                         <tr>
                             <td colspan="2"><span class="label">Mecánico Responsable:</span> <span

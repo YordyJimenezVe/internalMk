@@ -319,10 +319,10 @@ const formatDate = (dateStr) => {
                                     <i class="fas fa-signal mr-2 text-blue-400"></i>Estado
                                 </label>
                                 <select class="block w-full bg-slate-900/50 text-white border border-slate-700 rounded-xl py-2.5 px-4 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all appearance-none cursor-pointer" id="status" name="status">
-                                    <option value="EN ESPERA" :selected="props.maintenance.status === 'EN ESPERA'">En Espera</option>
-                                    <option value="EN PROCESO" :selected="props.maintenance.status === 'EN PROCESO'">En Proceso</option>
-                                    <option value="TERMINADO" :selected="props.maintenance.status === 'TERMINADO'">Terminado</option>
-                                    <option value="CANCELADO" :selected="props.maintenance.status === 'CANCELADO'">Cancelado</option>
+                                    <option value="EN ESPERA" :selected="props.maintenance.status === 'EN ESPERA'">RECIBIDO</option>
+                                    <option value="EN PROCESO" :selected="props.maintenance.status === 'EN PROCESO'">ARMANDO</option>
+                                    <option value="TERMINADO" :selected="props.maintenance.status === 'TERMINADO'">TERMINADO</option>
+                                    <option value="CANCELADO" :selected="props.maintenance.status === 'CANCELADO'">CANCELADO</option>
                                 </select>
                             </div>
                             <div>

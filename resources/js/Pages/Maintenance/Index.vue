@@ -142,10 +142,18 @@ const getBrandIcon = (brand, id) => {
     
     const attempt = imageAttempts.value[id] || 0;
     return attempt < urls.length ? urls[attempt] : null;
+};const handleImageError = (id) => {
+    imageAttempts.value[id] = (imageAttempts.value[id] || 0) + 1;
 };
 
-const handleImageError = (id) => {
-    imageAttempts.value[id] = (imageAttempts.value[id] || 0) + 1;
+const getStatusLabel = (status) => {
+    const statusMap = {
+        'EN ESPERA': 'RECIBIDO',
+        'EN PROCESO': 'ARMANDO',
+        'TERMINADO': 'TERMINADO',
+        'CANCELADO': 'CANCELADO',
+    };
+    return statusMap[status] || status;
 };
 </script>
 
@@ -210,14 +218,14 @@ const handleImageError = (id) => {
                                 :class="[props.filters.status === 'EN ESPERA' ? 'bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-md transform scale-[1.02]' : 'bg-transparent text-gray-500 dark:text-gray-400 hover:text-indigo-500']"
                                 class="flex-1 px-4 py-3 rounded-[1.2rem] text-xs font-black uppercase tracking-widest transition-all duration-300"
                             >
-                                <i class="fa-solid fa-hourglass-start mr-2 opacity-50"></i>EN ESPERA
+                                <i class="fa-solid fa-hourglass-start mr-2 opacity-50"></i>RECIBIDO
                             </button>
                             <button 
                                 @click="filterByStatus('EN PROCESO')" 
                                 :class="[props.filters.status === 'EN PROCESO' ? 'bg-white dark:bg-gray-800 text-amber-500 dark:text-amber-400 shadow-md transform scale-[1.02]' : 'bg-transparent text-gray-500 dark:text-gray-400 hover:text-amber-500']"
                                 class="flex-1 px-4 py-3 rounded-[1.2rem] text-xs font-black uppercase tracking-widest transition-all duration-300"
                             >
-                                <i class="fa-solid fa-spinner fa-spin-pulse mr-2 opacity-50"></i>EN PROCESO
+                                <i class="fa-solid fa-spinner fa-spin-pulse mr-2 opacity-50"></i>ARMANDO
                             </button>
                             <button 
                                 @click="filterByStatus('TERMINADO')" 
@@ -228,7 +236,7 @@ const handleImageError = (id) => {
                             </button>
                             <button 
                                 @click="filterByStatus('CANCELADO')" 
-                                :class="[props.filters.status === 'CANCELADO' ? 'bg-white dark:bg-gray-800 text-rose-500 dark:text-rose-400 shadow-md transform scale-[1.02]' : 'bg-transparent text-gray-500 dark:text-gray-400 hover:text-rose-500']"
+                                :class="[props.filters.status === 'CANCELADO' ? 'bg-white dark:bg-gray-800 text-rose-500 dark:text-rose-450 shadow-md transform scale-[1.02]' : 'bg-transparent text-gray-500 dark:text-gray-400 hover:text-rose-500']"
                                 class="flex-1 px-4 py-3 rounded-[1.2rem] text-xs font-black uppercase tracking-widest transition-all duration-300"
                             >
                                 <i class="fa-solid fa-ban mr-2 opacity-50"></i>CANCELADO
@@ -267,8 +275,8 @@ const handleImageError = (id) => {
                                 <i v-else-if="row.status === 'TERMINADO'" class="fa-solid fa-flag-checkered"></i>
                                 <i v-else-if="row.status === 'CANCELADO'" class="fa-solid fa-ban"></i>
                                 <i v-else-if="row.status === 'EN ESPERA'" class="fa-solid fa-hourglass-start"></i>
-                                <span>{{ row.status }}</span>
-                            </span>
+                                <span>{{ getStatusLabel(row.status) }}</span>
+                            </span>span>
                         </template>
 
                         <template #cell-partida.tipo="{ row }">

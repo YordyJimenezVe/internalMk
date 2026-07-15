@@ -359,6 +359,16 @@ const submitBilling = () => {
                                     </div>
                                 </div>
 
+                                <div v-else-if="props.inventario.status === 'GARANTIA' || props.inventario.status === 'GARANTÍA'" class="bg-white/10 dark:bg-black/20 p-6 rounded-2xl border border-white/20 dark:border-indigo-800/50 flex flex-col items-center text-center space-y-4">
+                                    <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+                                        <i class="fa-solid fa-shield-halved text-3xl opacity-55"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-bold text-lg">En Garantía</p>
+                                        <p class="text-sm opacity-80 mt-1">Este ítem se encuentra bajo proceso de garantía y servicio técnico.</p>
+                                    </div>
+                                </div>
+
                                 <div v-else-if="alreadyRequested || props.inventario.status === 'VENDIDO'" class="bg-white/10 dark:bg-black/20 p-6 rounded-2xl border border-white/20 dark:border-indigo-800/50 flex flex-col items-center text-center space-y-4">
                                     <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
                                         <i class="fa-solid fa-lock text-3xl opacity-50"></i>

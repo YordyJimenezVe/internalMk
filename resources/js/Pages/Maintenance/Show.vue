@@ -29,6 +29,17 @@ const isAdminOrSuper = computed(() => {
            user.value.rol === 'Administrador' || 
            user.value.rol === 'Superusuario';
 });
+
+const statusLabel = computed(() => {
+    if (!props.maintenance || !props.maintenance.status) return '';
+    const statusMap = {
+        'EN ESPERA': 'RECIBIDO',
+        'EN PROCESO': 'ARMANDO',
+        'TERMINADO': 'TERMINADO',
+        'CANCELADO': 'CANCELADO',
+    };
+    return statusMap[props.maintenance.status] || props.maintenance.status;
+});
 </script>
 
 <template>
@@ -131,7 +142,7 @@ const isAdminOrSuper = computed(() => {
                                 <div>
                                     <p class="font-bold text-gray-500 mb-1">Estado:</p>
                                     <span class="px-3 py-1 rounded-full text-xs font-bold uppercase bg-green-100 text-green-800">
-                                        {{ props.maintenance.status }}
+                                        {{ statusLabel }}
                                     </span>
                                 </div>
                                 <div>

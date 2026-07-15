@@ -116,8 +116,8 @@ const props = defineProps({
                                     <i class="fa-solid fa-spinner mr-2 text-indigo-500"></i>Estado Inicial
                                 </label>
                                 <select class="block w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600 rounded-xl py-3 px-4 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all" name="status" required>
-                                    <option value="EN ESPERA">EN ESPERA</option>
-                                    <option value="EN PROCESO">EN PROCESO</option>
+                                    <option value="EN ESPERA">RECIBIDO</option>
+                                    <option value="EN PROCESO">ARMANDO</option>
                                     <option value="TERMINADO">TERMINADO</option>
                                 </select>
                             </div>
