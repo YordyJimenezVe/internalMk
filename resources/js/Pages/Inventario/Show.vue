@@ -425,11 +425,11 @@ const submitBilling = () => {
                                     </div>
 
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div>
+                                        <div class="flex flex-col justify-end">
                                             <label class="block text-xs font-bold mb-2 uppercase opacity-80">Teléfono (Opcional)</label>
                                             <input v-model="form.client_phone" type="text" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:ring-2 focus:ring-white outline-none" placeholder="0412-1234567">
                                         </div>
-                                        <div>
+                                        <div class="flex flex-col justify-end">
                                             <label class="block text-xs font-bold mb-2 uppercase opacity-80">Correo Electrónico (Opcional)</label>
                                             <input v-model="form.client_email" type="email" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:ring-2 focus:ring-white outline-none" placeholder="cliente@correo.com">
                                         </div>
