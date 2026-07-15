@@ -16,6 +16,7 @@ const props = defineProps({
   bill: Object,
   materials: Object,
   accesorios: Object,
+  statusLogs: Array,
 });
 
 const page = usePage();
@@ -40,6 +41,16 @@ const statusLabel = computed(() => {
     };
     return statusMap[props.maintenance.status] || props.maintenance.status;
 });
+
+const mapStatus = (status) => {
+    const statusMap = {
+        'EN ESPERA': 'RECIBIDO',
+        'EN PROCESO': 'ARMANDO',
+        'TERMINADO': 'TERMINADO',
+        'CANCELADO': 'CANCELADO',
+    };
+    return statusMap[status] || status;
+};
 </script>
 
 <template>
@@ -153,6 +164,42 @@ const statusLabel = computed(() => {
                                     <p class="font-bold text-gray-500 mb-1">Descripción Detallada:</p>
                                     <div class="text-gray-900 dark:text-gray-100 p-3 bg-gray-50 dark:bg-gray-700 rounded min-h-[100px] whitespace-pre-wrap">
                                         {{ props.maintenance.descripcion }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Timeline / Photo progress section -->
+                        <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700" v-if="props.statusLogs && props.statusLogs.length > 0">
+                            <h3 class="text-lg font-bold text-indigo-600 mb-6 border-b pb-2 flex items-center">
+                                <FontAwesomeIcon icon="fa-solid fa-camera" class="mr-2" />
+                                Historial de Estado y Registro Fotográfico
+                            </h3>
+                            <div class="relative border-l-2 border-indigo-200 dark:border-indigo-900 ml-4 space-y-8 pb-4">
+                                <div v-for="log in props.statusLogs" :key="log.id" class="relative pl-6">
+                                    <!-- Timeline Dot -->
+                                    <div class="absolute -left-[9px] top-1 w-4 h-4 bg-indigo-600 rounded-full border-4 border-white dark:border-gray-800"></div>
+                                    
+                                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                                        <span class="px-3 py-1 rounded-full text-xs font-bold uppercase bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300">
+                                            {{ mapStatus(log.status) }}
+                                        </span>
+                                        <span class="text-xs text-gray-400 dark:text-gray-500">
+                                            {{ new Date(log.created_at).toLocaleString() }}
+                                        </span>
+                                    </div>
+                                    
+                                    <div v-if="log.photo_url" class="mt-3 max-w-sm rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-md bg-gray-50 dark:bg-gray-900/40 p-1 group">
+                                        <a :href="log.photo_url" target="_blank" class="block relative aspect-video rounded-lg overflow-hidden">
+                                            <img :src="log.photo_url" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold gap-2">
+                                                <FontAwesomeIcon icon="fa-solid fa-up-right-from-square" />
+                                                Ampliar Imagen
+                                            </div>
+                                        </a>
+                                    </div>
+                                    <div v-else class="text-xs italic text-gray-400 dark:text-gray-500 mt-1">
+                                        Sin imagen de respaldo.
                                     </div>
                                 </div>
                             </div>

@@ -15,6 +15,8 @@ use App\Models\Bitacora;
 use App\Models\NotificationSetting;
 use App\Notifications\SystemAlertNotification;
 use App\Models\User;
+use App\Models\MaintenanceStatusLog;
+use App\Helpers\ImageHelper;
 
 /**
  * Controlador para la gestión de Mantenimientos y Órdenes de Servicio.
@@ -204,6 +206,17 @@ class MaintenancesController extends Controller
             }
         }
 
+        $photoPath = null;
+        if ($request->hasFile('status_photo')) {
+            $photoPath = \App\Helpers\ImageHelper::compressAndStore($request->file('status_photo'), 'maintenance_logs');
+        }
+
+        \App\Models\MaintenanceStatusLog::create([
+            'maintenance_id' => $maintenance->id,
+            'status' => $maintenance->status ?? 'EN ESPERA',
+            'photo_path' => $photoPath,
+        ]);
+
         return redirect()->route('maintenance');
     }
 
@@ -218,11 +231,19 @@ class MaintenancesController extends Controller
     public function show($id)
     {
         $user = auth()->user();
-        $maintenance = Maintenance::with(['partida', 'bills', 'materials', 'accesorios_engine'])->findOrFail($id);
+        $maintenance = Maintenance::with(['partida', 'bills', 'materials', 'accesorios_engine', 'statusLogs' => function($q) {
+            $q->orderBy('created_at', 'asc');
+        }])->findOrFail($id);
 
         if ($user->hasAnyRole(['FACTURACION', 'Facturacion', 'facturacion']) && !$user->hasAnyRole(['Superusuario', 'Administrador', 'SUPERUSUARIO', 'ADMINISTRADOR'])) {
             return redirect()->route('createBilling', $maintenance->partida_id);
         }
+
+        // Generate full image URLs for status logs
+        $statusLogs = $maintenance->statusLogs->map(function($log) {
+            $log->photo_url = $log->photo_path ? asset('storage/' . $log->photo_path) : null;
+            return $log;
+        });
 
         return inertia('Maintenance/Show', [
             'maintenance' => $maintenance,
@@ -230,6 +251,7 @@ class MaintenancesController extends Controller
             'bill' => $maintenance->bills->first(),
             'materials' => $maintenance->materials->first(),
             'accesorios' => $maintenance->accesorios_engine->first(),
+            'statusLogs' => $statusLogs,
         ]);
     }
 
@@ -245,6 +267,8 @@ class MaintenancesController extends Controller
     {
         $maintenance = Maintenance::with(['bills', 'items' => function ($q) {
             $q->orderBy('id', 'desc');
+        }, 'statusLogs' => function($q) {
+            $q->orderBy('created_at', 'asc');
         }])->findOrFail($id);
 
         if ($maintenance->status === 'TERMINADO' && !auth()->user()->hasAnyRole(['Superusuario', 'SUPERUSUARIO', 'Administrador', 'ADMINISTRADOR'])) {
@@ -254,6 +278,12 @@ class MaintenancesController extends Controller
         if (auth()->user()->hasAnyRole(['FACTURACION', 'Facturacion', 'facturacion']) && !auth()->user()->hasAnyRole(['Superusuario', 'Administrador', 'SUPERUSUARIO', 'ADMINISTRADOR'])) {
             return redirect()->route('createBilling', $maintenance->partida_id);
         }
+
+        // Generate full image URLs for status logs
+        $statusLogs = $maintenance->statusLogs->map(function($log) {
+            $log->photo_url = $log->photo_path ? asset('storage/' . $log->photo_path) : null;
+            return $log;
+        });
 
         $partida = $maintenance->partida;
         $bill = $maintenance->bills->first() ?? (object) [];
@@ -268,6 +298,7 @@ class MaintenancesController extends Controller
             'materials' => $materials,
             'accesorios' => $accesorios,
             'items' => $items,
+            'statusLogs' => $statusLogs,
         ]);
     }
 
@@ -284,9 +315,15 @@ class MaintenancesController extends Controller
      */
     public function update(Request $request, int $id)
     {
-        $data = array_map(function ($value) {
-            return str_replace(' %', '', $value); // Elimina los espacios en blanco y el signo porcentual
-        }, $request->all());
+        $data = [];
+        foreach ($request->all() as $key => $value) {
+            if (is_string($value)) {
+                $data[$key] = str_replace(' %', '', $value);
+            } else {
+                $data[$key] = $value;
+            }
+        }
+
         // Separar datos específicos
         $extraDataMaintenance = [
             'maintenances_id' => $id,
@@ -333,6 +370,33 @@ class MaintenancesController extends Controller
 
         if ($maintenance->status === 'TERMINADO' && !auth()->user()->hasAnyRole(['Superusuario', 'SUPERUSUARIO', 'Administrador', 'ADMINISTRADOR'])) {
             return redirect()->back()->with('error', 'No tienes permisos para modificar un mantenimiento terminado.');
+        }
+
+        // Handle status change log and photo upload/compression
+        $oldStatus = $maintenance->status;
+        $newStatus = $data['status'] ?? $oldStatus;
+
+        if ($oldStatus !== $newStatus) {
+            // Require descriptive image for warranty maintenance status changes
+            if (strtoupper($maintenance->tipo) === 'GARANTÍA' || strtoupper($maintenance->tipo) === 'GARANTIA') {
+                $request->validate([
+                    'status_photo' => 'required|image|max:4096',
+                ], [
+                    'status_photo.required' => 'Debe adjuntar una imagen descriptiva al cambiar el estado del mantenimiento en garantía.',
+                    'status_photo.image' => 'El archivo adjunto debe ser una imagen.',
+                ]);
+            }
+
+            $photoPath = null;
+            if ($request->hasFile('status_photo')) {
+                $photoPath = \App\Helpers\ImageHelper::compressAndStore($request->file('status_photo'), 'maintenance_logs');
+            }
+
+            \App\Models\MaintenanceStatusLog::create([
+                'maintenance_id' => $maintenance->id,
+                'status' => $newStatus,
+                'photo_path' => $photoPath,
+            ]);
         }
 
         // Auto-transition inventory status if maintenance is finished

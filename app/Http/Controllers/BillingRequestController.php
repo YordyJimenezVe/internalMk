@@ -62,7 +62,7 @@ class BillingRequestController extends Controller
 
         $cedulaFilePath = null;
         if ($request->hasFile('client_cedula_file')) {
-            $cedulaFilePath = $request->file('client_cedula_file')->store('billing_captures', 'public');
+            $cedulaFilePath = \App\Helpers\ImageHelper::compressAndStore($request->file('client_cedula_file'), 'billing_captures');
         }
 
         $billingRequest = BillingRequest::create([

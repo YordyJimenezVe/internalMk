@@ -11,6 +11,7 @@ const props = defineProps({
   materials: Object,
   accesorios: Object,
   items: Array, // Dynamic items list
+  statusLogs: Array,
 });
 
 const page = usePage();
@@ -25,11 +26,40 @@ const isAdminOrSuper = computed(() => {
            user.value.rol === 'Superusuario';
 });
 
+const initialStatus = props.maintenance.status;
+const currentStatus = ref(props.maintenance.status);
+const statusPhotoFile = ref(null);
+const photoPreview = ref(null);
+
+const handleStatusChange = (e) => {
+    currentStatus.value = e.target.value;
+};
+
+const mapStatus = (status) => {
+    const statusMap = {
+        'EN ESPERA': 'RECIBIDO',
+        'EN PROCESO': 'ARMANDO',
+        'TERMINADO': 'TERMINADO',
+        'CANCELADO': 'CANCELADO',
+    };
+    return statusMap[status] || status;
+};
+
+const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    statusPhotoFile.value = file;
+    if (file) {
+        photoPreview.value = URL.createObjectURL(file);
+    } else {
+        photoPreview.value = null;
+    }
+};
+
 const submitForm = (e) => {
     const formElement = e.target;
     const data = {};
     for (const element of formElement.elements) {
-        if (element.name) {
+        if (element.name && element.type !== 'file') {
             data[element.name] = element.value;
         }
     }
@@ -38,6 +68,10 @@ const submitForm = (e) => {
         data.cleaning = data.grouped_commission;
         data.consumables = data.grouped_commission;
         data.forklift = data.grouped_commission;
+    }
+
+    if (statusPhotoFile.value) {
+        data.status_photo = statusPhotoFile.value;
     }
     
     router.post('/maintenance/update/' + props.maintenance.id, data);
@@ -318,12 +352,38 @@ const formatDate = (dateStr) => {
                                 <label class="block uppercase tracking-wider text-slate-400 text-[10px] font-bold mb-1.5 ml-1" for="status">
                                     <i class="fas fa-signal mr-2 text-blue-400"></i>Estado
                                 </label>
-                                <select class="block w-full bg-slate-900/50 text-white border border-slate-700 rounded-xl py-2.5 px-4 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all appearance-none cursor-pointer" id="status" name="status">
+                                <select class="block w-full bg-slate-900/50 text-white border border-slate-700 rounded-xl py-2.5 px-4 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/20 transition-all appearance-none cursor-pointer" id="status" name="status" @change="handleStatusChange">
                                     <option value="EN ESPERA" :selected="props.maintenance.status === 'EN ESPERA'">RECIBIDO</option>
                                     <option value="EN PROCESO" :selected="props.maintenance.status === 'EN PROCESO'">ARMANDO</option>
                                     <option value="TERMINADO" :selected="props.maintenance.status === 'TERMINADO'">TERMINADO</option>
                                     <option value="CANCELADO" :selected="props.maintenance.status === 'CANCELADO'">CANCELADO</option>
                                 </select>
+                            </div>
+                            <div v-if="currentStatus !== initialStatus" class="md:col-span-2 bg-slate-900/40 p-4 rounded-xl border border-dashed border-slate-700 flex flex-col items-center justify-center gap-3">
+                                <span class="text-xs font-bold text-amber-400 flex items-center gap-2">
+                                    <i class="fas fa-triangle-exclamation"></i>
+                                    Has modificado el estado. Debe adjuntar una foto de respaldo
+                                    <span v-if="props.maintenance.tipo === 'GARANTÍA' || props.maintenance.tipo === 'GARANTIA'" class="text-red-500 font-extrabold">* (Obligatorio para Garantías)</span>
+                                </span>
+                                <div class="flex items-center gap-4 w-full justify-center">
+                                    <label class="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-colors">
+                                        <i class="fas fa-camera"></i>
+                                        Seleccionar Foto
+                                        <input type="file" class="hidden" accept="image/*" @change="handleFileChange" />
+                                    </label>
+                                    <span class="text-xs text-slate-400 truncate max-w-[200px]" v-if="statusPhotoFile">
+                                        {{ statusPhotoFile.name }}
+                                    </span>
+                                    <span class="text-xs text-slate-500" v-else>
+                                        Ningún archivo seleccionado
+                                    </span>
+                                </div>
+                                <span v-if="page.props.errors && page.props.errors.status_photo" class="text-xs text-rose-500 font-extrabold block mt-1 uppercase tracking-tight">
+                                    {{ page.props.errors.status_photo }}
+                                </span>
+                                <div v-if="photoPreview" class="mt-2 w-full max-w-[150px] aspect-video rounded-lg overflow-hidden border border-slate-700 shadow-lg">
+                                    <img :src="photoPreview" class="w-full h-full object-cover" />
+                                </div>
                             </div>
                             <div>
                                 <label class="block uppercase tracking-wider text-slate-400 text-[10px] font-bold mb-1.5 ml-1" for="cedula_mecanico">
@@ -509,6 +569,37 @@ const formatDate = (dateStr) => {
                             </div>
                         </div>
                         
+                        <!-- Registered Status / Photo History logs -->
+                        <div class="mb-8 bg-white dark:bg-slate-800/40 p-5 rounded-xl border border-gray-100 dark:border-slate-700/50 shadow-sm" v-if="props.statusLogs && props.statusLogs.length > 0">
+                            <h4 class="text-left mb-4 font-bold text-sm text-blue-600 dark:text-blue-400 tracking-tight uppercase flex items-center gap-2">
+                                <i class="fas fa-camera"></i>
+                                Historial de Fotos y Estatus Registrados
+                            </h4>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                <div v-for="log in props.statusLogs" :key="log.id" class="border border-gray-100 dark:border-slate-700/50 rounded-xl p-3 bg-gray-50 dark:bg-slate-900/30 flex flex-col gap-2">
+                                    <div class="flex justify-between items-center gap-2">
+                                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
+                                            {{ mapStatus(log.status) }}
+                                        </span>
+                                        <span class="text-[9px] text-gray-400 dark:text-slate-500 font-medium">
+                                            {{ new Date(log.created_at).toLocaleString() }}
+                                        </span>
+                                    </div>
+                                    <div v-if="log.photo_url" class="aspect-video w-full rounded-lg overflow-hidden border border-gray-200 dark:border-slate-800 shadow-sm">
+                                        <a :href="log.photo_url" target="_blank" class="block w-full h-full relative group">
+                                            <img :src="log.photo_url" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+                                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold gap-1">
+                                                <i class="fas fa-expand"></i> Ampliar
+                                            </div>
+                                        </a>
+                                    </div>
+                                    <div v-else class="text-[10px] italic text-gray-400 dark:text-slate-500 py-4 text-center">
+                                        Sin imagen.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="pb-6">
                             <button type="submit" class="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white font-bold py-4 px-6 rounded-2xl shadow-xl transform active:scale-[0.99] transition-all uppercase tracking-widest text-sm">Guardar Cambios del Mantenimiento</button>
                         </div>

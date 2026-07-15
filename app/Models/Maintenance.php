@@ -8,10 +8,14 @@ use App\Models\Inventario;
 use App\Models\MaintenanceBill;
 use App\Models\Material;
 use App\Models\AccesorioEngine;
+use App\Models\MaintenanceItem;
+use App\Models\MaintenanceTeam;
+use App\Models\MaintenanceStatusLog;
 
 class Maintenance extends Model
 {
     use HasFactory;
+
     protected $fillable = [
         'fecha',
         'descripcion',
@@ -70,6 +74,11 @@ class Maintenance extends Model
     public function team()
     {
         return $this->hasMany(MaintenanceTeam::class, 'maintenance_id');
+    }
+
+    public function statusLogs()
+    {
+        return $this->hasMany(MaintenanceStatusLog::class, 'maintenance_id');
     }
 
     public function getCostoRealAttribute()
