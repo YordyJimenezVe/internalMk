@@ -12,6 +12,7 @@ use GuzzleHttp\Client;
 use Symfony\Component\DomCrawler\Crawler;
 use App\Models\ExchangeRate;
 use App\Models\BillingRequest;
+use App\Models\Maintenance;
 use Carbon\Carbon;
 
 /**
@@ -371,6 +372,21 @@ class BillingsController extends Controller
         // 2. Update Inventario
         if ($inventario) {
             $inventario->update(['status' => $newStatus]);
+
+            // If it is a temporal return, automatically create a maintenance ticket
+            if ($returnType === 'TEMPORAL') {
+                \App\Models\Maintenance::create([
+                    'fecha' => now()->format('Y-m-d'),
+                    'descripcion' => 'DEVOLUCIÓN TEMPORAL POR GARANTÍA. FACTURA ORIGINAL: #' . ($billing->numero_factura ?? 'S/N'),
+                    'tipo' => 'GARANTÍA',
+                    'status' => 'EN ESPERA',
+                    'partida_id' => $inventario->id,
+                    'cedula_mecanico' => 0,
+                    'nombre_mecanico' => 'POR',
+                    'apellido_mecanico' => 'ASIGNAR',
+                    'observaciones' => 'Creado automáticamente tras devolución temporal de la factura #' . ($billing->numero_factura ?? 'S/N') . '.',
+                ]);
+            }
         }
 
         // 3. Register Reverse Bill
