@@ -394,7 +394,9 @@ class BillingsController extends Controller
         ]);
 
         // 5. Delete Billing (This automatically discounts from dashboard sales)
-        $billing->delete();
+        if ($returnType !== 'TEMPORAL') {
+            $billing->delete();
+        }
 
         return redirect()->route('billing')->with('success', "{$actionVerb} procesada con éxito.");
     }

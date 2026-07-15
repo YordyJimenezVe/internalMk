@@ -163,8 +163,8 @@ class MaintenancesController extends Controller
             }
             return redirect()->route('billing');
         }
-        // Mostrar items DISPONIBLES o DEVUELTOS que NO tengan un mantenimiento activo
-        $datas = Inventario::whereIn('status', ['DISPONIBLE', 'DEVUELTO'])
+        // Mostrar items DISPONIBLES, DEVUELTOS o en GARANTIA/GARANTÍA que NO tengan un mantenimiento activo
+        $datas = Inventario::whereIn('status', ['DISPONIBLE', 'DEVUELTO', 'GARANTIA', 'GARANTÍA'])
             ->whereDoesntHave('maintenances', function ($query) {
                 $query->where('status', '!=', 'TERMINADO');
             })->get();
@@ -452,7 +452,16 @@ class MaintenancesController extends Controller
         $inputEmployee = $request->input('employee');
         $partida = Inventario::find($inputPartida);
         $employee = Employee::where('cedula', $inputEmployee)->first();
-        $datas = Inventario::all();
+        
+        $datas = Inventario::whereIn('status', ['DISPONIBLE', 'DEVUELTO', 'GARANTIA', 'GARANTÍA'])
+            ->whereDoesntHave('maintenances', function ($query) {
+                $query->where('status', '!=', 'TERMINADO');
+            })->get();
+
+        if ($partida && !$datas->contains('id', $partida->id)) {
+            $datas->push($partida);
+        }
+
         return Inertia::render('Maintenance/Create', [
             'partidas' => $partida,
             'employee' => $employee,

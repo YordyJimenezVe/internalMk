@@ -132,8 +132,8 @@ const submit = () => {
                         <!-- Actions -->
                         <div class="pt-8 flex flex-col md:flex-row items-center justify-between gap-6 border-t border-gray-100 dark:border-gray-700">
                             <div class="flex items-center gap-2 text-gray-400 dark:text-gray-500 text-xs font-bold uppercase tracking-widest">
-                                <i class="fa-solid fa-circle-exclamation text-rose-500"></i>
-                                <span>Esta acción eliminará la factura permanentemente</span>
+                                <i class="fa-solid fa-circle-exclamation" :class="form.return_type === 'TEMPORAL' ? 'text-indigo-500' : 'text-rose-500'"></i>
+                                <span>{{ form.return_type === 'TEMPORAL' ? `Esta acción generará una nota de crédito afectando a la factura #${props.bill.numero_factura} sin eliminarla` : `Esta acción eliminará la factura #${props.bill.numero_factura} permanentemente` }}</span>
                             </div>
                             
                             <div class="flex flex-col md:flex-row gap-4 w-full md:w-auto">

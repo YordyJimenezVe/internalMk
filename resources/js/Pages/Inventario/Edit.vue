@@ -230,6 +230,7 @@ onMounted(() => {
                                         <option value="DISPONIBLE">DISPONIBLE</option>
                                         <option value="EN TALLER">EN TALLER</option>
                                         <option value="VENDIDO">VENDIDO</option>
+                                        <option value="GARANTIA">GARANTÍA</option>
                                         <option value="INOPERATIVO-DESARMADO">INOPERATIVO-DESARMADO</option>
                                     </select>
                                     <InputError :message="form.errors.status" class="mt-2" />
