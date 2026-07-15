@@ -34,11 +34,11 @@ class DashboardController extends Controller
         $currentMonth = now()->format('m');
         $currentYear = now()->format('Y');
 
-        $monthlyBillingsCount = Billing::whereRaw('MONTH(fecha) = ? AND YEAR(fecha) = ?', [$currentMonth, $currentYear])->count();
-        $monthlyRevenue = Billing::whereRaw('MONTH(fecha) = ? AND YEAR(fecha) = ?', [$currentMonth, $currentYear])->sum('total');
+        $monthlyBillingsCount = Billing::where('status', '!=', 'ANULADA')->whereRaw('MONTH(fecha) = ? AND YEAR(fecha) = ?', [$currentMonth, $currentYear])->count();
+        $monthlyRevenue = Billing::where('status', '!=', 'ANULADA')->whereRaw('MONTH(fecha) = ? AND YEAR(fecha) = ?', [$currentMonth, $currentYear])->sum('total');
         
-        $todayRevenue = Billing::whereDate('fecha', today())->sum('total');
-        $todayBillingsCount = Billing::whereDate('fecha', today())->count();
+        $todayRevenue = Billing::where('status', '!=', 'ANULADA')->whereDate('fecha', today())->sum('total');
+        $todayBillingsCount = Billing::where('status', '!=', 'ANULADA')->whereDate('fecha', today())->count();
 
         // 3. New Orders / Partidas
         $newPartidasCount = Inventario::whereDate('created_at', today())->count();
@@ -50,7 +50,7 @@ class DashboardController extends Controller
         $pendingConciliationsCount = Maintenance::where('status', 'RETORNADO')->count();
 
         // recent activity
-        $recentBillings = Billing::with('user')->latest()->take(5)->get()->map(function ($bill) {
+        $recentBillings = Billing::where('status', '!=', 'ANULADA')->with('user')->latest()->take(5)->get()->map(function ($bill) {
             return [
                 'id' => $bill->id,
                 'description' => "Factura #{$bill->id} generada por {$bill->client_name}",
@@ -70,7 +70,8 @@ class DashboardController extends Controller
             || $user->hasAnyRole(['Superusuario', 'Administrador', 'SUPERUSUARIO', 'ADMINISTRADOR']);
 
         // 1. Revenue Last 6 Months (Shared by Billing and Admins)
-        $sixMonthsData = Billing::selectRaw('DATE_FORMAT(fecha, "%Y-%m") as month, SUM(total) as revenue')
+        $sixMonthsData = Billing::where('status', '!=', 'ANULADA')
+            ->selectRaw('DATE_FORMAT(fecha, "%Y-%m") as month, SUM(total) as revenue')
             ->where('fecha', '>=', now()->subMonths(6)->format('Y-m-d'))
             ->groupBy('month')
             ->orderBy('month')
@@ -83,8 +84,8 @@ class DashboardController extends Controller
 
         if ($isBilling) {
             // Invoicing Role: USD vs BS breakdown + Revenue Chart
-            $usdCount = Billing::where('divisa', '>', 0)->count();
-            $bsCount = Billing::where('bs', '>', 0)->where('divisa', 0)->count();
+            $usdCount = Billing::where('status', '!=', 'ANULADA')->where('divisa', '>', 0)->count();
+            $bsCount = Billing::where('status', '!=', 'ANULADA')->where('bs', '>', 0)->where('divisa', 0)->count();
             
             $chartData = [
                 'revenue' => [

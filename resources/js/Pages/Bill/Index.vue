@@ -208,8 +208,14 @@ const exportPdf = () => {
                                                 <i class="fa-solid fa-file-invoice"></i>
                                             </div>
                                             <div>
-                                                <div class="text-sm font-black text-gray-800 dark:text-white uppercase tracking-tight">
+                                                <div class="text-sm font-black text-gray-800 dark:text-white uppercase tracking-tight flex items-center gap-2">
                                                     #{{ factura.numero_factura }}
+                                                    <span v-if="factura.status === 'ANULADA'" class="px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-md bg-rose-100 dark:bg-rose-900/30 text-rose-500 border border-rose-200 dark:border-rose-800">
+                                                        Anulada
+                                                    </span>
+                                                    <span v-else class="px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wider rounded-md bg-emerald-100 dark:bg-emerald-900/30 text-emerald-500 border border-emerald-200 dark:border-emerald-800">
+                                                        Activa
+                                                    </span>
                                                 </div>
                                                 <div class="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase">
                                                     Partida ID: {{ factura.partida_id }}
@@ -259,10 +265,10 @@ const exportPdf = () => {
                                             <button @click="visualizeFact(factura.id)" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-indigo-500 hover:shadow-xl hover:shadow-indigo-500/20 transition-all transform hover:scale-110 active:scale-95" title="Ver Detalle">
                                                 <i class="fa-solid fa-eye text-sm"></i>
                                             </button>
-                                            <button @click="editBilling(factura.id)" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-blue-500 hover:shadow-xl hover:shadow-blue-500/20 transition-all transform hover:scale-110 active:scale-95" title="Editar">
+                                            <button v-if="factura.status !== 'ANULADA'" @click="editBilling(factura.id)" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-blue-500 hover:shadow-xl hover:shadow-blue-500/20 transition-all transform hover:scale-110 active:scale-95" title="Editar">
                                                 <i class="fa-solid fa-pen-to-square text-sm"></i>
                                             </button>
-                                            <button @click="devolucionFactura(factura.id)" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-emerald-500 hover:shadow-xl hover:shadow-emerald-500/20 transition-all transform hover:scale-110 active:scale-95" title="Devolución">
+                                            <button v-if="factura.status !== 'ANULADA'" @click="devolucionFactura(factura.id)" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-emerald-500 hover:shadow-xl hover:shadow-emerald-500/20 transition-all transform hover:scale-110 active:scale-95" title="Devolución">
                                                 <i class="fa-solid fa-repeat text-sm"></i>
                                             </button>
                                             <button @click="openDeleteModal(factura.id)" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-rose-500 hover:shadow-xl hover:shadow-rose-500/20 transition-all transform hover:scale-110 active:scale-95" title="Eliminar">

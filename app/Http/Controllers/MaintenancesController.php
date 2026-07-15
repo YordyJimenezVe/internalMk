@@ -208,9 +208,9 @@ class MaintenancesController extends Controller
             $inventario = $maintenance->partida;
             if ($inventario && ($inventario->status === 'GARANTIA' || $inventario->status === 'GARANTÍA')) {
                 $inventario->update(['status' => 'DEVUELTO']);
-                $billing = \App\Models\Billing::where('partida_id', $inventario->id)->first();
+                $billing = \App\Models\Billing::where('partida_id', $inventario->id)->where('status', '!=', 'ANULADA')->first();
                 if ($billing) {
-                    $billing->delete();
+                    $billing->update(['status' => 'ANULADA']);
                 }
             }
         }
@@ -419,9 +419,9 @@ class MaintenancesController extends Controller
             $inventario = $maintenance->partida;
             if ($inventario && ($inventario->status === 'GARANTIA' || $inventario->status === 'GARANTÍA')) {
                 $inventario->update(['status' => 'DEVUELTO']);
-                $billing = \App\Models\Billing::where('partida_id', $inventario->id)->first();
+                $billing = \App\Models\Billing::where('partida_id', $inventario->id)->where('status', '!=', 'ANULADA')->first();
                 if ($billing) {
-                    $billing->delete();
+                    $billing->update(['status' => 'ANULADA']);
                 }
             }
         }

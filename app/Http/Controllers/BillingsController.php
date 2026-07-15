@@ -409,9 +409,9 @@ class BillingsController extends Controller
             'description' => $descLog,
         ]);
 
-        // 5. Delete Billing (This automatically discounts from dashboard sales)
+        // 5. Mark Billing as ANULADA (This automatically discounts from dashboard sales while keeping the history)
         if ($returnType !== 'TEMPORAL') {
-            $billing->delete();
+            $billing->update(['status' => 'ANULADA']);
         }
 
         return redirect()->route('billing')->with('success', "{$actionVerb} procesada con éxito.");

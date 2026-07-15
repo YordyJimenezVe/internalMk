@@ -31,6 +31,7 @@ class Billing extends Model
         'client_address',
         'client_email',
         'total',
+        'status',
     ];
 
     public function inventario()
