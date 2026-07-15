@@ -197,12 +197,21 @@ class MaintenancesController extends Controller
         $maintenance->fill($request->all());
         $maintenance->save();
 
-        // Auto-transition inventory status if maintenance is finished
+        // Auto-transition inventory status if maintenance is finished or cancelled
         if ($maintenance->status === 'TERMINADO') {
             $inventario = $maintenance->partida;
             if ($inventario && ($inventario->status === 'DEVUELTO' || $inventario->status === 'GARANTIA' || $inventario->status === 'GARANTÍA')) {
                 $newInvStatus = ($inventario->status === 'GARANTIA' || $inventario->status === 'GARANTÍA') ? 'VENDIDO' : 'DISPONIBLE';
                 $inventario->update(['status' => $newInvStatus]);
+            }
+        } elseif ($maintenance->status === 'CANCELADO') {
+            $inventario = $maintenance->partida;
+            if ($inventario && ($inventario->status === 'GARANTIA' || $inventario->status === 'GARANTÍA')) {
+                $inventario->update(['status' => 'DEVUELTO']);
+                $billing = \App\Models\Billing::where('partida_id', $inventario->id)->first();
+                if ($billing) {
+                    $billing->delete();
+                }
             }
         }
 
@@ -399,12 +408,21 @@ class MaintenancesController extends Controller
             ]);
         }
 
-        // Auto-transition inventory status if maintenance is finished
+        // Auto-transition inventory status if maintenance is finished or cancelled
         if (isset($data['status']) && $data['status'] === 'TERMINADO') {
             $inventario = $maintenance->partida;
             if ($inventario && ($inventario->status === 'DEVUELTO' || $inventario->status === 'GARANTIA' || $inventario->status === 'GARANTÍA')) {
                 $newInvStatus = ($inventario->status === 'GARANTIA' || $inventario->status === 'GARANTÍA') ? 'VENDIDO' : 'DISPONIBLE';
                 $inventario->update(['status' => $newInvStatus]);
+            }
+        } elseif (isset($data['status']) && $data['status'] === 'CANCELADO') {
+            $inventario = $maintenance->partida;
+            if ($inventario && ($inventario->status === 'GARANTIA' || $inventario->status === 'GARANTÍA')) {
+                $inventario->update(['status' => 'DEVUELTO']);
+                $billing = \App\Models\Billing::where('partida_id', $inventario->id)->first();
+                if ($billing) {
+                    $billing->delete();
+                }
             }
         }
 
