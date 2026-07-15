@@ -532,6 +532,52 @@ class MaintenancesController extends Controller
     }
 
     /**
+     * Revierte un mantenimiento por haber sido registrado o enviado por error.
+     * Retorna el motor a VENDIDO y la factura a ACTIVA.
+     */
+    public function revertError(int $id)
+    {
+        $user = auth()->user();
+        $isAdminOrSuperUser = stripos($user->rol, 'admin') !== false || stripos($user->rol, 'super') !== false 
+            || $user->hasAnyRole(['Superusuario', 'Administrador', 'SUPERUSUARIO', 'ADMINISTRADOR']);
+        
+        if (!$isAdminOrSuperUser) {
+            abort(403, 'No autorizado.');
+        }
+
+        $maintenance = Maintenance::findOrFail($id);
+        
+        $maintenance->update([
+            'status' => 'CANCELADO',
+            'observaciones' => ($maintenance->observaciones ? $maintenance->observaciones . "\n" : '') . 'Revertido por envío erróneo de forma administrativa.'
+        ]);
+
+        \App\Models\MaintenanceStatusLog::create([
+            'maintenances_id' => $maintenance->id,
+            'status' => 'CANCELADO',
+            'observaciones' => 'Revertido por envío erróneo de forma administrativa.',
+        ]);
+
+        $inventario = $maintenance->partida;
+        if ($inventario) {
+            $inventario->update(['status' => 'VENDIDO']);
+            
+            $billing = \App\Models\Billing::where('partida_id', $inventario->id)->where('status', 'ANULADA')->first();
+            if ($billing) {
+                $billing->update(['status' => 'ACTIVA']);
+            }
+        }
+
+        Bitacora::create([
+            'users_id' => $user->id,
+            'action' => 'REVERTIR_MANTENIMIENTO_ERROR',
+            'description' => "Mantenimiento #{$maintenance->id} revertido por error administrativo.",
+        ]);
+
+        return redirect()->route('maintenance')->with('success', 'Mantenimiento revertido por error con éxito.');
+    }
+
+    /**
      * Consulta y retorna datos de inventario y empleados para poblar la vista de creación.
      *
      * @param  \Illuminate\Http\Request  $request  Petición HTTP.

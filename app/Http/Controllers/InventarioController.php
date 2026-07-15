@@ -368,6 +368,27 @@ class InventarioController extends Controller
 
         $inventario->update($data);
 
+        // Auto-create maintenance ticket if status is GARANTIA/GARANTÍA and no active maintenance exists
+        if ($inventario->status === 'GARANTIA' || $inventario->status === 'GARANTÍA') {
+            $hasActiveMaintenance = \App\Models\Maintenance::where('partida_id', $inventario->id)
+                ->whereIn('status', ['EN ESPERA', 'EN PROCESO'])
+                ->exists();
+            if (!$hasActiveMaintenance) {
+                $billing = \App\Models\Billing::where('partida_id', $inventario->id)->where('status', '!=', 'ANULADA')->first();
+                \App\Models\Maintenance::create([
+                    'fecha' => now()->format('Y-m-d'),
+                    'descripcion' => 'DEVOLUCIÓN TEMPORAL POR GARANTÍA. FACTURA ORIGINAL: #' . ($billing->numero_factura ?? 'S/N'),
+                    'tipo' => 'GARANTÍA',
+                    'status' => 'EN ESPERA',
+                    'partida_id' => $inventario->id,
+                    'cedula_mecanico' => 0,
+                    'nombre_mecanico' => 'POR',
+                    'apellido_mecanico' => 'ASIGNAR',
+                    'observaciones' => 'Creado automáticamente tras actualización de estatus a Garantía/Devolución Temporal.',
+                ]);
+            }
+        }
+
         return redirect()->route('inventario')->with('success', 'Registro actualizado correctamente');
     }
 

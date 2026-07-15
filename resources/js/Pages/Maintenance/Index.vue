@@ -276,7 +276,7 @@ const getStatusLabel = (status) => {
                                 <i v-else-if="row.status === 'CANCELADO'" class="fa-solid fa-ban"></i>
                                 <i v-else-if="row.status === 'EN ESPERA'" class="fa-solid fa-hourglass-start"></i>
                                 <span>{{ getStatusLabel(row.status) }}</span>
-                            </span>span>
+                            </span>
                         </template>
 
                         <template #cell-partida.tipo="{ row }">

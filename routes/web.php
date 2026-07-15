@@ -91,6 +91,7 @@ Route::middleware([
         Route::delete('/maintenance/delete/{id}', 'App\Http\Controllers\MaintenancesController@destroy')->name('deleteMaintenance');
         Route::post('/maintenance/add', 'App\Http\Controllers\MaintenancesController@getInventario')->name('getInventario');
         Route::get('/maintenance/item/{id}', [\App\Http\Controllers\ScanController::class, 'directToMaintenance'])->name('maintenance.item');
+        Route::post('/maintenance/revert-error/{id}', 'App\Http\Controllers\MaintenancesController@revertError')->name('maintenance.revert_error');
         
         // Rutas de repuestos y servicios dinámicos de taller
         Route::post('/maintenance/{id}/items', 'App\Http\Controllers\MaintenancesController@storeItem')->name('maintenance.store_item');

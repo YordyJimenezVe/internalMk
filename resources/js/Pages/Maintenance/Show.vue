@@ -3,7 +3,7 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { fas } from '@fortawesome/free-solid-svg-icons';
-import { Link } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import MaterialsEngine from './MaterialsEngine.vue';
 import { computed } from 'vue';
 import { usePage } from '@inertiajs/vue3';
@@ -51,6 +51,12 @@ const mapStatus = (status) => {
     };
     return statusMap[status] || status;
 };
+
+const revertError = () => {
+    if (confirm('¿Está seguro de que desea revertir este mantenimiento por envío erróneo? El motor volverá a estar "VENDIDO" y la factura volverá a estar "ACTIVA".')) {
+        router.post(route('maintenance.revert_error', props.maintenance.id));
+    }
+};
 </script>
 
 <template>
@@ -67,6 +73,10 @@ const mapStatus = (status) => {
                         <FontAwesomeIcon icon="fa-solid fa-file-pdf" class="mr-2" />
                         Imprimir Ficha
                     </a>
+                    <button v-if="isAdminOrSuper && props.maintenance.status !== 'CANCELADO' && props.maintenance.status !== 'TERMINADO'" @click="revertError" class="inline-flex items-center px-4 py-2 bg-amber-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-amber-700 focus:bg-amber-700 active:bg-amber-900 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition ease-in-out duration-150 shadow-md">
+                        <FontAwesomeIcon icon="fa-solid fa-rotate-left" class="mr-2" />
+                        Revertir por Error
+                    </button>
                 </div>
                 <div class="h-8 w-px bg-gray-300 dark:bg-gray-600 hidden md:block"></div>
                 <h1 v-if="props.maintenance" class="text-2xl font-bold text-gray-800 dark:text-white flex flex-wrap items-center gap-2">
