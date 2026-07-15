@@ -48,7 +48,7 @@ const baseImponible = computed(() => {
 
 const form = useForm({
     partida_id: props.inventario.id,
-    price: props.inventario.price_sale || 0,
+    price: '',
     client_name: '',
     client_cedula: '',
     client_phone: '',
@@ -141,7 +141,7 @@ const submitBilling = () => {
         ...data,
         client_name: data.client_name ? data.client_name.toUpperCase() : '',
         client_cedula: data.client_cedula ? data.client_cedula.toUpperCase() : '',
-        price: data.price.toString().replace(/\./g, '').replace(',', '.')
+        price: data.price ? data.price.toString().replace(/\./g, '').replace(',', '.') : ''
     })).post(route('billing.requests.store'), {
         preserveScroll: true,
         forceFormData: true,
