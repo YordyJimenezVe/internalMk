@@ -15,8 +15,8 @@ const showSerialZoomModal = ref(false);
 const formatSerial = (serial) => {
     if (!serial) return '';
     const upper = serial.toUpperCase();
-    if (upper === 'S/S' || upper === 'SIN SERIAL' || upper === 'NO APARENTE SERIAL') {
-        return 'NO APARENTE SERIAL';
+    if (upper === 'S/S' || upper === 'SIN SERIAL' || upper === 'NO APARENTE SERIAL' || upper === 'NO APARENTA SERIAL') {
+        return 'NO APARENTA SERIAL';
     }
     return serial;
 };

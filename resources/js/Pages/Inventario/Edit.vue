@@ -48,11 +48,11 @@ const form = useForm({
 
 const serialPreviewUrl = ref(props.inventario.serial_image_path ? `/storage/${props.inventario.serial_image_path}` : null);
 
-const noSerial = ref(props.inventario.serial === 'NO APARENTE SERIAL' || props.inventario.serial === 'S/S' || props.inventario.serial === 'SIN SERIAL');
+const noSerial = ref(props.inventario.serial === 'NO APARENTA SERIAL' || props.inventario.serial === 'NO APARENTE SERIAL' || props.inventario.serial === 'S/S' || props.inventario.serial === 'SIN SERIAL');
 
 const handleNoSerialChange = () => {
     if (noSerial.value) {
-        form.serial = 'NO APARENTE SERIAL';
+        form.serial = 'NO APARENTA SERIAL';
     } else {
         form.serial = '';
     }
