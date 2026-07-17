@@ -98,10 +98,7 @@ const devolucionFactura = (id) => {
 };
 
 const visualizeFact = (id) => {
-    isGeneratingPdf.value = true;
-    router.visit(route('viewFact', { id }), {
-        onFinish: () => isGeneratingPdf.value = false
-    });
+    window.open(route('billing.pdf', { id }), '_blank');
 };
 
 const exportExcel = () => {
