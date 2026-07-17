@@ -72,7 +72,7 @@
                         <strong>{{ $bill->partida->marca }} {{ $bill->partida->modelo }}</strong>
                         <br>
                         <span style="font-size: 10px; color: #666;">
-                            Año: {{ $bill->partida->año }} | Cod: {{ $bill->partida->codInv }}
+                            Año: {{ $bill->partida->año }} | Cod: {{ str_pad($bill->partida->codInv, 4, '0', STR_PAD_LEFT) }}
                         </span>
                     </td>
                     <td style="padding: 10px; text-align: right; border: 1px solid #ddd;">

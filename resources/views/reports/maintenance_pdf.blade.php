@@ -186,7 +186,7 @@
                         </tr>
                         <tr>
                             <td><span class="label">Código Inventario:</span> <span
-                                    class="value">{{ $partida->codInv ?? 'N/A' }}</span></td>
+                                    class="value">{{ isset($partida->codInv) ? str_pad($partida->codInv, 4, '0', STR_PAD_LEFT) : 'N/A' }}</span></td>
                             <td><span class="label">Tipo Unidad:</span> <span
                                     class="value">{{ $partida->tipo ?? 'N/A' }}</span></td>
                         </tr>

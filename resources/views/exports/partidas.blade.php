@@ -224,7 +224,7 @@
                     <td style="{{ $currentRowStyle }}">{{ $partida->modelo }}</td>
                     <td style="{{ $currentRowStyle }}">{{ $partida->serial }}</td>
                     <td style="{{ $currentRowStyle }}">{{ $partida->año }}</td>
-                    <td style="{{ $currentRowStyle }}">{{ $partida->codInv }}</td>
+                    <td style="{{ $currentRowStyle }}">{{ str_pad($partida->codInv, 4, '0', STR_PAD_LEFT) }}</td>
                     <td style="{{ $currentRowStyle }}">{{ $partida->expediente }}</td>
                     <td style="{{ $currentRowStyle }} {{ $statusColor }} font-weight: bold;">{{ $partida->status }}</td>
                     <td style="{{ $currentRowStyle }}">{{ $fechaVenta }}</td>
