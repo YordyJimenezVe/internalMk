@@ -43,7 +43,22 @@ const form = useForm({
     condicion: props.inventario.condicion || 'APLICA',
     status: props.inventario.status || 'DISPONIBLE',
     observation: props.inventario.observation || '',
+    serial_file: null,
 });
+
+const serialPreviewUrl = ref(props.inventario.serial_image_path ? `/storage/${props.inventario.serial_image_path}` : null);
+
+const handleSerialFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        if (file.size > 2 * 1024 * 1024) {
+            alert('La imagen no debe superar los 2MB');
+            return;
+        }
+        form.serial_file = file;
+        serialPreviewUrl.value = URL.createObjectURL(file);
+    }
+};
 
 const isAutoparte = computed(() => form.tipo === 'AUTOPARTE');
 
@@ -200,6 +215,23 @@ onMounted(() => {
                                     </label>
                                     <input v-model="form.serial" class="appearance-none block w-full bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg py-3 px-4 leading-tight focus:outline-none focus:bg-white dark:focus:bg-gray-600 focus:border-indigo-500 transition-colors uppercase" type="text">
                                     <InputError :message="form.errors.serial" class="mt-2" />
+                                </div>
+                                
+                                <div>
+                                    <label class="block uppercase tracking-wide text-gray-700 dark:text-gray-300 text-xs font-bold mb-2">
+                                        <i class="fa-solid fa-camera mr-1 text-indigo-500"></i>Foto de Serial
+                                    </label>
+                                    <div class="flex items-center gap-4">
+                                        <label class="flex items-center justify-center px-4 py-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-gray-700 dark:hover:bg-gray-600 text-indigo-700 dark:text-indigo-400 font-bold rounded-lg cursor-pointer border border-indigo-200 dark:border-gray-600 transition-colors text-sm">
+                                            <i class="fa-solid fa-upload mr-2"></i> Subir Foto
+                                            <input type="file" accept="image/*" class="hidden" @change="handleSerialFileChange">
+                                        </label>
+                                        <span class="text-xs text-gray-500 dark:text-gray-400" v-if="!serialPreviewUrl">Sin foto seleccionada</span>
+                                    </div>
+                                    <div v-if="serialPreviewUrl" class="mt-2 relative w-32 h-20 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 bg-black flex items-center justify-center">
+                                        <img :src="serialPreviewUrl" class="max-w-full max-h-full object-contain" alt="Vista previa del serial">
+                                    </div>
+                                    <InputError :message="form.errors.serial_file" class="mt-2" />
                                 </div>
                                 
                                 <div>

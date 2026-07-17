@@ -56,6 +56,8 @@ const form = useForm({
     client_email: '',
     quantity: 1,
     client_cedula_file: null,
+    serial_file: null,
+    observation: '',
 });
 
 // Camera and Preview state
@@ -64,7 +66,10 @@ const videoElement = ref(null);
 const canvasElement = ref(null);
 const stream = ref(null);
 const imagePreviewUrl = ref(null);
+const serialPreviewUrl = ref(null);
 const cameraError = ref(null);
+const cameraTarget = ref('cedula'); // 'cedula' or 'serial'
+const showSerialZoomModal = ref(false);
 
 const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -90,7 +95,32 @@ const removeImage = () => {
     }
 };
 
-const startCamera = async () => {
+const handleSerialFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        // Limit to 2MB
+        if (file.size > 2 * 1024 * 1024) {
+            alert('La imagen no debe superar los 2MB');
+            return;
+        }
+        form.serial_file = file;
+        if (serialPreviewUrl.value) {
+            URL.revokeObjectURL(serialPreviewUrl.value);
+        }
+        serialPreviewUrl.value = URL.createObjectURL(file);
+    }
+};
+
+const removeSerialImage = () => {
+    form.serial_file = null;
+    if (serialPreviewUrl.value) {
+        URL.revokeObjectURL(serialPreviewUrl.value);
+        serialPreviewUrl.value = null;
+    }
+};
+
+const startCamera = async (target = 'cedula') => {
+    cameraTarget.value = target;
     isCameraOpen.value = true;
     cameraError.value = null;
     try {
@@ -115,12 +145,22 @@ const capturePhoto = () => {
         
         canvasElement.value.toBlob((blob) => {
             if (blob) {
-                const file = new File([blob], "capture_cedula.jpg", { type: "image/jpeg" });
-                form.client_cedula_file = file;
-                if (imagePreviewUrl.value) {
-                    URL.revokeObjectURL(imagePreviewUrl.value);
+                const filename = cameraTarget.value === 'cedula' ? "capture_cedula.jpg" : "capture_serial.jpg";
+                const file = new File([blob], filename, { type: "image/jpeg" });
+                
+                if (cameraTarget.value === 'cedula') {
+                    form.client_cedula_file = file;
+                    if (imagePreviewUrl.value) {
+                        URL.revokeObjectURL(imagePreviewUrl.value);
+                    }
+                    imagePreviewUrl.value = URL.createObjectURL(file);
+                } else {
+                    form.serial_file = file;
+                    if (serialPreviewUrl.value) {
+                        URL.revokeObjectURL(serialPreviewUrl.value);
+                    }
+                    serialPreviewUrl.value = URL.createObjectURL(file);
                 }
-                imagePreviewUrl.value = URL.createObjectURL(file);
                 closeCamera();
             }
         }, 'image/jpeg', 0.9);
@@ -141,15 +181,20 @@ const submitBilling = () => {
         ...data,
         client_name: data.client_name ? data.client_name.toUpperCase() : '',
         client_cedula: data.client_cedula ? data.client_cedula.toUpperCase() : '',
+        observation: data.observation ? data.observation.toUpperCase() : '',
         price: data.price ? data.price.toString().replace(/\./g, '').replace(',', '.') : ''
     })).post(route('billing.requests.store'), {
         preserveScroll: true,
         forceFormData: true,
         onSuccess: () => {
-            form.reset('client_name', 'client_cedula_file', 'quantity');
+            form.reset('client_name', 'client_cedula_file', 'quantity', 'serial_file', 'observation');
             if (imagePreviewUrl.value) {
                 URL.revokeObjectURL(imagePreviewUrl.value);
                 imagePreviewUrl.value = null;
+            }
+            if (serialPreviewUrl.value) {
+                URL.revokeObjectURL(serialPreviewUrl.value);
+                serialPreviewUrl.value = null;
             }
             router.visit(route('inventario'));
         },
@@ -321,6 +366,19 @@ const submitBilling = () => {
                                 </div>
                             </div>
 
+                            <!-- Serial Image Display -->
+                            <div v-if="props.inventario.serial_image_url" class="mt-6 p-6 bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-gray-100 dark:border-gray-700">
+                                <label class="block uppercase tracking-wide text-gray-500 dark:text-gray-400 text-xs font-bold mb-2">
+                                    <i class="fa-solid fa-camera mr-1 text-indigo-500"></i>Foto de Serial de Motor/Caja
+                                </label>
+                                <div class="relative group cursor-zoom-in w-full max-w-[300px] mt-2 block">
+                                    <img :src="props.inventario.serial_image_url" class="rounded-xl shadow-lg border-2 border-white dark:border-gray-800 transition-transform group-hover:scale-[1.02] w-full h-auto" alt="Serial de Motor/Caja" @click="showSerialZoomModal = true">
+                                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-xl transition-opacity" @click="showSerialZoomModal = true">
+                                        <i class="fa-solid fa-magnifying-glass-plus text-white text-2xl"></i>
+                                    </div>
+                                </div>
+                            </div>
+
                             <!-- Codes Row -->
                             <div class="mt-10 grid grid-cols-1 md:grid-cols-2 gap-8 p-6 bg-gray-50 dark:bg-gray-900/30 rounded-2xl border border-gray-100 dark:border-gray-700">
                                 <div class="text-center">
@@ -416,12 +474,41 @@ const submitBilling = () => {
                                             </label>
                                             
                                             <!-- Camera Button -->
-                                            <button type="button" @click="startCamera" class="flex flex-col items-center justify-center p-3 bg-white/10 hover:bg-white/20 border border-dashed border-white/30 hover:border-white/50 rounded-2xl transition-all text-center">
+                                            <button type="button" @click="startCamera('cedula')" class="flex flex-col items-center justify-center p-3 bg-white/10 hover:bg-white/20 border border-dashed border-white/30 hover:border-white/50 rounded-2xl transition-all text-center">
                                                 <i class="fa-solid fa-camera text-xl mb-1 opacity-80"></i>
                                                 <span class="text-[10px] font-bold uppercase tracking-wider">Tomar Foto</span>
                                             </button>
                                         </div>
                                         <p v-if="!imagePreviewUrl" class="mt-2 text-[10px] text-white/50 text-center">Formatos permitidos: JPG, PNG (Máx 2MB)</p>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-xs font-bold mb-2 uppercase opacity-80">Foto de Serial de Motor/Caja (Opcional)</label>
+                                        
+                                        <!-- Serial Image Preview with Deletion Option -->
+                                        <div v-if="serialPreviewUrl" class="relative mt-2 p-2 bg-white/10 border border-white/20 rounded-2xl overflow-hidden flex flex-col items-center">
+                                            <img :src="serialPreviewUrl" class="max-h-48 w-full object-contain rounded-xl" alt="Preview de Serial">
+                                            <button type="button" @click="removeSerialImage" class="mt-2 w-full flex items-center justify-center gap-2 bg-rose-500 hover:bg-rose-600 text-white font-bold py-2 rounded-xl transition-all active:scale-[0.98]">
+                                                <i class="fa-solid fa-trash"></i> Eliminar Foto
+                                            </button>
+                                        </div>
+                                        
+                                        <!-- Upload / Shutter Options -->
+                                        <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+                                            <!-- File Upload Wrapper -->
+                                            <label class="flex flex-col items-center justify-center p-3 bg-white/10 hover:bg-white/20 border border-dashed border-white/30 hover:border-white/50 rounded-2xl cursor-pointer transition-all text-center">
+                                                <i class="fa-solid fa-upload text-xl mb-1 opacity-80"></i>
+                                                <span class="text-[10px] font-bold uppercase tracking-wider">Cargar Archivo</span>
+                                                <input type="file" accept="image/*" class="hidden" @change="handleSerialFileChange">
+                                            </label>
+                                            
+                                            <!-- Camera Button -->
+                                            <button type="button" @click="startCamera('serial')" class="flex flex-col items-center justify-center p-3 bg-white/10 hover:bg-white/20 border border-dashed border-white/30 hover:border-white/50 rounded-2xl transition-all text-center">
+                                                <i class="fa-solid fa-camera text-xl mb-1 opacity-80"></i>
+                                                <span class="text-[10px] font-bold uppercase tracking-wider">Tomar Foto</span>
+                                            </button>
+                                        </div>
+                                        <p v-if="!serialPreviewUrl" class="mt-2 text-[10px] text-white/50 text-center">Formatos permitidos: JPG, PNG (Máx 2MB)</p>
                                     </div>
 
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -437,6 +524,10 @@ const submitBilling = () => {
                                     <div>
                                         <label class="block text-xs font-bold mb-2 uppercase opacity-80">Dirección (Opcional)</label>
                                         <textarea v-model="form.client_address" rows="2" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:ring-2 focus:ring-white outline-none resize-none" placeholder="Dirección del cliente"></textarea>
+                                    </div>
+                                    <div>
+                                        <label class="block text-xs font-bold mb-2 uppercase opacity-80">Observación (Opcional)</label>
+                                        <textarea v-model="form.observation" @input="form.observation = form.observation.toUpperCase()" rows="2" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:ring-2 focus:ring-white outline-none resize-none uppercase" placeholder="Ej: Motor para Captiva, Rey Camión, etc."></textarea>
                                     </div>
                                     
                                     <button type="submit" :disabled="form.processing" class="w-full bg-white text-indigo-700 font-bold py-4 px-6 rounded-2xl shadow-xl transition-all transform hover:scale-[1.05] active:scale-95 disabled:opacity-50 flex items-center justify-center text-lg">
@@ -503,7 +594,7 @@ const submitBilling = () => {
             <div class="relative bg-gray-905 bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden max-w-lg w-full p-6 flex flex-col items-center shadow-2xl">
                 <div class="w-full flex justify-between items-center mb-4">
                     <h4 class="text-white font-black text-lg uppercase tracking-tight flex items-center">
-                        <i class="fa-solid fa-camera mr-2 text-indigo-500"></i>Tomar Foto de Cédula
+                        <i class="fa-solid fa-camera mr-2 text-indigo-500"></i>Tomar Foto de {{ cameraTarget === 'cedula' ? 'Cédula' : 'Serial de Motor/Caja' }}
                     </h4>
                     <button type="button" @click="closeCamera" class="text-gray-400 hover:text-white transition-colors">
                         <i class="fa-solid fa-times text-lg"></i>
@@ -531,6 +622,17 @@ const submitBilling = () => {
                     </button>
                     <div class="w-[92px]"></div> <!-- Spacer to center the shutter button -->
                 </div>
+            </div>
+        </div>
+
+        <!-- Serial Zoom Modal -->
+        <div v-if="showSerialZoomModal" class="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-10">
+            <div class="fixed inset-0 bg-gray-950/90 backdrop-blur-md transition-opacity" @click="showSerialZoomModal = false"></div>
+            <div class="relative max-w-4xl w-full max-h-screen bg-transparent rounded-2xl overflow-hidden flex flex-col items-center justify-center z-10 animate-in zoom-in-95 duration-200">
+                <img :src="props.inventario.serial_image_url" class="max-w-full max-h-[85vh] object-contain rounded-2xl shadow-2xl border-4 border-slate-900" alt="Serial de Motor/Caja Ampliado">
+                <button @click="showSerialZoomModal = false" class="mt-4 px-6 py-2 bg-slate-900/80 hover:bg-slate-950 text-white font-bold rounded-xl transition-all shadow-lg flex items-center gap-2 border border-slate-800">
+                    <i class="fa-solid fa-times"></i> Cerrar Vista
+                </button>
             </div>
         </div>
     </AppLayout>

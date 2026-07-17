@@ -36,6 +36,7 @@ const editForm = useForm({
     client_phone: '',
     client_address: '',
     client_email: '',
+    observation: '',
 });
 
 const startEdit = (req) => {
@@ -47,6 +48,7 @@ const startEdit = (req) => {
     editForm.client_phone = req.client_phone || '';
     editForm.client_address = req.client_address || '';
     editForm.client_email = req.client_email || '';
+    editForm.observation = req.observation || '';
 };
 
 const cancelEdit = () => {
@@ -203,6 +205,9 @@ const goToCreateBilling = (id, requestId) => {
                                             <span v-if="req.client_address" class="text-[9px] text-gray-400 dark:text-gray-500 max-w-[200px] truncate" :title="req.client_address">
                                                 <i class="fa-solid fa-location-dot text-[8px] mr-1 text-rose-400"></i>{{ req.client_address }}
                                             </span>
+                                            <span v-if="req.observation" class="mt-1 text-[9px] bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded-md border border-amber-100 dark:border-amber-800/30 uppercase tracking-wide inline-block max-w-[200px] truncate" :title="req.observation">
+                                                <i class="fa-solid fa-comment-dots mr-1 text-amber-500"></i>{{ req.observation }}
+                                            </span>
                                         </div>
                                     </td>
                                     <td v-if="!isFacturacion" class="px-8 py-6 whitespace-nowrap text-center">
@@ -329,6 +334,14 @@ const goToCreateBilling = (id, requestId) => {
                                     <div class="relative group">
                                         <i class="fa-solid fa-location-dot absolute left-4 top-[18px] text-gray-400 group-focus-within:text-blue-500 transition-colors"></i>
                                         <textarea v-model="editForm.client_address" rows="2" class="block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-3.5 pl-12 pr-[14px] focus:ring-2 focus:ring-blue-500 transition-all font-bold outline-none resize-none" placeholder="Dirección completa del cliente"></textarea>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest ml-1">Observación</label>
+                                    <div class="relative group">
+                                        <i class="fa-solid fa-comment-dots absolute left-4 top-[18px] text-gray-400 group-focus-within:text-blue-500 transition-colors"></i>
+                                        <textarea v-model="editForm.observation" @input="editForm.observation = editForm.observation.toUpperCase()" rows="2" class="block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-3.5 pl-12 pr-[14px] focus:ring-2 focus:ring-blue-500 transition-all font-bold outline-none resize-none uppercase" placeholder="Ej: Motor para Captiva, etc."></textarea>
                                     </div>
                                 </div>
                             </div>

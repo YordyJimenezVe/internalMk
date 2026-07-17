@@ -97,6 +97,7 @@ class BillingsController extends Controller
                 $billing->client_phone = $billingRequest->client_phone;
                 $billing->client_address = $billingRequest->client_address;
                 $billing->client_email = $billingRequest->client_email;
+                $billing->observation = $billingRequest->observation;
                 $billing->billing_request_id = $requestId;
                 $billing->client_cedula_url = $billingRequest->client_cedula_file ? asset('storage/' . $billingRequest->client_cedula_file) : null;
             }
@@ -106,6 +107,8 @@ class BillingsController extends Controller
                 ->where('data->billing_request_id', $requestId)
                 ->delete();
         }
+
+        $billing->serial_image_url = $billing->serial_image_path ? asset('storage/' . $billing->serial_image_path) : null;
 
         $now = Carbon::now();
         $today = Carbon::today();

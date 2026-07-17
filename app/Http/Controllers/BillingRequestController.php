@@ -28,6 +28,13 @@ class BillingRequestController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        $requests->each(function ($req) {
+            $item = $req->inventario ?: $req->partida;
+            if ($item) {
+                $item->serial_image_url = $item->serial_image_path ? asset('storage/' . $item->serial_image_path) : null;
+            }
+        });
+
         return inertia('BillingRequest/Index', [
             'requests' => $requests
         ]);
@@ -53,6 +60,8 @@ class BillingRequestController extends Controller
             'client_phone' => 'nullable|string|max:30',
             'client_address' => 'nullable|string|max:500',
             'client_email' => 'nullable|email|max:255',
+            'serial_file' => 'nullable|image|max:2048',
+            'observation' => 'nullable|string|max:1000',
         ]);
 
         $partida = \App\Models\Inventario::findOrFail($request->partida_id);
@@ -77,11 +86,16 @@ class BillingRequestController extends Controller
             'client_address' => $request->client_address ? strip_tags($request->client_address) : null,
             'client_email' => $request->client_email ? strip_tags($request->client_email) : null,
             'status' => 'pending',
+            'observation' => $request->observation ? strip_tags($request->observation) : null,
         ]);
 
         $partida = \App\Models\Inventario::find($request->partida_id);
         if ($partida) {
             $partida->price_sale = $request->price;
+            if ($request->hasFile('serial_file')) {
+                $serialPath = \App\Helpers\ImageHelper::compressAndStore($request->file('serial_file'), 'serial_captures');
+                $partida->serial_image_path = $serialPath;
+            }
             $partida->saveQuietly();
         }
 
@@ -219,11 +233,12 @@ class BillingRequestController extends Controller
             'client_phone' => 'nullable|string|max:30',
             'client_address' => 'nullable|string|max:500',
             'client_email' => 'nullable|email|max:255',
+            'observation' => 'nullable|string|max:1000',
         ]);
 
         $billingRequest->update($request->only([
             'quantity', 'price', 'client_name', 'client_cedula',
-            'client_phone', 'client_address', 'client_email'
+            'client_phone', 'client_address', 'client_email', 'observation'
         ]));
 
         $partida = $billingRequest->inventario;

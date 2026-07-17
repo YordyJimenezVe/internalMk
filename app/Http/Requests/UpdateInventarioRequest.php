@@ -33,6 +33,7 @@ class UpdateInventarioRequest extends FormRequest
             'costo_importacion_unitario' => 'nullable|numeric',
             'price_sale' => 'nullable|string',
             'observation' => 'nullable|string',
+            'serial_file' => 'nullable|image|max:2048',
         ];
 
         // Conditional for Imported items

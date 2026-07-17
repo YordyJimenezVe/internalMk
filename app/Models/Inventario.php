@@ -54,6 +54,7 @@ class Inventario extends Model
         'costo_importacion_unitario',
         'origen',
         'observation',
+        'serial_image_path',
     ];
 
     public function container()

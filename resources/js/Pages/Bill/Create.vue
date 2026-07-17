@@ -10,6 +10,7 @@ const props = defineProps({
   costo_declarado: [Number, String],
 });
 const showCedulaModal = ref(false);
+const showSerialZoomModal = ref(false);
 </script>
 
 <template>
@@ -194,6 +195,12 @@ const showCedulaModal = ref(false);
                                         <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="client_address">Dirección</label>
                                         <input class="appearance-none block w-full bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 transition-all font-bold" name="client_address" type="text" v-model="clientAddress" placeholder="Dirección del cliente">
                                     </div>
+                                    <div v-if="data.observation" class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-100 dark:border-amber-900/30">
+                                        <label class="block text-[10px] font-black text-amber-850 dark:text-amber-400 uppercase tracking-widest mb-1 flex items-center gap-1">
+                                            <i class="fa-solid fa-comment-dots text-amber-500"></i> Observación del Asesor
+                                        </label>
+                                        <p class="text-xs text-amber-700 dark:text-amber-300 font-bold uppercase">{{ data.observation }}</p>
+                                    </div>
                                 </div>
 
                                 <div class="space-y-4">
@@ -208,16 +215,30 @@ const showCedulaModal = ref(false);
                                         </div>
                                     </div>
 
-                                    <!-- Client ID Card Preview -->
-                                    <div v-if="data.client_cedula_url" class="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center gap-3">
-                                        <label class="block w-full text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest text-center">Documento de Identidad (Cédula)</label>
-                                        <div @click="showCedulaModal = true" class="relative group cursor-zoom-in w-full max-w-[200px] block">
-                                            <img :src="data.client_cedula_url" class="rounded-xl shadow-lg border-2 border-white dark:border-gray-800 transition-transform group-hover:scale-[1.02] w-full h-auto" alt="Cédula de Identidad">
-                                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-xl transition-opacity">
-                                                <i class="fa-solid fa-magnifying-glass-plus text-white text-2xl"></i>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <!-- Client ID Card Preview -->
+                                        <div v-if="data.client_cedula_url" class="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center gap-3">
+                                            <label class="block w-full text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest text-center">Documento de Identidad</label>
+                                            <div @click="showCedulaModal = true" class="relative group cursor-zoom-in w-full max-w-[200px] flex items-center justify-center">
+                                                <img :src="data.client_cedula_url" class="rounded-xl shadow-lg border-2 border-white dark:border-gray-800 transition-transform group-hover:scale-[1.02] max-w-full max-h-40 object-contain" alt="Cédula de Identidad">
+                                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-xl transition-opacity">
+                                                    <i class="fa-solid fa-magnifying-glass-plus text-white text-2xl"></i>
+                                                </div>
                                             </div>
+                                            <p class="text-[9px] text-gray-400 font-bold uppercase tracking-tighter italic">Ampliar Cédula</p>
                                         </div>
-                                        <p class="text-[9px] text-gray-400 font-bold uppercase tracking-tighter italic">Haga clic para ampliar imagen</p>
+
+                                        <!-- Serial Image Preview -->
+                                        <div v-if="data.serial_image_url" class="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center gap-3">
+                                            <label class="block w-full text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest text-center">Foto del Serial</label>
+                                            <div @click="showSerialZoomModal = true" class="relative group cursor-zoom-in w-full max-w-[200px] flex items-center justify-center">
+                                                <img :src="data.serial_image_url" class="rounded-xl shadow-lg border-2 border-white dark:border-gray-800 transition-transform group-hover:scale-[1.02] max-w-full max-h-40 object-contain" alt="Foto del Serial">
+                                                <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-xl transition-opacity">
+                                                    <i class="fa-solid fa-magnifying-glass-plus text-white text-2xl"></i>
+                                                </div>
+                                            </div>
+                                            <p class="text-[9px] text-gray-400 font-bold uppercase tracking-tighter italic">Ampliar Serial</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -256,6 +277,22 @@ const showCedulaModal = ref(false);
                 
                 <div class="bg-white dark:bg-gray-900 p-3 rounded-[2.5rem] shadow-2xl border-4 border-white/10 overflow-hidden">
                     <img :src="data.client_cedula_url" class="w-full h-auto rounded-[2rem] shadow-inner" alt="Cédula Ampliada">
+                </div>
+            </div>
+        </div>
+
+        <!-- Serial Zoom Modal -->
+        <div v-if="showSerialZoomModal" class="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-10">
+            <div class="fixed inset-0 bg-gray-950/90 backdrop-blur-md transition-opacity" @click="showSerialZoomModal = false"></div>
+            
+            <div class="relative max-w-5xl w-full animate-in zoom-in-95 duration-300">
+                <button @click="showSerialZoomModal = false" class="absolute -top-16 right-0 text-white/70 hover:text-white transition-colors flex items-center gap-2 font-black uppercase tracking-widest text-xs">
+                    <span>Cerrar</span>
+                    <i class="fa-solid fa-circle-xmark text-3xl"></i>
+                </button>
+                
+                <div class="bg-white dark:bg-gray-900 p-3 rounded-[2.5rem] shadow-2xl border-4 border-white/10 overflow-hidden">
+                    <img :src="data.serial_image_url" class="w-full h-auto rounded-[2rem] shadow-inner" alt="Serial Ampliado">
                 </div>
             </div>
         </div>

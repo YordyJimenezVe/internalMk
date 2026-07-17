@@ -276,6 +276,7 @@ class InventarioController extends Controller
 
         $data = Inventario::with(['container', 'maintenances', 'bill', 'billingRequests'])->findOrFail($id);
         $data->append('costo_taller');
+        $data->serial_image_url = $data->serial_image_path ? asset('storage/' . $data->serial_image_path) : null;
 
         // Barcode Data (Standardized internal code)
         $containerCode = $data->container ? substr($data->container->cod, 0, 4) : 'MK';
@@ -358,6 +359,11 @@ class InventarioController extends Controller
     {
         $inventario = Inventario::findOrFail($id);
         $data = $request->validated(); // Use validated data
+
+        if ($request->hasFile('serial_file')) {
+            $serialPath = \App\Helpers\ImageHelper::compressAndStore($request->file('serial_file'), 'serial_captures');
+            $data['serial_image_path'] = $serialPath;
+        }
 
         // Re-generate item just in case, although prepareForValidation in Request should handle it
         if ($data['tipo'] === 'AUTOPARTE') {

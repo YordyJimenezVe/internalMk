@@ -19,6 +19,7 @@ class BillingRequest extends Model
         'client_address',
         'client_email',
         'status',
+        'observation',
     ];
 
     public function inventario()
