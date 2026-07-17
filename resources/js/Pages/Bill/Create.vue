@@ -201,6 +201,12 @@ const showSerialZoomModal = ref(false);
                                         </label>
                                         <p class="text-xs text-amber-700 dark:text-amber-300 font-bold uppercase">{{ data.observation }}</p>
                                     </div>
+                                    <div class="p-4 bg-indigo-50/50 dark:bg-indigo-900/20 rounded-2xl border border-indigo-100 dark:border-indigo-900/30">
+                                        <label class="block text-[10px] font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-widest mb-1 flex items-center gap-1">
+                                            <i class="fa-solid fa-barcode text-indigo-500"></i> Serial del Motor / Caja
+                                        </label>
+                                        <p class="text-sm font-black text-indigo-900 dark:text-indigo-300 uppercase">{{ data.serial || 'NO CARGADO' }}</p>
+                                    </div>
                                 </div>
 
                                 <div class="space-y-4">
