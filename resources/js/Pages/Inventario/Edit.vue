@@ -213,7 +213,7 @@ onMounted(() => {
                                     <label class="block uppercase tracking-wide text-gray-700 dark:text-gray-300 text-xs font-bold mb-2">
                                         <i class="fa-solid fa-barcode mr-1 text-indigo-500"></i>Serial
                                     </label>
-                                    <input v-model="form.serial" class="appearance-none block w-full bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg py-3 px-4 leading-tight focus:outline-none focus:bg-white dark:focus:bg-gray-600 focus:border-indigo-500 transition-colors uppercase" type="text">
+                                    <input v-model="form.serial" class="appearance-none block w-full bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg py-3 px-4 leading-tight focus:outline-none focus:bg-white dark:focus:bg-gray-600 focus:border-indigo-500 transition-colors uppercase" type="text" required>
                                     <InputError :message="form.errors.serial" class="mt-2" />
                                 </div>
                                 
