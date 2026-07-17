@@ -39,6 +39,15 @@ const editForm = useForm({
     observation: '',
 });
 
+const formatSerial = (serial) => {
+    if (!serial) return '';
+    const upper = serial.toUpperCase();
+    if (upper === 'S/S' || upper === 'SIN SERIAL' || upper === 'NO APARENTE SERIAL') {
+        return 'NO APARENTE SERIAL';
+    }
+    return serial;
+};
+
 const startEdit = (req) => {
     editingRequest.value = req;
     editForm.quantity = req.quantity;
@@ -205,8 +214,8 @@ const goToCreateBilling = (id, requestId) => {
                                             <span v-if="req.client_address" class="text-[9px] text-gray-400 dark:text-gray-500 max-w-[200px] truncate" :title="req.client_address">
                                                 <i class="fa-solid fa-location-dot text-[8px] mr-1 text-rose-400"></i>{{ req.client_address }}
                                             </span>
-                                            <span v-if="(req.inventario || req.partida)?.serial" class="text-[9px] text-gray-400 dark:text-gray-500 max-w-[200px] truncate" :title="(req.inventario || req.partida).serial">
-                                                <i class="fa-solid fa-barcode text-[8px] mr-1 text-indigo-400"></i>Serial: {{ (req.inventario || req.partida).serial }}
+                                            <span v-if="(req.inventario || req.partida)?.serial" class="text-[9px] text-gray-400 dark:text-gray-500 max-w-[200px] truncate" :title="formatSerial((req.inventario || req.partida).serial)">
+                                                <i class="fa-solid fa-barcode text-[8px] mr-1 text-indigo-400"></i>Serial: {{ formatSerial((req.inventario || req.partida).serial) }}
                                             </span>
                                             <span v-if="req.observation" class="mt-1 text-[9px] bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded-md border border-amber-100 dark:border-amber-800/30 uppercase tracking-wide inline-block max-w-[200px] truncate" :title="req.observation">
                                                 <i class="fa-solid fa-comment-dots mr-1 text-amber-500"></i>{{ req.observation }}

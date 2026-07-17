@@ -11,6 +11,15 @@ const props = defineProps({
 });
 const showCedulaModal = ref(false);
 const showSerialZoomModal = ref(false);
+
+const formatSerial = (serial) => {
+    if (!serial) return '';
+    const upper = serial.toUpperCase();
+    if (upper === 'S/S' || upper === 'SIN SERIAL' || upper === 'NO APARENTE SERIAL') {
+        return 'NO APARENTE SERIAL';
+    }
+    return serial;
+};
 </script>
 
 <template>
@@ -205,7 +214,7 @@ const showSerialZoomModal = ref(false);
                                         <label class="block text-[10px] font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-widest mb-1 flex items-center gap-1">
                                             <i class="fa-solid fa-barcode text-indigo-500"></i> Serial del Motor / Caja
                                         </label>
-                                        <p class="text-sm font-black text-indigo-900 dark:text-indigo-300 uppercase">{{ data.serial || 'NO CARGADO' }}</p>
+                                        <p class="text-sm font-black text-indigo-900 dark:text-indigo-300 uppercase">{{ formatSerial(data.serial) || 'NO CARGADO' }}</p>
                                     </div>
                                 </div>
 
