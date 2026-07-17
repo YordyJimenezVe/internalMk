@@ -48,11 +48,11 @@ const form = useForm({
 
 const serialPreviewUrl = ref(props.inventario.serial_image_path ? `/storage/${props.inventario.serial_image_path}` : null);
 
-const noSerial = ref(props.inventario.serial === 'S/S' || props.inventario.serial === 'SIN SERIAL');
+const noSerial = ref(props.inventario.serial === 'NO APARENTE SERIAL' || props.inventario.serial === 'S/S' || props.inventario.serial === 'SIN SERIAL');
 
 const handleNoSerialChange = () => {
     if (noSerial.value) {
-        form.serial = 'S/S';
+        form.serial = 'NO APARENTE SERIAL';
     } else {
         form.serial = '';
     }
@@ -226,7 +226,7 @@ onMounted(() => {
                                         </label>
                                         <label class="flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 font-bold cursor-pointer">
                                             <input type="checkbox" v-model="noSerial" @change="handleNoSerialChange" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5">
-                                            Sin Serial (S/S)
+                                            No Aparenta Serial
                                         </label>
                                     </div>
                                     <input :disabled="noSerial" v-model="form.serial" class="appearance-none block w-full bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg py-3 px-4 leading-tight focus:outline-none focus:bg-white dark:focus:bg-gray-600 focus:border-indigo-500 transition-colors uppercase disabled:opacity-60 disabled:cursor-not-allowed" type="text" required>
