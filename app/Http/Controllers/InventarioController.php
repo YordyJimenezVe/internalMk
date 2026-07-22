@@ -167,7 +167,7 @@ class InventarioController extends Controller
             $inventarios->orderBy($sortBy, $direction);
         }
 
-        $motorTypes = ['MOTOR 7/8', 'MOTOR 3/4', 'MOTOR COMPLETO', 'MOTOR 5/8', 'MOTOR COMPLETO CON CAJA'];
+        $motorTypes = ['MOTOR 7/8', 'MOTOR 3/4', 'MOTOR COMPLETO', 'MOTOR 5/8'];
         $tipos = Inventario::whereDoesntHave('bill')
             ->selectRaw('
             SUM(CASE WHEN tipo LIKE "%motor%" THEN 1 ELSE 0 END) AS motores,
@@ -201,7 +201,7 @@ class InventarioController extends Controller
     public function create()
     {
         $containers = Container::all();
-        $tipos = ['MOTOR 3/4', 'MOTOR 5/8', 'MOTOR 7/8', 'MOTOR COMPLETO', 'MOTOR COMPLETO CON CAJA', 'CAJA AUTOMÁTICA', 'CAJA SINCRÓNICA', 'CÁMARA', 'AUTOPARTE'];
+        $tipos = ['MOTOR 3/4', 'MOTOR 5/8', 'MOTOR 7/8', 'MOTOR COMPLETO', 'CAJA AUTOMÁTICA', 'CAJA SINCRÓNICA', 'CÁMARA', 'AUTOPARTE'];
         return inertia(
             'Inventario/Create',
             [
@@ -346,7 +346,7 @@ class InventarioController extends Controller
             ->whereId($id)
             ->get()->first();
         $containers = Container::all();
-        $tipos = ['MOTOR 3/4', 'MOTOR 5/8', 'MOTOR 7/8', 'MOTOR COMPLETO', 'MOTOR COMPLETO CON CAJA', 'CAJA AUTOMÁTICA', 'CAJA SINCRÓNICA', 'CÁMARA', 'AUTOPARTE'];
+        $tipos = ['MOTOR 3/4', 'MOTOR 5/8', 'MOTOR 7/8', 'MOTOR COMPLETO', 'CAJA AUTOMÁTICA', 'CAJA SINCRÓNICA', 'CÁMARA', 'AUTOPARTE'];
         return inertia('Inventario/Edit', [
             'inventario' => $data,
             'containers' => $containers,
