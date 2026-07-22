@@ -8,6 +8,17 @@ use Illuminate\Database\Eloquent\Model;
 class Container extends Model
 {
     use HasFactory;
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::updated(function ($container) {
+            if ($container->wasChanged('expediente')) {
+                $container->items()->update(['expediente' => $container->expediente]);
+            }
+        });
+    }
      
     protected $fillable = [
         'fecha',
