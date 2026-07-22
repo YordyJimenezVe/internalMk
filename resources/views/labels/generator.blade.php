@@ -650,6 +650,16 @@
                         </select>
                     </div>
 
+                    <!-- Dropdown Costo -->
+                    <div class="form-group" style="display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
+                        <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.5px; text-transform: uppercase;">Estado de Costo</label>
+                        <select name="cost_filter" style="width: 100%; padding: 0.8rem 1rem; background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border-color); border-radius: 10px; color: var(--text-primary); font-family: inherit; font-size: 0.95rem; cursor: pointer; outline: none; transition: border-color 0.2s;">
+                            <option value="all" selected>Toda la mercancía (Por defecto)</option>
+                            <option value="without_cost">Solo mercancía SIN costo aún</option>
+                            <option value="with_cost">Solo mercancía CON costo asignado</option>
+                        </select>
+                    </div>
+
                     <button type="submit" class="btn-print" style="margin-top: 0.5rem; border: none; width: 100%;">
                         <i class="fa-solid fa-print"></i> Generar Pliego (Carta)
                     </button>

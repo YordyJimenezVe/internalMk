@@ -458,10 +458,29 @@ class InventarioController extends Controller
             'container_id' => 'required|string',
             'type' => 'nullable|string',
             'brand' => 'nullable|string',
+            'cost_filter' => 'nullable|string|in:all,without_cost,with_cost',
         ]);
 
-        $query = Inventario::with('container')
-            ->whereIn('status', ['DISPONIBLE', 'DEVUELTO']);
+        $costFilter = $request->input('cost_filter', 'all');
+
+        $query = Inventario::with('container');
+
+        if ($costFilter === 'without_cost') {
+            $query->where(function ($q) {
+                $q->whereNull('costo_importacion_unitario')
+                  ->orWhere('costo_importacion_unitario', 0);
+            })->where(function ($q) {
+                $q->where(function ($inner) {
+                    $inner->where('tipo', 'NOT LIKE', '%AUTOPARTE%')
+                          ->where('tipo', 'NOT LIKE', '%autoparte%');
+                })->orWhere('status', 'PRECIO PENDIENTE');
+            });
+        } elseif ($costFilter === 'with_cost') {
+            $query->whereIn('status', ['DISPONIBLE', 'DEVUELTO'])
+                  ->where('costo_importacion_unitario', '>', 0);
+        } else {
+            $query->whereIn('status', ['DISPONIBLE', 'DEVUELTO']);
+        }
 
         // Filtrado por Contenedor
         if ($request->container_id !== 'all') {
