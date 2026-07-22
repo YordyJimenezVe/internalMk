@@ -117,6 +117,7 @@ const submit = () => {
                                     <option value="MOTOR 5/8">Motor 5/8</option>
                                     <option value="MOTOR 7/8">Motor 7/8</option>
                                     <option value="MOTOR COMPLETO">Motor COMPLETO</option>
+                                    <option value="MOTOR COMPLETO CON CAJA">Motor Completo con Caja</option>
                                     <option value="CAJA AUTOMÁTICA">Caja Automática</option>
                                     <option value="CAJA SINCRÓNICA">Caja Sincrónica</option>
                                     <option value="CÁMARA">Cámara</option>

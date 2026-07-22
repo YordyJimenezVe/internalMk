@@ -229,7 +229,7 @@ onMounted(() => {
                                             No Aparenta Serial
                                         </label>
                                     </div>
-                                    <input :disabled="noSerial" v-model="form.serial" class="appearance-none block w-full bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg py-3 px-4 leading-tight focus:outline-none focus:bg-white dark:focus:bg-gray-600 focus:border-indigo-500 transition-colors uppercase disabled:opacity-60 disabled:cursor-not-allowed" type="text" required>
+                                    <input :disabled="noSerial" v-model="form.serial" class="appearance-none block w-full bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-lg py-3 px-4 leading-tight focus:outline-none focus:bg-white dark:focus:bg-gray-600 focus:border-indigo-500 transition-colors uppercase disabled:opacity-60 disabled:cursor-not-allowed" type="text">
                                     <InputError :message="form.errors.serial" class="mt-2" />
                                 </div>
                                 

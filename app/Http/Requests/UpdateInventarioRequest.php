@@ -29,7 +29,7 @@ class UpdateInventarioRequest extends FormRequest
             'origen' => 'required|string|in:IMPORTADO,NACIONAL',
             'marca' => 'required|string',
             'modelo' => 'required|string',
-            'serial' => 'required|string',
+            'serial' => 'nullable|string',
             'costo_importacion_unitario' => 'nullable|numeric',
             'price_sale' => 'nullable|string',
             'observation' => 'nullable|string',

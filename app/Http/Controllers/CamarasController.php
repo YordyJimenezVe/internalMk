@@ -26,7 +26,7 @@ class CamarasController extends Controller
         $tipos = Inventario::whereDoesntHave('bill')
             ->selectRaw('
             SUM(CASE WHEN tipo LIKE "%motor%" THEN 1 ELSE 0 END) AS motores,
-            SUM(CASE WHEN tipo = "CAJA AUTOMÁTICA" THEN 1 ELSE 0 END) AS cajas_automaticas,
+            SUM(CASE WHEN tipo LIKE "%caja%" THEN 1 ELSE 0 END) AS cajas_automaticas,
             SUM(CASE WHEN tipo = "AUTOPARTE" THEN 1 ELSE 0 END) AS autopartes
         ')
             ->get();
