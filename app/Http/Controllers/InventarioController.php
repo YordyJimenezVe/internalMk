@@ -24,9 +24,15 @@ class InventarioController extends Controller
             $partida = null;
             if (str_contains($searchRaw, '-') || (strlen($searchRaw) >= 4 && !is_numeric($searchRaw))) {
                 // 1. Try exact match
-                $partida = Inventario::where('id', $searchRaw)
-                    ->orWhere('codInv', $searchRaw)
-                    ->first();
+                $query = Inventario::query();
+                if (is_numeric($searchRaw)) {
+                    $query->where(function ($q) use ($searchRaw) {
+                        $q->where('id', $searchRaw)->orWhere('codInv', $searchRaw);
+                    });
+                } else {
+                    $query->where('codInv', $searchRaw);
+                }
+                $partida = $query->first();
                 
                 // 2. Try cleaning prefix if not found (e.g. CRSU-623-135 -> 623-135)
                 if (!$partida && str_contains($searchRaw, '-')) {
@@ -129,7 +135,7 @@ class InventarioController extends Controller
                         ]);
                     });
 
-                if ($searchRaw) {
+                if ($searchRaw && is_numeric($searchRaw)) {
                     // Barcode/Exact match priority
                     $query->orWhere('id', $searchRaw);
                 }

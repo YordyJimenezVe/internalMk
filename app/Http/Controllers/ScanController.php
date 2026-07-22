@@ -117,9 +117,11 @@ class ScanController extends Controller
      */
     private function processBillingSearch($code, $roles, $silent = false)
     {
-        $billing = \App\Models\Billing::where('numero_factura', $code)
-            ->orWhere('id', $code)
-            ->first();
+        $billingQuery = \App\Models\Billing::where('numero_factura', $code);
+        if (is_numeric($code)) {
+            $billingQuery->orWhere('id', $code);
+        }
+        $billing = $billingQuery->first();
 
         if ($billing) {
             if ($roles->contains('Facturacion') || $roles->contains('Superusuario') || $roles->contains('Administrador')) {
@@ -146,9 +148,11 @@ class ScanController extends Controller
         $user = auth()->user();
         \Log::debug("processInventorySearch - Started searching for code: $code, forceMaintenance: " . ($forceMaintenance ? 'true' : 'false'));
         
-        $partida = \App\Models\Inventario::where('codInv', $code)
-            ->orWhere('id', $code)
-            ->first();
+        $partidaQuery = \App\Models\Inventario::where('codInv', $code);
+        if (is_numeric($code)) {
+            $partidaQuery->orWhere('id', $code);
+        }
+        $partida = $partidaQuery->first();
 
         if ($partida) {
             \Log::debug("processInventorySearch - Found by exact code/id match. ID: {$partida->id}");
