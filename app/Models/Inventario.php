@@ -62,6 +62,30 @@ class Inventario extends Model
         return $this->belongsTo(Container::class, 'container_id');
     }
 
+    /**
+     * Get the formatted code for label printing.
+     * If the container starts with letters, return those letters followed by the first 2 digits of the expediente.
+     * Otherwise, if it has only numbers or doesn't start with letters, return the container code.
+     * Fallback to the expediente if no container code is available.
+     */
+    public function getFormattedCodAttribute()
+    {
+        $cod = $this->container ? $this->container->cod : null;
+        $expediente = $this->expediente;
+
+        if (!$cod) {
+            return $expediente;
+        }
+
+        if (preg_match('/^[a-zA-Z]+/', $cod, $matches)) {
+            $letters = $matches[0];
+            $firstTwoNumbers = substr($expediente ?? '', 0, 2);
+            return $letters . $firstTwoNumbers;
+        }
+
+        return $cod;
+    }
+
     public function bill()
     {
         return $this->hasMany(Billing::class, 'partida_id'); // Assuming 'partida_id' is the foreign key
