@@ -71,7 +71,7 @@ class Inventario extends Model
     public function getFormattedCodAttribute()
     {
         $cod = $this->container ? $this->container->cod : null;
-        $expediente = $this->expediente;
+        $expediente = ($this->container && $this->container->expediente) ? $this->container->expediente : $this->expediente;
 
         if (!$cod) {
             return $expediente;
