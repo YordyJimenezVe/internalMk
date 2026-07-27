@@ -200,6 +200,22 @@ const getTipoBadgeClass = (tipo) => {
     }
     return 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700';
 };
+
+const cleanItemName = (item) => {
+    let name = item.item || '';
+    const tipo = (item.tipo || '').toLowerCase().trim();
+    if (tipo && name.toLowerCase().startsWith(tipo)) {
+        name = name.substring(tipo.length).trim();
+    } else if (tipo) {
+        const normalizedName = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        const normalizedTipo = tipo.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if (normalizedName.startsWith(normalizedTipo)) {
+            name = name.substring(normalizedTipo.length).trim();
+        }
+    }
+    name = name.replace(/^[\s\-_,]+/i, '').trim();
+    return name;
+};
 </script>
 
 <template>
@@ -340,7 +356,7 @@ const getTipoBadgeClass = (tipo) => {
                                     </td>
                                     <td class="py-5 px-6">
                                         <div class="flex flex-col">
-                                            <span class="font-bold text-gray-900 dark:text-white">{{ item.item }}</span>
+                                            <span class="font-bold text-gray-900 dark:text-white uppercase">{{ cleanItemName(item) }}</span>
                                             <div class="flex flex-wrap items-center gap-2 mt-1">
                                                 <span class="text-xs text-gray-400 dark:text-gray-500 font-semibold">Modelo: {{ item.modelo }} | Año: {{ item.año || 'N/A' }}</span>
                                                 <span v-if="item.tipo" :class="getTipoBadgeClass(item.tipo)" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase">
