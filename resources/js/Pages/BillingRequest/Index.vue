@@ -103,6 +103,17 @@ const formatTime = (dateString) => {
     return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 };
 
+const getDisplayType = (req) => {
+    const item = req.inventario || req.partida;
+    if (!item) return '';
+    const obs = req.observation ? req.observation.toUpperCase() : '';
+    const dispatchDetails = ['MOTOR COMPLETO', 'MOTOR 7/8', 'MOTOR 3/4', 'CAJA COMPLETA', 'CAJA SIN TURBINA'];
+    if (dispatchDetails.includes(obs)) {
+        return obs;
+    }
+    return item.tipo;
+};
+
 const goToCreateBilling = (id, requestId) => {
     isProcessing.value = true;
     router.visit(route('createBilling', { id, request_id: requestId }), {
@@ -190,7 +201,7 @@ const goToCreateBilling = (id, requestId) => {
                                                 {{ (req.inventario || req.partida)?.codInv ? (req.inventario || req.partida).codInv.split('-')[0] : 'MK' }}
                                             </div>
                                             <div class="flex flex-col">
-                                                <span class="text-sm font-black text-gray-800 dark:text-white uppercase leading-tight">{{ (req.inventario || req.partida)?.marca }} {{ (req.inventario || req.partida)?.modelo }}</span>
+                                                <span class="text-sm font-black text-gray-800 dark:text-white uppercase leading-tight">{{ getDisplayType(req) }} - {{ (req.inventario || req.partida)?.marca }} {{ (req.inventario || req.partida)?.modelo }}</span>
                                                 <span class="text-[10px] font-bold text-gray-400 mt-0.5">ID: {{ (req.inventario || req.partida)?.codInv }} | {{ (req.inventario || req.partida)?.año }}</span>
                                             </div>
                                         </div>

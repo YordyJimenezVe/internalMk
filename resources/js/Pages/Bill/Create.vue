@@ -69,7 +69,7 @@ const formatSerial = (serial) => {
                                             <i class="fa-solid fa-barcode text-indigo-400"></i>
                                         </div>
                                         <select disabled class="appearance-none block w-full bg-indigo-50/50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800 rounded-xl py-3 pl-11 pr-4 leading-tight font-black uppercase text-sm" id="partida_id" v-model="partida" required>
-                                            <option :key="data.id" :value="data.id">{{data.tipo}} - {{data.marca}} {{data.modelo}} ({{data.codInv}})</option>
+                                            <option :key="data.id" :value="data.id">{{ (data.tipo && (data.tipo.toUpperCase().includes('MOTOR') || data.tipo.toUpperCase().includes('CAJA')) && observaciones) ? observaciones : data.tipo }} - {{data.marca}} {{data.modelo}} ({{data.codInv}})</option>
                                         </select>
                                     </div>
                                     <input type="hidden" name="partida_id" :value="data.id">
