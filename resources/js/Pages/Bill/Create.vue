@@ -182,8 +182,8 @@ const formatSerial = (serial) => {
                                 <div class="space-y-4">
                                     <div v-if="data.tipo && (data.tipo.toUpperCase().includes('MOTOR') || data.tipo.toUpperCase().includes('CAJA'))">
                                         <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="observaciones">Detalles de Despacho (Cómo sale)</label>
-                                        <select class="block w-full bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-sm" name="observaciones" required>
-                                            <option value="" disabled selected>SELECCIONE UNA OPCIÓN</option>
+                                        <select class="block w-full bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-sm" v-model="observaciones" name="observaciones" required>
+                                            <option value="" disabled>SELECCIONE UNA OPCIÓN</option>
                                             <template v-if="data.tipo.toUpperCase().includes('MOTOR')">
                                                 <option value="MOTOR COMPLETO">MOTOR COMPLETO</option>
                                                 <option value="MOTOR 7/8">MOTOR 7/8</option>
@@ -352,6 +352,7 @@ export default {
             clientEmail: '',
             fecha: '',
             hora: '',
+            observaciones: '',
             formData: {
                 partida: {
                     value: '0',
@@ -400,6 +401,7 @@ export default {
         this.clientAddress = this.data['client_address'] || '';
         this.clientEmail = this.data['client_email'] || '';
         this.partida = this.data.id;
+        this.observaciones = this.data['observation'] || '';
 
         // Set current date and time
         const now = new Date();

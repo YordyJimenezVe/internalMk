@@ -181,6 +181,7 @@ class BillingRequestController extends Controller
                 'client_email' => $billingRequest->client_email,
                 'bs' => 0, // Default values if needed
                 'divisa' => $billingRequest->price * $billingRequest->quantity, // Total amount
+                'observaciones' => $billingRequest->observation,
             ]);
 
             // 2. Update Partida Status

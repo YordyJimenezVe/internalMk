@@ -533,9 +533,24 @@ const submitBilling = () => {
                                         <label class="block text-xs font-bold mb-2 uppercase opacity-80">Dirección (Opcional)</label>
                                         <textarea v-model="form.client_address" rows="2" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:ring-2 focus:ring-white outline-none resize-none" placeholder="Dirección del cliente"></textarea>
                                     </div>
-                                    <div>
+                                    <div v-if="props.inventario.tipo && (props.inventario.tipo.toUpperCase().includes('MOTOR') || props.inventario.tipo.toUpperCase().includes('CAJA'))">
+                                        <label class="block text-xs font-bold mb-2 uppercase opacity-80">Detalles de Despacho (Cómo sale)</label>
+                                        <select v-model="form.observation" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white focus:ring-2 focus:ring-white outline-none font-bold text-sm" required>
+                                            <option value="" disabled class="text-gray-800">SELECCIONE UNA OPCIÓN</option>
+                                            <template v-if="props.inventario.tipo.toUpperCase().includes('MOTOR')">
+                                                <option value="MOTOR COMPLETO" class="text-gray-800">MOTOR COMPLETO</option>
+                                                <option value="MOTOR 7/8" class="text-gray-800">MOTOR 7/8</option>
+                                                <option value="MOTOR 3/4" class="text-gray-800">MOTOR 3/4</option>
+                                            </template>
+                                            <template v-else-if="props.inventario.tipo.toUpperCase().includes('CAJA')">
+                                                <option value="CAJA COMPLETA" class="text-gray-800">CAJA COMPLETA</option>
+                                                <option value="CAJA SIN TURBINA" class="text-gray-800">CAJA SIN TURBINA</option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                    <div v-else>
                                         <label class="block text-xs font-bold mb-2 uppercase opacity-80">Observación (Opcional)</label>
-                                        <textarea v-model="form.observation" @input="form.observation = form.observation.toUpperCase()" rows="2" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:ring-2 focus:ring-white outline-none resize-none uppercase" placeholder="Ej: Motor para Captiva, Rey Camión, etc."></textarea>
+                                        <textarea v-model="form.observation" @input="form.observation = form.observation.toUpperCase()" rows="2" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:ring-2 focus:ring-white outline-none resize-none uppercase" placeholder="Ej: Observación de la venta..."></textarea>
                                     </div>
                                     
                                     <button type="submit" :disabled="form.processing" class="w-full bg-white text-indigo-700 font-bold py-4 px-6 rounded-2xl shadow-xl transition-all transform hover:scale-[1.05] active:scale-95 disabled:opacity-50 flex items-center justify-center text-lg">
