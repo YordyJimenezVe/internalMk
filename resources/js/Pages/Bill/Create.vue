@@ -181,23 +181,24 @@ const formatSerial = (serial) => {
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div class="space-y-4">
                                     <div v-if="data.tipo && (data.tipo.toUpperCase().includes('MOTOR') || data.tipo.toUpperCase().includes('CAJA'))">
-                                        <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="observaciones">Detalles de Despacho (Cómo sale)</label>
-                                        <div v-if="data.observation" class="w-full bg-indigo-50/50 dark:bg-indigo-900/10 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800 rounded-xl py-3 px-4 font-black uppercase text-sm">
-                                            {{ observaciones }}
+                                        <template v-if="data.observation">
                                             <input type="hidden" name="observaciones" :value="observaciones">
-                                        </div>
-                                        <select v-else class="block w-full bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-sm" v-model="observaciones" name="observaciones" required>
-                                            <option value="" disabled>SELECCIONE UNA OPCIÓN</option>
-                                            <template v-if="data.tipo.toUpperCase().includes('MOTOR')">
-                                                <option value="MOTOR COMPLETO">MOTOR COMPLETO</option>
-                                                <option value="MOTOR 7/8">MOTOR 7/8</option>
-                                                <option value="MOTOR 3/4">MOTOR 3/4</option>
-                                            </template>
-                                            <template v-else-if="data.tipo.toUpperCase().includes('CAJA')">
-                                                <option value="CAJA COMPLETA">CAJA COMPLETA</option>
-                                                <option value="CAJA SIN TURBINA">CAJA SIN TURBINA</option>
-                                            </template>
-                                        </select>
+                                        </template>
+                                        <template v-else>
+                                            <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="observaciones">Detalles de Despacho (Cómo sale)</label>
+                                            <select class="block w-full bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-sm" v-model="observaciones" name="observaciones" required>
+                                                <option value="" disabled>SELECCIONE UNA OPCIÓN</option>
+                                                <template v-if="data.tipo.toUpperCase().includes('MOTOR')">
+                                                    <option value="MOTOR COMPLETO">MOTOR COMPLETO</option>
+                                                    <option value="MOTOR 7/8">MOTOR 7/8</option>
+                                                    <option value="MOTOR 3/4">MOTOR 3/4</option>
+                                                </template>
+                                                <template v-else-if="data.tipo.toUpperCase().includes('CAJA')">
+                                                    <option value="CAJA COMPLETA">CAJA COMPLETA</option>
+                                                    <option value="CAJA SIN TURBINA">CAJA SIN TURBINA</option>
+                                                </template>
+                                            </select>
+                                        </template>
                                     </div>
                                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                         <div>
@@ -223,7 +224,7 @@ const formatSerial = (serial) => {
                                         <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="client_address">Dirección</label>
                                         <input class="appearance-none block w-full bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 transition-all font-bold" name="client_address" type="text" v-model="clientAddress" placeholder="Dirección del cliente">
                                     </div>
-                                    <div v-if="data.observation" class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-100 dark:border-amber-900/30">
+                                    <div v-if="data.observation && !(data.tipo && (data.tipo.toUpperCase().includes('MOTOR') || data.tipo.toUpperCase().includes('CAJA')))" class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-100 dark:border-amber-900/30">
                                         <label class="block text-[10px] font-black text-amber-850 dark:text-amber-400 uppercase tracking-widest mb-1 flex items-center gap-1">
                                             <i class="fa-solid fa-comment-dots text-amber-500"></i> Observación del Asesor
                                         </label>
