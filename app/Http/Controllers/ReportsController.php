@@ -118,7 +118,7 @@ class ReportsController extends Controller
         $endDate = $request->query('fecha_fin');
         $status = $request->query('status');
 
-        if ($tipo == 'partidas') {
+        if ($tipo == 'partidas' || $tipo == 'Inventarios' || $tipo == 'inventario') {
             return Excel::download(new PartidasExports($caso, $termino, $startDate, $endDate, $status), $tipo . '.xlsx');
         } else if ($tipo == 'facturas') {
             return Excel::download(new BillsExports($caso, $termino, $startDate, $endDate), $tipo . '.xlsx');
@@ -156,7 +156,7 @@ class ReportsController extends Controller
 
         $export = null;
 
-        if ($tipo == 'partidas') {
+        if ($tipo == 'partidas' || $tipo == 'Inventarios' || $tipo == 'inventario') {
             $export = new PartidasExports($caso, $termino, $startDate, $endDate, $status);
             $data = $export->getCollection();
             $pdfContent = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.partidas', ['partidas' => $data])
