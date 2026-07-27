@@ -46,6 +46,17 @@ const baseImponible = computed(() => {
 
 
 
+const getDefaultDispatchDetail = () => {
+    const tipo = props.inventario.tipo ? props.inventario.tipo.toUpperCase() : '';
+    if (tipo.includes('MOTOR 7/8')) return 'MOTOR 7/8';
+    if (tipo.includes('MOTOR COMPLETO')) return 'MOTOR COMPLETO';
+    if (tipo.includes('MOTOR 3/4')) return 'MOTOR 3/4';
+    if (tipo.includes('MOTOR 5/8')) return 'MOTOR COMPLETO';
+    if (tipo.includes('MOTOR')) return 'MOTOR COMPLETO';
+    if (tipo.includes('CAJA')) return 'CAJA COMPLETA';
+    return '';
+};
+
 const form = useForm({
     partida_id: props.inventario.id,
     price: '',
@@ -57,7 +68,7 @@ const form = useForm({
     quantity: 1,
     client_cedula_file: null,
     serial_file: null,
-    observation: '',
+    observation: getDefaultDispatchDetail(),
 });
 
 // Camera and Preview state
