@@ -182,7 +182,11 @@ const formatSerial = (serial) => {
                                 <div class="space-y-4">
                                     <div v-if="data.tipo && (data.tipo.toUpperCase().includes('MOTOR') || data.tipo.toUpperCase().includes('CAJA'))">
                                         <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="observaciones">Detalles de Despacho (Cómo sale)</label>
-                                        <select class="block w-full bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-sm" v-model="observaciones" name="observaciones" required>
+                                        <div v-if="data.observation" class="w-full bg-indigo-50/50 dark:bg-indigo-900/10 text-indigo-700 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800 rounded-xl py-3 px-4 font-black uppercase text-sm">
+                                            {{ observaciones }}
+                                            <input type="hidden" name="observaciones" :value="observaciones">
+                                        </div>
+                                        <select v-else class="block w-full bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-sm" v-model="observaciones" name="observaciones" required>
                                             <option value="" disabled>SELECCIONE UNA OPCIÓN</option>
                                             <template v-if="data.tipo.toUpperCase().includes('MOTOR')">
                                                 <option value="MOTOR COMPLETO">MOTOR COMPLETO</option>
