@@ -35,7 +35,7 @@ class BillsExports implements FromView, ShouldAutoSize, WithEvents
     {
         $termino = $this->termino;
 
-        $query = Billing::select('partida_id', 'inventarios.tipo', 'inventarios.marca', 'inventarios.modelo', 'billings.fecha', 'numero_factura', 'numero_control', 'billings.divisa')
+        $query = Billing::select('partida_id', 'inventarios.tipo', 'inventarios.marca', 'inventarios.modelo', 'billings.fecha', 'numero_factura', 'numero_control', 'billings.divisa', 'billings.observaciones')
             ->join('inventarios', 'billings.partida_id', '=', 'inventarios.id');
 
         // Date Filter

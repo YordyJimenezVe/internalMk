@@ -9,19 +9,19 @@
     <table>
         <thead>
             <tr>
-                <td colspan="8"
+                <td colspan="9"
                     style="text-align: center; font-size: 14px; font-weight: bold; color: #047857; height: 30px; vertical-align: middle;">
                     REPORTE DE VENTAS
                 </td>
             </tr>
             <tr>
-                <td colspan="8"
+                <td colspan="9"
                     style="text-align: center; font-size: 10px; color: #6B7280; height: 20px; vertical-align: middle;">
                     Generado: {{ date('d/m/Y h:i A') }}
                 </td>
             </tr>
             <tr>
-                <td colspan="8" style="height: 10px;"></td>
+                <td colspan="9" style="height: 10px;"></td>
             </tr>
             <tr>
                 <th
@@ -45,6 +45,9 @@
                 <th
                     style="border: 1px solid #000000; background-color: #10B981; color: #FFFFFF; font-weight: bold; text-align: center; vertical-align: middle; height: 20px;">
                     CONTROL</th>
+                <th
+                    style="border: 1px solid #000000; background-color: #10B981; color: #FFFFFF; font-weight: bold; text-align: center; vertical-align: middle; height: 20px;">
+                    OBSERVACIONES</th>
                 <th
                     style="border: 1px solid #000000; background-color: #10B981; color: #FFFFFF; font-weight: bold; text-align: center; vertical-align: middle; height: 20px;">
                     MONTO ($)</th>
@@ -81,13 +84,16 @@
                         style="border: 1px solid #000000; text-align: center; vertical-align: middle; background-color: {{ $bg }};">
                         {{ $bill->numero_control }}</td>
                     <td
+                        style="border: 1px solid #000000; text-align: center; vertical-align: middle; background-color: {{ $bg }};">
+                        {{ $bill->observaciones }}</td>
+                    <td
                         style="border: 1px solid #000000; text-align: center; vertical-align: middle; font-weight: bold; background-color: {{ $bg }};">
                         {{ number_format($bill->divisa, 2) }}
                     </td>
                 </tr>
             @endforeach
             <tr>
-                <td colspan="7"
+                <td colspan="8"
                     style="border: 1px solid #000000; background-color: #D1FAE5; color: #064E3B; font-weight: bold; text-align: right; height: 25px; vertical-align: middle;">
                     TOTAL VENTAS ($):
                 </td>

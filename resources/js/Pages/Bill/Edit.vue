@@ -25,6 +25,7 @@ const form = useForm({
     client_phone: props.bill.client_phone,
     client_address: props.bill.client_address,
     client_email: props.bill.client_email,
+    observaciones: props.bill.observaciones,
 });
 
 const submitForm = () => {
@@ -173,6 +174,21 @@ const submitForm = () => {
                             <div class="space-y-2">
                                 <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase ml-1">Dirección</label>
                                 <input v-model="form.client_address" class="appearance-none block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-3.5 px-4 focus:ring-2 focus:ring-indigo-500 transition-all font-bold" type="text">
+                            </div>
+                            <div v-if="props.bill.inventario && props.bill.inventario.tipo && (props.bill.inventario.tipo.toUpperCase().includes('MOTOR') || props.bill.inventario.tipo.toUpperCase().includes('CAJA'))" class="space-y-2">
+                                <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase ml-1">Detalles de Despacho (Cómo sale)</label>
+                                <select v-model="form.observaciones" class="block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-3.5 px-4 focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-sm">
+                                    <option value="" disabled>SELECCIONE UNA OPCIÓN</option>
+                                    <template v-if="props.bill.inventario.tipo.toUpperCase().includes('MOTOR')">
+                                        <option value="MOTOR COMPLETO">MOTOR COMPLETO</option>
+                                        <option value="MOTOR 7/8">MOTOR 7/8</option>
+                                        <option value="MOTOR 3/4">MOTOR 3/4</option>
+                                    </template>
+                                    <template v-else-if="props.bill.inventario.tipo.toUpperCase().includes('CAJA')">
+                                        <option value="CAJA COMPLETA">CAJA COMPLETA</option>
+                                        <option value="CAJA SIN TURBINA">CAJA SIN TURBINA</option>
+                                    </template>
+                                </select>
                             </div>
                         </div>
 

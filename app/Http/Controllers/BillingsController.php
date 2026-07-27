@@ -290,6 +290,7 @@ class BillingsController extends Controller
      */
     public function edit(Billing $bill)
     {
+        $bill->load('inventario');
         return inertia('Bill/Edit', [
             'bill' => $bill,
         ]);
