@@ -225,6 +225,14 @@ const submitBilling = () => {
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label class="block uppercase tracking-wide text-gray-500 dark:text-gray-400 text-xs font-bold mb-2">
+                                        <i class="fa-solid fa-list-check mr-1"></i>Tipo de Registro
+                                    </label>
+                                    <div class="w-full bg-gray-50 dark:bg-gray-700/50 text-gray-800 dark:text-white rounded-xl py-3 px-4 font-semibold border border-gray-100 dark:border-gray-700">
+                                        {{ props.inventario.tipo }}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block uppercase tracking-wide text-gray-500 dark:text-gray-400 text-xs font-bold mb-2">
                                         <i class="fa-solid fa-copyright mr-1"></i>Marca
                                     </label>
                                     <div class="w-full bg-gray-50 dark:bg-gray-700/50 text-gray-800 dark:text-white rounded-xl py-3 px-4 font-semibold border border-gray-100 dark:border-gray-700">
