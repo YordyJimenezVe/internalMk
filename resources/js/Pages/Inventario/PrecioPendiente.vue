@@ -174,6 +174,32 @@ const summary = computed(() => {
 
     return { motores, cajas, camaras, autopartes, otros };
 });
+
+const getTipoIcon = (tipo) => {
+    const t = (tipo || '').toUpperCase();
+    if (t.includes('MOTOR')) return 'fa-solid fa-gears';
+    if (t.includes('CAJA')) return 'fa-solid fa-cube';
+    if (t.includes('CÁMARA') || t.includes('CAMARA')) return 'fa-solid fa-wrench';
+    if (t.includes('AUTOPARTE')) return 'fa-solid fa-box';
+    return 'fa-solid fa-tag';
+};
+
+const getTipoBadgeClass = (tipo) => {
+    const t = (tipo || '').toUpperCase();
+    if (t.includes('MOTOR')) {
+        return 'bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-100/50 dark:border-blue-900/30';
+    }
+    if (t.includes('CAJA')) {
+        return 'bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 border border-purple-100/50 dark:border-purple-900/30';
+    }
+    if (t.includes('CÁMARA') || t.includes('CAMARA')) {
+        return 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-100/50 dark:border-emerald-900/30';
+    }
+    if (t.includes('AUTOPARTE')) {
+        return 'bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 border border-orange-100/50 dark:border-orange-900/30';
+    }
+    return 'bg-gray-50 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700';
+};
 </script>
 
 <template>
@@ -316,7 +342,11 @@ const summary = computed(() => {
                                         <div class="flex flex-col">
                                             <span class="font-bold text-gray-900 dark:text-white">{{ item.item }}</span>
                                             <div class="flex flex-wrap items-center gap-2 mt-1">
-                                                <span class="text-xs text-gray-400 dark:text-gray-500">Modelo: {{ item.modelo }} | Año: {{ item.año || 'N/A' }}</span>
+                                                <span class="text-xs text-gray-400 dark:text-gray-500 font-semibold">Modelo: {{ item.modelo }} | Año: {{ item.año || 'N/A' }}</span>
+                                                <span v-if="item.tipo" :class="getTipoBadgeClass(item.tipo)" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase">
+                                                    <i :class="getTipoIcon(item.tipo) + ' text-[9px]'"></i>
+                                                    {{ item.tipo }}
+                                                </span>
                                                 <span v-if="vehicleTypes[item.id] && !vehicleTypes[item.id].loading && vehicleTypes[item.id].type" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-900/30">
                                                     <i class="fa-solid fa-truck-pickup text-[9px]"></i>
                                                     {{ vehicleTypes[item.id].example || vehicleTypes[item.id].type }}
