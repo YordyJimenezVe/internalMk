@@ -85,7 +85,7 @@
                         {{ $bill->numero_control }}</td>
                     <td
                         style="border: 1px solid #000000; text-align: center; vertical-align: middle; background-color: {{ $bg }};">
-                        {{ $bill->observaciones }}</td>
+                        {{ (strtoupper(trim($bill->observaciones)) === strtoupper(trim($bill->tipo))) ? '' : $bill->observaciones }}</td>
                     <td
                         style="border: 1px solid #000000; text-align: center; vertical-align: middle; font-weight: bold; background-color: {{ $bg }};">
                         {{ number_format($bill->divisa, 2) }}
