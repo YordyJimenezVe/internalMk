@@ -670,13 +670,9 @@ class InventarioController extends Controller
     public function precioPendienteIndex(Request $request)
     {
         $user = auth()->user();
-        $isReadOnly = $user->hasRole('Administrador Consulta');
-        $isBillingOrAdmin = !$isReadOnly && (
-            stripos($user->rol, 'fact') !== false 
-            || (stripos($user->rol, 'admin') !== false && stripos($user->rol, 'consulta') === false)
-            || stripos($user->rol, 'super') !== false 
+        $isBillingOrAdmin = $user->hasPermissionTo('manage billing') 
             || $user->hasAnyRole(['Facturacion', 'Facturación', 'Administrador', 'Superusuario', 'SUPERUSUARIO', 'ADMINISTRADOR'])
-        );
+            || (stripos($user->rol, 'super') !== false || (stripos($user->rol, 'admin') !== false && stripos($user->rol, 'consulta') === false) || stripos($user->rol, 'fact') !== false);
 
         if (!$isBillingOrAdmin) {
             abort(403, 'No autorizado.');
@@ -761,13 +757,9 @@ class InventarioController extends Controller
     public function updatePrecioPendiente(Request $request, $id)
     {
         $user = auth()->user();
-        $isReadOnly = $user->hasRole('Administrador Consulta');
-        $isBillingOrAdmin = !$isReadOnly && (
-            stripos($user->rol, 'fact') !== false 
-            || (stripos($user->rol, 'admin') !== false && stripos($user->rol, 'consulta') === false)
-            || stripos($user->rol, 'super') !== false 
+        $isBillingOrAdmin = $user->hasPermissionTo('manage billing') 
             || $user->hasAnyRole(['Facturacion', 'Facturación', 'Administrador', 'Superusuario', 'SUPERUSUARIO', 'ADMINISTRADOR'])
-        );
+            || (stripos($user->rol, 'super') !== false || (stripos($user->rol, 'admin') !== false && stripos($user->rol, 'consulta') === false) || stripos($user->rol, 'fact') !== false);
 
         if (!$isBillingOrAdmin) {
             abort(403, 'No autorizado.');
@@ -1070,9 +1062,10 @@ class InventarioController extends Controller
     {
         $user = auth()->user();
         if ($user) {
-            $isReadOnly = $user->hasRole('Administrador Consulta') 
-                || stripos($user->rol, 'consulta') !== false;
-            if ($isReadOnly) {
+            $hasPermission = $user->hasAnyPermission(['manage partida', 'manage billing']) 
+                || $user->hasAnyRole(['Superusuario', 'Administrador', 'Inventario'])
+                || (stripos($user->rol, 'super') !== false || stripos($user->rol, 'admin') !== false && stripos($user->rol, 'consulta') === false || stripos($user->rol, 'inventario') !== false);
+            if (!$hasPermission) {
                 abort(403, 'No autorizado.');
             }
         }
