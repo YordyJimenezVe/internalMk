@@ -16,6 +16,7 @@ class NotificationController extends Controller
      */
     public function index()
     {
+        \App\Models\BillingRequest::cleanupNotifications();
         // Solo administradores pueden ver el panel completo
         if (auth()->user()->rol !== 'Administrador') {
             return redirect()->route('dashboard')->with('error', 'No tiene permisos para acceder a esta sección.');
@@ -55,6 +56,7 @@ class NotificationController extends Controller
      */
     public function getUnread()
     {
+        \App\Models\BillingRequest::cleanupNotifications();
         $unread = auth()->user()->unreadNotifications;
         
         return response()->json([

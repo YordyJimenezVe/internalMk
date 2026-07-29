@@ -46,4 +46,34 @@ class BillingRequest extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public static function cleanupNotifications()
+    {
+        // 1. Get all billing requests that are processed
+        $processedRequestIds = self::where('status', 'processed')->pluck('id')->toArray();
+
+        // 2. Get all billing requests where underlying engine (partida) is VENDIDO
+        $soldRequestIds = self::whereHas('inventario', function($q) {
+            $q->where('status', 'VENDIDO');
+        })->pluck('id')->toArray();
+
+        $allCompletedRequestIds = array_unique(array_merge($processedRequestIds, $soldRequestIds));
+
+        if (!empty($allCompletedRequestIds)) {
+            // Mark the requests as processed just in case
+            self::whereIn('id', $allCompletedRequestIds)
+                ->where('status', 'pending')
+                ->update(['status' => 'processed']);
+
+            // Delete notifications for these requests
+            foreach ($allCompletedRequestIds as $requestId) {
+                \Illuminate\Support\Facades\DB::table('notifications')
+                    ->where(function($query) use ($requestId) {
+                        $query->where('data->billing_request_id', $requestId)
+                              ->orWhere('data', 'like', '%"billing_request_id":' . $requestId . '%');
+                    })
+                    ->delete();
+            }
+        }
+    }
 }
