@@ -664,10 +664,13 @@ class InventarioController extends Controller
     public function precioPendienteIndex(Request $request)
     {
         $user = auth()->user();
-        $isBillingOrAdmin = stripos($user->rol, 'fact') !== false 
-            || stripos($user->rol, 'admin') !== false 
+        $isReadOnly = $user->hasRole('Administrador Consulta');
+        $isBillingOrAdmin = !$isReadOnly && (
+            stripos($user->rol, 'fact') !== false 
+            || (stripos($user->rol, 'admin') !== false && stripos($user->rol, 'consulta') === false)
             || stripos($user->rol, 'super') !== false 
-            || $user->hasAnyRole(['Facturacion', 'Facturación', 'Administrador', 'Superusuario', 'SUPERUSUARIO', 'ADMINISTRADOR']);
+            || $user->hasAnyRole(['Facturacion', 'Facturación', 'Administrador', 'Superusuario', 'SUPERUSUARIO', 'ADMINISTRADOR'])
+        );
 
         if (!$isBillingOrAdmin) {
             abort(403, 'No autorizado.');
@@ -752,10 +755,13 @@ class InventarioController extends Controller
     public function updatePrecioPendiente(Request $request, $id)
     {
         $user = auth()->user();
-        $isBillingOrAdmin = stripos($user->rol, 'fact') !== false 
-            || stripos($user->rol, 'admin') !== false 
+        $isReadOnly = $user->hasRole('Administrador Consulta');
+        $isBillingOrAdmin = !$isReadOnly && (
+            stripos($user->rol, 'fact') !== false 
+            || (stripos($user->rol, 'admin') !== false && stripos($user->rol, 'consulta') === false)
             || stripos($user->rol, 'super') !== false 
-            || $user->hasAnyRole(['Facturacion', 'Facturación', 'Administrador', 'Superusuario', 'SUPERUSUARIO', 'ADMINISTRADOR']);
+            || $user->hasAnyRole(['Facturacion', 'Facturación', 'Administrador', 'Superusuario', 'SUPERUSUARIO', 'ADMINISTRADOR'])
+        );
 
         if (!$isBillingOrAdmin) {
             abort(403, 'No autorizado.');

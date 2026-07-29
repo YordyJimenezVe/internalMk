@@ -14,6 +14,20 @@ const isAdminOrSuper = computed(() => {
     return rol.includes('admin') || rol.includes('super') || (user.value?.roles || []).some(r => ['superusuario', 'administrador'].includes((r?.name || '').toLowerCase()));
 });
 
+const isReadOnly = computed(() => {
+    const roles = user.value?.roles || [];
+    const directRol = user.value?.rol || '';
+    if (roles.includes('Administrador Consulta') || directRol === 'Administrador Consulta') return true;
+    
+    const permissions = user.value?.permissions || [];
+    const hasWritePermission = permissions.some(p => ['manage billing', 'manage partida'].includes(p));
+    const hasWriteRole = roles.some(r => {
+        const name = typeof r === 'string' ? r : r.name;
+        return ['Superusuario', 'Administrador', 'Facturacion', 'Vendedor'].includes(name);
+    });
+    return !hasWritePermission && !hasWriteRole;
+});
+
 const props = defineProps({
     requests: Array,
 });
@@ -184,7 +198,7 @@ const goToCreateBilling = (id, requestId) => {
                                     <th class="px-8 py-5 text-left text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">
                                         <i class="fa-solid fa-id-badge mr-2 text-amber-500"></i>Asesor
                                     </th>
-                                    <th class="px-8 py-5 text-right text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">Acciones</th>
+                                    <th v-if="!isReadOnly" class="px-8 py-5 text-right text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">Acciones</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-50 dark:divide-gray-700/50">
@@ -247,7 +261,7 @@ const goToCreateBilling = (id, requestId) => {
                                             {{ req.user?.name || 'Sistema' }}
                                         </span>
                                     </td>
-                                    <td class="px-8 py-6 whitespace-nowrap text-right">
+                                    <td v-if="!isReadOnly" class="px-8 py-6 whitespace-nowrap text-right">
                                         <div class="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button 
                                                 v-if="req.inventario || req.partida"

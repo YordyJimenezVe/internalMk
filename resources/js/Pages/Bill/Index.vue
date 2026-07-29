@@ -15,6 +15,22 @@ const props = defineProps({
   Facturas: Array,
 });
 
+const page = usePage();
+const user = computed(() => page.props.auth.user);
+const isReadOnly = computed(() => {
+    const roles = user.value?.roles || [];
+    const directRol = user.value?.rol || '';
+    if (roles.includes('Administrador Consulta') || directRol === 'Administrador Consulta') return true;
+    
+    const permissions = user.value?.permissions || [];
+    const hasWritePermission = permissions.some(p => ['manage billing', 'manage partida'].includes(p));
+    const hasWriteRole = roles.some(r => {
+        const name = typeof r === 'string' ? r : r.name;
+        return ['Superusuario', 'Administrador', 'Facturacion', 'Vendedor'].includes(name);
+    });
+    return !hasWritePermission && !hasWriteRole;
+});
+
 const deleteModal = ref({
     show: false,
     id: null,
@@ -41,7 +57,6 @@ const isGeneratingPdf = ref(false);
 
 const searchQuery = ref(''); //Should really load it from the query string
 
-const page = usePage();
 onMounted(() => {
     const billingIds = page.props?.flash?.billing_ids || [];
     if (billingIds.length > 0) {
@@ -262,13 +277,13 @@ const exportPdf = () => {
                                             <button @click="visualizeFact(factura.id)" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-indigo-500 hover:shadow-xl hover:shadow-indigo-500/20 transition-all transform hover:scale-110 active:scale-95" title="Ver Detalle">
                                                 <i class="fa-solid fa-eye text-sm"></i>
                                             </button>
-                                            <button v-if="factura.status !== 'ANULADA'" @click="editBilling(factura.id)" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-blue-500 hover:shadow-xl hover:shadow-blue-500/20 transition-all transform hover:scale-110 active:scale-95" title="Editar">
+                                            <button v-if="!isReadOnly && factura.status !== 'ANULADA'" @click="editBilling(factura.id)" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-blue-500 hover:shadow-xl hover:shadow-blue-500/20 transition-all transform hover:scale-110 active:scale-95" title="Editar">
                                                 <i class="fa-solid fa-pen-to-square text-sm"></i>
                                             </button>
-                                            <button v-if="factura.status !== 'ANULADA'" @click="devolucionFactura(factura.id)" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-emerald-500 hover:shadow-xl hover:shadow-emerald-500/20 transition-all transform hover:scale-110 active:scale-95" title="Devolución">
+                                            <button v-if="!isReadOnly && factura.status !== 'ANULADA'" @click="devolucionFactura(factura.id)" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-emerald-500 hover:shadow-xl hover:shadow-emerald-500/20 transition-all transform hover:scale-110 active:scale-95" title="Devolución">
                                                 <i class="fa-solid fa-repeat text-sm"></i>
                                             </button>
-                                            <button @click="openDeleteModal(factura.id)" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-rose-500 hover:shadow-xl hover:shadow-rose-500/20 transition-all transform hover:scale-110 active:scale-95" title="Eliminar">
+                                            <button v-if="!isReadOnly" @click="openDeleteModal(factura.id)" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-rose-500 hover:shadow-xl hover:shadow-rose-500/20 transition-all transform hover:scale-110 active:scale-95" title="Eliminar">
                                                 <i class="fa-solid fa-trash-can text-sm"></i>
                                             </button>
                                         </div>

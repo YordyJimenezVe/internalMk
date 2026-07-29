@@ -1,11 +1,27 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { useForm, router } from '@inertiajs/vue3';
+import { useForm, router, usePage } from '@inertiajs/vue3';
 import { ref, computed, watch } from 'vue';
 
 const props = defineProps({
     items: Array,
     finalizedItems: Array,
+});
+
+const page = usePage();
+const user = computed(() => page.props.auth.user);
+const isReadOnly = computed(() => {
+    const roles = user.value?.roles || [];
+    const directRol = user.value?.rol || '';
+    if (roles.includes('Administrador Consulta') || directRol === 'Administrador Consulta') return true;
+    
+    const permissions = user.value?.permissions || [];
+    const hasWritePermission = permissions.some(p => ['manage billing', 'manage partida'].includes(p));
+    const hasWriteRole = roles.some(r => {
+        const name = typeof r === 'string' ? r : r.name;
+        return ['Superusuario', 'Administrador', 'Facturacion', 'Vendedor'].includes(name);
+    });
+    return !hasWritePermission && !hasWriteRole;
 });
 
 const isProcessing = ref(false);
@@ -171,7 +187,7 @@ const formatDate = (dateString) => {
                                         <th class="py-4 px-6 text-right">Costo Total</th>
                                         <th class="py-4 px-6 text-center">Fechas</th>
                                         <th class="py-4 px-6 text-center">Estado</th>
-                                        <th class="py-4 px-6 text-right">Acción</th>
+                                        <th v-if="!isReadOnly" class="py-4 px-6 text-right">Acción</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-100 dark:divide-gray-700/40 text-sm font-medium">
@@ -267,7 +283,7 @@ const formatDate = (dateString) => {
                                         </td>
 
                                         <!-- Action Button -->
-                                        <td class="py-4 px-6 text-right">
+                                        <td v-if="!isReadOnly" class="py-4 px-6 text-right">
                                             <button 
                                                 @click="openConfirmModal(item.id)" 
                                                 :disabled="isProcessing"
@@ -309,7 +325,7 @@ const formatDate = (dateString) => {
                                         <th class="py-4 px-6 text-right">Costo Total</th>
                                         <th class="py-4 px-6 text-center">Fechas</th>
                                         <th class="py-4 px-6 text-center">Estado</th>
-                                        <th class="py-4 px-6 text-right">Acción</th>
+                                        <th v-if="!isReadOnly" class="py-4 px-6 text-right">Acción</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-100 dark:divide-gray-700/40 text-sm font-medium">
@@ -404,7 +420,7 @@ const formatDate = (dateString) => {
                                         </td>
 
                                         <!-- Revert Button -->
-                                        <td class="py-4 px-6 text-right">
+                                        <td v-if="!isReadOnly" class="py-4 px-6 text-right">
                                             <button 
                                                 @click="openRevertModal(item.id)" 
                                                 :disabled="isProcessing"

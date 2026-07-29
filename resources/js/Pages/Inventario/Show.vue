@@ -1,6 +1,6 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { useForm, router } from '@inertiajs/vue3';
+import { useForm, router, usePage } from '@inertiajs/vue3';
 import { computed, ref, onMounted } from 'vue';
 import axios from 'axios';
 
@@ -11,6 +11,23 @@ const props = defineProps({
   barcodeData: String,
   tasa_bcv: Number,
 });
+
+const page = usePage();
+const userRoles = computed(() => page.props.auth.user?.roles || []);
+const userPermissions = computed(() => page.props.auth.user?.permissions || []);
+
+const isReadOnlyUser = computed(() => {
+    if (userRoles.value.includes('Administrador Consulta')) return true;
+    const hasManagePermission = userPermissions.value.some(p => ['manage billing', 'manage partida', 'manage users', 'manage roles'].includes(p));
+    const hasWriteRole = userRoles.value.some(r => ['Superusuario', 'Administrador', 'Facturacion', 'Vendedor', 'Inventario'].includes(r));
+    return !hasManagePermission && !hasWriteRole;
+});
+
+const canRequestBilling = computed(() => {
+    return userRoles.value.some(r => ['Superusuario', 'Administrador', 'Facturacion', 'Vendedor'].includes(r));
+});
+
+const showQrCodes = computed(() => !isReadOnlyUser.value);
 
 const vehicleType = ref('Cargando...');
 const vehicleExample = ref('');
@@ -399,7 +416,7 @@ const submitBilling = () => {
                             </div>
 
                             <!-- Codes Row -->
-                            <div class="mt-10 grid grid-cols-1 md:grid-cols-2 gap-8 p-6 bg-gray-50 dark:bg-gray-900/30 rounded-2xl border border-gray-100 dark:border-gray-700">
+                            <div v-if="showQrCodes" class="mt-10 grid grid-cols-1 md:grid-cols-2 gap-8 p-6 bg-gray-50 dark:bg-gray-900/30 rounded-2xl border border-gray-100 dark:border-gray-700">
                                 <div class="text-center">
                                     <h4 class="font-bold mb-4 text-xs uppercase tracking-widest text-gray-500 dark:text-gray-400">Código QR</h4>
                                     <div class="inline-block bg-white p-3 rounded-xl shadow-inner" v-html="props.qrCode"></div>
@@ -456,7 +473,7 @@ const submitBilling = () => {
                                     </div>
                                 </div>
 
-                                <form v-else @submit.prevent="submitBilling" class="space-y-5">
+                                <form v-else-if="canRequestBilling" @submit.prevent="submitBilling" class="space-y-5">
                                     <div>
                                         <label class="block text-xs font-bold mb-2 uppercase opacity-80">Precio Final ($)</label>
                                         <input v-model="form.price" type="text" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:ring-2 focus:ring-white outline-none" placeholder="0.00" required>
@@ -568,6 +585,15 @@ const submitBilling = () => {
                                         <i class="fa-solid fa-circle-check mr-2"></i>{{ form.processing ? 'Enviando...' : 'Solicitar Venta' }}
                                     </button>
                                 </form>
+                                <div v-else class="bg-white/10 dark:bg-black/20 p-6 rounded-2xl border border-white/20 dark:border-indigo-800/50 flex flex-col items-center text-center space-y-4">
+                                    <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+                                        <i class="fa-solid fa-lock text-3xl opacity-50"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-bold text-lg">Solo Lectura</p>
+                                        <p class="text-sm opacity-80 mt-1">No tiene permisos para solicitar la facturación de este ítem.</p>
+                                    </div>
+                                </div>
                              </div>
                         </div>
                     </div>

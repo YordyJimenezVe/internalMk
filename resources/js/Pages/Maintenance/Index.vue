@@ -19,10 +19,27 @@ const page = usePage();
 const user = computed(() => page.props.auth.user);
 
 const isSuperUser = computed(() => {
-    const roles = user.value.roles || [];
-    const directRol = user.value.rol || '';
+    const roles = user.value?.roles || [];
+    const directRol = user.value?.rol || '';
     const superRoles = ['Superusuario', 'SUPERUSUARIO', 'Administrador', 'ADMINISTRADOR'];
-    return superRoles.includes(directRol) || roles.some(r => superRoles.includes(r.name));
+    return superRoles.includes(directRol) || roles.some(r => {
+        const name = typeof r === 'string' ? r : r.name;
+        return superRoles.includes(name);
+    });
+});
+
+const isReadOnly = computed(() => {
+    const roles = user.value?.roles || [];
+    const directRol = user.value?.rol || '';
+    if (roles.includes('Administrador Consulta') || directRol === 'Administrador Consulta') return true;
+    
+    const permissions = user.value?.permissions || [];
+    const hasWritePermission = permissions.some(p => ['manage billing', 'manage partida', 'manage users', 'manage roles', 'create maintenance'].includes(p));
+    const hasWriteRole = roles.some(r => {
+        const name = typeof r === 'string' ? r : r.name;
+        return ['Superusuario', 'Administrador', 'Facturacion', 'Vendedor', 'Inventario', 'Tecnico'].includes(name);
+    });
+    return !hasWritePermission && !hasWriteRole;
 });
 
 const deleteModal = reactive({
@@ -169,7 +186,7 @@ const getStatusLabel = (status) => {
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
                 
                 <!-- Primary Action Toolbar -->
-                <div class="mb-6 flex justify-end">
+                <div v-if="!isReadOnly" class="mb-6 flex justify-end">
                     <button 
                         @click="addMaintenance" 
                         class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-[2rem] font-black shadow-xl shadow-indigo-500/20 transition-all transform hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 group border-b-4 border-indigo-800"
@@ -304,7 +321,7 @@ const getStatusLabel = (status) => {
                                     <i class="fa-solid fa-eye text-xs"></i>
                                 </button>
 
-                                <template v-if="row.status !== 'TERMINADO' || isSuperUser">
+                                <template v-if="!isReadOnly && (row.status !== 'TERMINADO' || isSuperUser)">
                                     <button @click="editMaintenance(row.id)" class="h-8 w-8 flex items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 transition-all transform active:scale-90" title="Editar">
                                         <i class="fa-solid fa-pen-to-square text-xs"></i>
                                     </button>
