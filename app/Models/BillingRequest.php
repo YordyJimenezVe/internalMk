@@ -75,5 +75,22 @@ class BillingRequest extends Model
                     ->delete();
             }
         }
+
+        // 3. Clean up notifications using sold items description (for old notifications that don't have billing_request_id)
+        try {
+            $soldItems = \App\Models\Inventario::where('status', 'VENDIDO')->get();
+            foreach ($soldItems as $item) {
+                $brand = trim($item->marca);
+                $model = trim($item->modelo);
+                if (!empty($brand) && !empty($model)) {
+                    \Illuminate\Support\Facades\DB::table('notifications')
+                        ->where('data', 'like', '%' . $brand . '%')
+                        ->where('data', 'like', '%' . $model . '%')
+                        ->delete();
+                }
+            }
+        } catch (\Exception $e) {
+            // Silence exceptions in background cleanup
+        }
     }
 }

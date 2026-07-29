@@ -205,7 +205,10 @@ class BillingRequestController extends Controller
 
             // Delete notifications for ALL users since the sale is finished!
             \Illuminate\Support\Facades\DB::table('notifications')
-                ->where('data->billing_request_id', $id)
+                ->where(function($query) use ($id) {
+                    $query->where('data->billing_request_id', $id)
+                          ->orWhere('data', 'like', '%"billing_request_id":' . $id . '%');
+                })
                 ->delete();
 
             // Collect ID
@@ -263,7 +266,10 @@ class BillingRequestController extends Controller
 
         // Delete notifications for ALL users since the request is deleted/rejected!
         \Illuminate\Support\Facades\DB::table('notifications')
-            ->where('data->billing_request_id', $id)
+            ->where(function($query) use ($id) {
+                $query->where('data->billing_request_id', $id)
+                      ->orWhere('data', 'like', '%"billing_request_id":' . $id . '%');
+            })
             ->delete();
 
         $billingRequest->delete();

@@ -254,9 +254,30 @@ class BillingsController extends Controller
             }
             // Delete notifications for ALL users since the sale is finished!
             \Illuminate\Support\Facades\DB::table('notifications')
-                ->where('data->billing_request_id', $requestId)
+                ->where(function($query) use ($requestId) {
+                    $query->where('data->billing_request_id', $requestId)
+                          ->orWhere('data', 'like', '%"billing_request_id":' . $requestId . '%');
+                })
                 ->delete();
         }
+
+        // Also clean up any pending requests for this motor/partida
+        $pendingRequests = \App\Models\BillingRequest::where('partida_id', $inventario->id)
+            ->where('status', 'pending')
+            ->get();
+            
+        foreach ($pendingRequests as $pReq) {
+            $pReq->update(['status' => 'processed']);
+            \Illuminate\Support\Facades\DB::table('notifications')
+                ->where(function($query) use ($pReq) {
+                    $query->where('data->billing_request_id', $pReq->id)
+                          ->orWhere('data', 'like', '%"billing_request_id":' . $pReq->id . '%');
+                })
+                ->delete();
+        }
+
+        // Run full cleanup
+        \App\Models\BillingRequest::cleanupNotifications();
 
         // Notify via Telegram Group
         $itemName = $inventario ? "{$inventario->marca} {$inventario->modelo}" : 'Ítem';
