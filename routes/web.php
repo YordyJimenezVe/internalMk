@@ -102,9 +102,11 @@ Route::middleware([
     });
 
     // Bandeja de Conciliación Contable de Taller
-    Route::get('/maintenance/conciliacion', 'App\Http\Controllers\MaintenancesController@conciliacionIndex')->name('maintenance.conciliacion');
-    Route::post('/maintenance/items/{itemId}/conciliar', 'App\Http\Controllers\MaintenancesController@conciliarItem')->name('maintenance.conciliar_item');
-    Route::post('/maintenance/items/{itemId}/revert-conciliar', 'App\Http\Controllers\MaintenancesController@revertConciliarItem')->name('maintenance.revert_conciliar_item');
+    Route::group(['middleware' => ['check_permission:manage billing']], function () {
+        Route::get('/maintenance/conciliacion', 'App\Http\Controllers\MaintenancesController@conciliacionIndex')->name('maintenance.conciliacion');
+        Route::post('/maintenance/items/{itemId}/conciliar', 'App\Http\Controllers\MaintenancesController@conciliarItem')->name('maintenance.conciliar_item');
+        Route::post('/maintenance/items/{itemId}/revert-conciliar', 'App\Http\Controllers\MaintenancesController@revertConciliarItem')->name('maintenance.revert_conciliar_item');
+    });
 
     // In-app Notification System Routes
     Route::get('/notifications/unread', 'App\Http\Controllers\NotificationController@getUnread')->name('notifications.unread');

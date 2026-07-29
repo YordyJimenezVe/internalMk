@@ -316,6 +316,7 @@ class InventarioController extends Controller
 
     public function printLabel($id)
     {
+        $this->checkNotReadOnly();
         $data = Inventario::with(['container'])->findOrFail($id);
 
         // Barcode Data
@@ -432,6 +433,7 @@ class InventarioController extends Controller
      */
     public function generatorDashboard()
     {
+        $this->checkNotReadOnly();
         $containers = Container::orderBy('cod', 'asc')->get();
         $brands = Inventario::whereNotNull('marca')
             ->where('marca', '!=', '')
@@ -454,6 +456,7 @@ class InventarioController extends Controller
      */
     public function printContainerLabels(Request $request)
     {
+        $this->checkNotReadOnly();
         $request->validate([
             'container_id' => 'required|string',
             'type' => 'nullable|string',
@@ -544,6 +547,7 @@ class InventarioController extends Controller
      */
     public function printLogoInfoLabel()
     {
+        $this->checkNotReadOnly();
         $logoPath = public_path('logo-mk-transparent.png');
         if (!file_exists($logoPath)) {
             $logoPath = public_path('logo-mk.png');
@@ -573,6 +577,7 @@ class InventarioController extends Controller
      */
     public function printQrCodeLabel()
     {
+        $this->checkNotReadOnly();
         $qrData = "MAIKEL CARS\n" .
                   "Web: https://maikelcars.com/\n" .
                   "Instagram: @maikelcars51\n" .
@@ -618,6 +623,7 @@ class InventarioController extends Controller
      */
     public function printFullPageGrid()
     {
+        $this->checkNotReadOnly();
         $qrData = "MAIKEL CARS\n" .
                   "Web: https://maikelcars.com/\n" .
                   "Instagram: @maikelcars51\n" .
@@ -1058,6 +1064,18 @@ class InventarioController extends Controller
                 'cached_at' => now()->toIso8601String(),
             ];
         });
+    }
+
+    private function checkNotReadOnly()
+    {
+        $user = auth()->user();
+        if ($user) {
+            $isReadOnly = $user->hasRole('Administrador Consulta') 
+                || stripos($user->rol, 'consulta') !== false;
+            if ($isReadOnly) {
+                abort(403, 'No autorizado.');
+            }
+        }
     }
 }
 
