@@ -157,6 +157,7 @@ Route::middleware([
         Route::get('/generar-qr-etiquetas/imprimir/qr-code', [\App\Http\Controllers\InventarioController::class, 'printQrCodeLabel'])->name('labels.print.qr-code');
         Route::get('/generar-qr-etiquetas/imprimir/hoja-completa', [\App\Http\Controllers\InventarioController::class, 'printFullPageGrid'])->name('labels.print.full-page');
         Route::get('/generar-qr-etiquetas/imprimir/por-contenedor', [\App\Http\Controllers\InventarioController::class, 'printContainerLabels'])->name('labels.print.container');
+        Route::get('/generar-qr-etiquetas/imprimir/por-items', [\App\Http\Controllers\InventarioController::class, 'printLabelsByItems'])->name('labels.print.by-items');
     });
 
     // Bitacora Access

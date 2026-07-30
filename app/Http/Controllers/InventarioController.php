@@ -543,6 +543,64 @@ class InventarioController extends Controller
     }
 
     /**
+     * Genera un pliego masivo de etiquetas en formato Carta, para los números de ítem especificados.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\View\View|\Illuminate\Http\RedirectResponse
+     */
+    public function printLabelsByItems(Request $request)
+    {
+        $this->checkNotReadOnly();
+        $request->validate([
+            'items' => 'required|string',
+        ]);
+
+        $rawItems = str_replace([',', ' ', ';'], '-', $request->input('items', ''));
+        $rawItems = preg_replace('/-+/', '-', $rawItems);
+        $itemNumbers = array_filter(array_map('trim', explode('-', $rawItems)));
+
+        if (empty($itemNumbers)) {
+            return back()->with('error', 'Por favor ingresa al menos un número de ítem válido.');
+        }
+
+        $items = Inventario::with('container')
+            ->whereIn('codInv', $itemNumbers)
+            ->get();
+
+        if ($items->isEmpty()) {
+            return back()->with('error', 'No se encontraron repuestos con los números de ítem proporcionados.');
+        }
+
+        // Ordenar los ítems en el mismo orden especificado por el usuario
+        $items = $items->sortBy(function ($item) use ($itemNumbers) {
+            return array_search($item->codInv, $itemNumbers);
+        })->values();
+
+        $renderer = new \BaconQrCode\Renderer\ImageRenderer(
+            new \BaconQrCode\Renderer\RendererStyle\RendererStyle(100),
+            new \BaconQrCode\Renderer\Image\SvgImageBackEnd()
+        );
+        $writer = new \BaconQrCode\Writer($renderer);
+        $barcodeGenerator = new \Picqer\Barcode\BarcodeGeneratorPNG();
+
+        $labels = $items->map(function($item) use ($writer, $barcodeGenerator) {
+            $containerCode = $item->container ? substr($item->container->cod, 0, 4) : 'MK';
+            $barcodeData = strtoupper($containerCode . '-' . $item->codInv);
+            
+            return [
+                'inventario' => $item,
+                'barcodeData' => $barcodeData,
+                'qrCode' => base64_encode($writer->writeString($barcodeData)),
+                'barcode' => base64_encode($barcodeGenerator->getBarcode($barcodeData, $barcodeGenerator::TYPE_CODE_128, 2, 40)),
+            ];
+        })->toArray();
+
+        return view('labels.container-sheet', [
+            'labels' => $labels,
+        ]);
+    }
+
+    /**
      * Print Label 1: Maikel Cars Logo and Contact Info.
      */
     public function printLogoInfoLabel()

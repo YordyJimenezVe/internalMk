@@ -666,6 +666,27 @@
                 </form>
             </div>
 
+            <!-- Etiqueta 5: Por Selección de Ítems -->
+            <div class="label-card">
+                <div class="card-header">
+                    <div class="card-number">Etiqueta 05</div>
+                    <h2 class="card-title">Por Selección de Ítems</h2>
+                    <p class="card-desc">Impresión en hoja Carta ingresando los números de ítem (codInv) separados por guiones.</p>
+                </div>
+
+                <form action="{{ route('labels.print.by-items') }}" method="GET" target="_blank" style="width: 100%; display: flex; flex-direction: column; gap: 1.25rem;">
+                    <!-- Input de Items -->
+                    <div class="form-group" style="display: flex; flex-direction: column; gap: 0.5rem; text-align: left;">
+                        <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.5px; text-transform: uppercase;">Números de Ítem</label>
+                        <input type="text" name="items" placeholder="Ejemplo: 298-294-333-329-306" required style="width: 100%; padding: 0.8rem 1rem; background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border-color); border-radius: 10px; color: var(--text-primary); font-family: inherit; font-size: 0.95rem; outline: none; transition: border-color 0.2s;">
+                    </div>
+
+                    <button type="submit" class="btn-print" style="margin-top: 0.5rem; border: none; width: 100%;">
+                        <i class="fa-solid fa-print"></i> Generar Pliego (Carta)
+                    </button>
+                </form>
+            </div>
+
         </div>
 
         <!-- Footer -->
