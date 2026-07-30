@@ -27,7 +27,7 @@
             page-break-after: always;
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
         }
 
         .page-container:last-child {
