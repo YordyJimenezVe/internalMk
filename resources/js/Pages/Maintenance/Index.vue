@@ -103,6 +103,10 @@ const getBrandSlug = (brand) => {
         return 'caterpillar';
     }
     
+    if (b.includes('international') || b.includes('internacional')) {
+        return 'international';
+    }
+    
     const slugMap = {
         'toyota': 'toyota',
         'totota': 'toyota',
@@ -153,6 +157,10 @@ const getBrandIcon = (brand, id) => {
     
     if (slug === 'cummins') {
         return '/cummins-logo.svg';
+    }
+    
+    if (slug === 'international') {
+        return '/international-logo.svg';
     }
     
     const urls = [
