@@ -555,9 +555,77 @@ class InventarioController extends Controller
             'items' => 'required|string',
         ]);
 
-        $rawItems = str_replace([',', ' ', ';'], '-', $request->input('items', ''));
-        $rawItems = preg_replace('/-+/', '-', $rawItems);
-        $itemNumbers = array_filter(array_map('trim', explode('-', $rawItems)));
+        $input = $request->input('items', '');
+
+        // Remove the word "desde" (case-insensitive)
+        $input = preg_replace('/\bdesde\b/i', '', $input);
+
+        // Normalize alternative range words like "al", "hasta", "a", or slashes "/" to a simple hyphen "-"
+        $input = preg_replace('/\s*(?:\/|al|hasta|\ba\b)\s*/i', '-', $input);
+
+        // Collapse whitespace around hyphens to simplify parsing (e.g. "10 - 15" -> "10-15")
+        $input = preg_replace('/\s*-\s*/', '-', $input);
+
+        // Convert semicolons to commas
+        $input = str_replace(';', ',', $input);
+
+        // Split by commas or whitespace (which now represent list separators)
+        $tokens = preg_split('/[,\s]+/', $input);
+        $tokens = array_filter(array_map('trim', $tokens));
+
+        $itemNumbers = [];
+        foreach ($tokens as $token) {
+            if (str_contains($token, '-')) {
+                $parts = explode('-', $token);
+                if (count($parts) === 2) {
+                    $startStr = trim($parts[0]);
+                    $endStr = trim($parts[1]);
+
+                    // Pattern to match optional letters prefix and digits suffix
+                    if (preg_match('/^([A-Za-z]*)([0-9]+)$/', $startStr, $startMatches) &&
+                        preg_match('/^([A-Za-z]*)([0-9]+)$/', $endStr, $endMatches)) {
+
+                        $startPrefix = $startMatches[1];
+                        $startNum = (int)$startMatches[2];
+                        $endPrefix = $endMatches[1];
+                        $endNum = (int)$endMatches[2];
+
+                        // If the second prefix is empty, assume it inherits from the first prefix (e.g. D0120-125)
+                        if (empty($endPrefix) && !empty($startPrefix)) {
+                            $endPrefix = $startPrefix;
+                        }
+
+                        if ($startPrefix === $endPrefix) {
+                            $padLength = strlen($startMatches[2]);
+                            $step = ($startNum <= $endNum) ? 1 : -1;
+
+                            for ($i = $startNum; ; $i += $step) {
+                                $numStr = str_pad($i, $padLength, '0', STR_PAD_LEFT);
+                                $itemNumbers[] = $startPrefix . $numStr;
+                                if ($i == $endNum) {
+                                    break;
+                                }
+                            }
+                        } else {
+                            $itemNumbers[] = $startStr;
+                            $itemNumbers[] = $endStr;
+                        }
+                    } else {
+                        $itemNumbers[] = $startStr;
+                        $itemNumbers[] = $endStr;
+                    }
+                } else {
+                    foreach ($parts as $part) {
+                        $itemNumbers[] = trim($part);
+                    }
+                }
+            } else {
+                $itemNumbers[] = $token;
+            }
+        }
+
+        $itemNumbers = array_filter(array_unique($itemNumbers));
+
 
         if (empty($itemNumbers)) {
             return back()->with('error', 'Por favor ingresa al menos un número de ítem válido.');
