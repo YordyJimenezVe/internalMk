@@ -12,14 +12,14 @@ const page = usePage();
 const user = computed(() => page.props.auth.user);
 const isReadOnly = computed(() => {
     const rawRoles = user.value?.roles || [];
-    const roles = rawRoles.map(r => typeof r === 'string' ? r : r.name || '');
-    const directRol = user.value?.rol || '';
-    if (roles.includes('Administrador Consulta') || directRol === 'Administrador Consulta') return true;
+    const roles = rawRoles.map(r => (typeof r === 'string' ? r : r.name || '').toLowerCase());
+    const directRol = (user.value?.rol || '').toLowerCase();
+    if (roles.includes('administrador consulta') || directRol === 'administrador consulta') return true;
     
-    const permissions = (user.value?.permissions || []).map(p => typeof p === 'string' ? p : p.name || '');
+    const permissions = (user.value?.permissions || []).map(p => (typeof p === 'string' ? p : p.name || '').toLowerCase());
     const hasWritePermission = permissions.some(p => ['manage billing', 'manage partida'].includes(p));
-    const hasWriteRole = ['Superusuario', 'Administrador', 'Facturacion', 'Vendedor'].includes(directRol) || 
-                         roles.some(name => ['Superusuario', 'Administrador', 'Facturacion', 'Vendedor'].includes(name));
+    const hasWriteRole = ['superusuario', 'administrador', 'facturacion', 'vendedor'].includes(directRol) || 
+                         roles.some(name => ['superusuario', 'administrador', 'facturacion', 'vendedor'].includes(name));
     return !hasWritePermission && !hasWriteRole;
 });
 

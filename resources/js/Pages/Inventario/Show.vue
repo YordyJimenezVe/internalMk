@@ -15,26 +15,26 @@ const props = defineProps({
 const page = usePage();
 const userRoles = computed(() => {
     const roles = page.props.auth.user?.roles || [];
-    return roles.map(r => typeof r === 'string' ? r : r.name || '');
+    return roles.map(r => (typeof r === 'string' ? r : r.name || '').toLowerCase());
 });
 const userPermissions = computed(() => {
     const permissions = page.props.auth.user?.permissions || [];
-    return permissions.map(p => typeof p === 'string' ? p : p.name || '');
+    return permissions.map(p => (typeof p === 'string' ? p : p.name || '').toLowerCase());
 });
 
 const isReadOnlyUser = computed(() => {
-    const directRol = page.props.auth.user?.rol || '';
-    if (userRoles.value.includes('Administrador Consulta') || directRol === 'Administrador Consulta') return true;
+    const directRol = (page.props.auth.user?.rol || '').toLowerCase();
+    if (userRoles.value.includes('administrador consulta') || directRol === 'administrador consulta') return true;
     const hasManagePermission = userPermissions.value.some(p => ['manage billing', 'manage partida', 'manage users', 'manage roles'].includes(p));
-    const hasWriteRole = ['Superusuario', 'Administrador', 'Facturacion', 'Vendedor', 'Inventario'].includes(directRol) || 
-                         userRoles.value.some(r => ['Superusuario', 'Administrador', 'Facturacion', 'Vendedor', 'Inventario'].includes(r));
+    const hasWriteRole = ['superusuario', 'administrador', 'facturacion', 'vendedor', 'inventario'].includes(directRol) || 
+                         userRoles.value.some(r => ['superusuario', 'administrador', 'facturacion', 'vendedor', 'inventario'].includes(r));
     return !hasManagePermission && !hasWriteRole;
 });
 
 const canRequestBilling = computed(() => {
-    const directRol = page.props.auth.user?.rol || '';
-    return ['Superusuario', 'Administrador', 'Facturacion', 'Vendedor'].includes(directRol) || 
-           userRoles.value.some(r => ['Superusuario', 'Administrador', 'Facturacion', 'Vendedor'].includes(r));
+    const directRol = (page.props.auth.user?.rol || '').toLowerCase();
+    return ['superusuario', 'administrador', 'facturacion', 'vendedor'].includes(directRol) || 
+           userRoles.value.some(r => ['superusuario', 'administrador', 'facturacion', 'vendedor'].includes(r));
 });
 
 const showQrCodes = computed(() => !isReadOnlyUser.value);

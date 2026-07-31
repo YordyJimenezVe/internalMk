@@ -16,21 +16,20 @@ const props = defineProps({
 const page = usePage();
 const userRoles = computed(() => {
     const roles = page.props.auth.user?.roles || [];
-    return roles.map(r => typeof r === 'string' ? r : r.name || '');
+    return roles.map(r => (typeof r === 'string' ? r : r.name || '').toLowerCase());
 });
 const userPermissions = computed(() => {
     const permissions = page.props.auth.user?.permissions || [];
-    return permissions.map(p => typeof p === 'string' ? p : p.name || '');
+    return permissions.map(p => (typeof p === 'string' ? p : p.name || '').toLowerCase());
 });
 
 const hasSuperusuario = computed(() => {
-    const directRol = page.props.auth.user?.rol || '';
-    return directRol === 'Superusuario' || userRoles.value.includes('Superusuario');
+    const directRol = (page.props.auth.user?.rol || '').toLowerCase();
+    return directRol === 'superusuario' || userRoles.value.includes('superusuario');
 });
 const hasFacturacion = computed(() => {
-    const directRol = page.props.auth.user?.rol || '';
-    return directRol === 'Facturacion' || directRol === 'FACTURACION' || 
-           userRoles.value.includes('Facturacion') || userRoles.value.includes('FACTURACION');
+    const directRol = (page.props.auth.user?.rol || '').toLowerCase();
+    return directRol === 'facturacion' || userRoles.value.includes('facturacion');
 });
 const hasManageRoles = computed(() => userPermissions.value.includes('manage roles'));
 const hasViewPartida = computed(() => userPermissions.value.includes('view partida'));
@@ -41,7 +40,7 @@ const hasManageUsers = computed(() => userPermissions.value.includes('manage use
 const hasViewBitacora = computed(() => userPermissions.value.includes('view bitacora'));
 const hasViewReports = computed(() => userPermissions.value.includes('view reports'));
 const hasAccessScan = computed(() => userPermissions.value.includes('access scan'));
-const isAdministrador = computed(() => page.props.auth.user?.rol === 'Administrador');
+const isAdministrador = computed(() => (page.props.auth.user?.rol || '').toLowerCase() === 'administrador');
 
 const displayTitle = computed(() => {
     const prefix = unreadCount.value > 0 ? `(${unreadCount.value}) ` : '';

@@ -9,15 +9,15 @@ const page = usePage();
 
 const userRoles = computed(() => {
     const roles = page.props.auth.user?.roles || [];
-    return roles.map(r => typeof r === 'string' ? r : r.name || '');
+    return roles.map(r => (typeof r === 'string' ? r : r.name || '').toLowerCase());
 });
 const isTecnico = computed(() => {
-    const directRol = page.props.auth.user?.rol || '';
-    return directRol === 'Tecnico' || userRoles.value.includes('Tecnico');
+    const directRol = (page.props.auth.user?.rol || '').toLowerCase();
+    return directRol === 'tecnico' || userRoles.value.includes('tecnico');
 });
 const isFacturacion = computed(() => {
-    const directRol = page.props.auth.user?.rol || '';
-    return directRol === 'Facturacion' || userRoles.value.includes('Facturacion');
+    const directRol = (page.props.auth.user?.rol || '').toLowerCase();
+    return directRol === 'facturacion' || userRoles.value.includes('facturacion');
 });
 
 const handleSearch = () => {

@@ -19,21 +19,21 @@ const page = usePage();
 const user = computed(() => page.props.auth.user);
 
 const isSuperUser = computed(() => {
-    const roles = (user.value?.roles || []).map(r => typeof r === 'string' ? r : r.name || '');
-    const directRol = user.value?.rol || '';
-    const superRoles = ['Superusuario', 'SUPERUSUARIO', 'Administrador', 'ADMINISTRADOR'];
+    const roles = (user.value?.roles || []).map(r => (typeof r === 'string' ? r : r.name || '').toLowerCase());
+    const directRol = (user.value?.rol || '').toLowerCase();
+    const superRoles = ['superusuario', 'administrador'];
     return superRoles.includes(directRol) || roles.some(name => superRoles.includes(name));
 });
 
 const isReadOnly = computed(() => {
-    const roles = (user.value?.roles || []).map(r => typeof r === 'string' ? r : r.name || '');
-    const directRol = user.value?.rol || '';
-    if (roles.includes('Administrador Consulta') || directRol === 'Administrador Consulta') return true;
+    const roles = (user.value?.roles || []).map(r => (typeof r === 'string' ? r : r.name || '').toLowerCase());
+    const directRol = (user.value?.rol || '').toLowerCase();
+    if (roles.includes('administrador consulta') || directRol === 'administrador consulta') return true;
     
-    const permissions = (user.value?.permissions || []).map(p => typeof p === 'string' ? p : p.name || '');
+    const permissions = (user.value?.permissions || []).map(p => (typeof p === 'string' ? p : p.name || '').toLowerCase());
     const hasWritePermission = permissions.some(p => ['manage billing', 'manage partida', 'manage users', 'manage roles', 'create maintenance'].includes(p));
-    const hasWriteRole = ['Superusuario', 'Administrador', 'Facturacion', 'Vendedor', 'Inventario', 'Tecnico'].includes(directRol) || 
-                         roles.some(name => ['Superusuario', 'Administrador', 'Facturacion', 'Vendedor', 'Inventario', 'Tecnico'].includes(name));
+    const hasWriteRole = ['superusuario', 'administrador', 'facturacion', 'vendedor', 'inventario', 'tecnico'].includes(directRol) || 
+                         roles.some(name => ['superusuario', 'administrador', 'facturacion', 'vendedor', 'inventario', 'tecnico'].includes(name));
     return !hasWritePermission && !hasWriteRole;
 });
 

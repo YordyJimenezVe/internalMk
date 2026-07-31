@@ -7,24 +7,24 @@ const page = usePage();
 const user = computed(() => page.props.auth.user);
 const isFacturacion = computed(() => {
     const rol = (user.value?.rol || '').toLowerCase();
-    const roles = (user.value?.roles || []).map(r => typeof r === 'string' ? r : r.name || '');
-    return rol.includes('fact') || roles.some(name => name.toLowerCase().includes('fact'));
+    const roles = (user.value?.roles || []).map(r => (typeof r === 'string' ? r : r.name || '').toLowerCase());
+    return rol.includes('fact') || roles.some(name => name.includes('fact'));
 });
 const isAdminOrSuper = computed(() => {
     const rol = (user.value?.rol || '').toLowerCase();
-    const roles = (user.value?.roles || []).map(r => typeof r === 'string' ? r : r.name || '');
-    return rol.includes('admin') || rol.includes('super') || roles.some(name => ['superusuario', 'administrador'].includes(name.toLowerCase()));
+    const roles = (user.value?.roles || []).map(r => (typeof r === 'string' ? r : r.name || '').toLowerCase());
+    return rol.includes('admin') || rol.includes('super') || roles.some(name => ['superusuario', 'administrador'].includes(name));
 });
 
 const isReadOnly = computed(() => {
-    const roles = (user.value?.roles || []).map(r => typeof r === 'string' ? r : r.name || '');
-    const directRol = user.value?.rol || '';
-    if (roles.includes('Administrador Consulta') || directRol === 'Administrador Consulta') return true;
+    const roles = (user.value?.roles || []).map(r => (typeof r === 'string' ? r : r.name || '').toLowerCase());
+    const directRol = (user.value?.rol || '').toLowerCase();
+    if (roles.includes('administrador consulta') || directRol === 'administrador consulta') return true;
     
-    const permissions = (user.value?.permissions || []).map(p => typeof p === 'string' ? p : p.name || '');
+    const permissions = (user.value?.permissions || []).map(p => (typeof p === 'string' ? p : p.name || '').toLowerCase());
     const hasWritePermission = permissions.some(p => ['manage billing', 'manage partida'].includes(p));
-    const hasWriteRole = ['Superusuario', 'Administrador', 'Facturacion', 'Vendedor'].includes(directRol) || 
-                         roles.some(name => ['Superusuario', 'Administrador', 'Facturacion', 'Vendedor'].includes(name));
+    const hasWriteRole = ['superusuario', 'administrador', 'facturacion', 'vendedor'].includes(directRol) || 
+                         roles.some(name => ['superusuario', 'administrador', 'facturacion', 'vendedor'].includes(name));
     return !hasWritePermission && !hasWriteRole;
 });
 
