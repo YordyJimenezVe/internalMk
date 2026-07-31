@@ -900,15 +900,33 @@ class InventarioController extends Controller
         $cleanCost = $request->costo_importacion_unitario;
         if (is_string($cleanCost)) {
             $cleanCost = str_ireplace(['$', 'bs.', 'bs', ' '], '', $cleanCost);
-            if (strpos($cleanCost, ',') !== false && strpos($cleanCost, '.') !== false) {
-                $cleanCost = str_replace('.', '', $cleanCost);
-                $cleanCost = str_replace(',', '.', $cleanCost);
-            } elseif (strpos($cleanCost, ',') !== false) {
-                $parts = explode(',', $cleanCost);
-                if (count($parts) === 2 && strlen($parts[1]) === 2) {
-                    $cleanCost = str_replace(',', '.', $cleanCost);
-                } else {
+            if (strpos($cleanCost, '.') !== false && strpos($cleanCost, ',') !== false) {
+                $lastDot = strrpos($cleanCost, '.');
+                $lastComma = strrpos($cleanCost, ',');
+                if ($lastDot > $lastComma) {
                     $cleanCost = str_replace(',', '', $cleanCost);
+                } else {
+                    $cleanCost = str_replace('.', '', $cleanCost);
+                    $cleanCost = str_replace(',', '.', $cleanCost);
+                }
+            } else {
+                if (strpos($cleanCost, ',') !== false) {
+                    if (preg_match('/,\d{2}$/', $cleanCost)) {
+                        $cleanCost = str_replace(',', '.', $cleanCost);
+                    } else {
+                        $cleanCost = str_replace(',', '', $cleanCost);
+                    }
+                }
+                if (strpos($cleanCost, '.') !== false) {
+                    if (substr_count($cleanCost, '.') > 1) {
+                        $cleanCost = str_replace('.', '', $cleanCost);
+                    } else {
+                        if (preg_match('/\.\d{2}$/', $cleanCost)) {
+                            // Keep single dot as decimal separator
+                        } else {
+                            $cleanCost = str_replace('.', '', $cleanCost);
+                        }
+                    }
                 }
             }
         }

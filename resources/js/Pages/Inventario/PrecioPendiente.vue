@@ -98,12 +98,71 @@ watch(itemsList, () => {
     initForms();
 }, { deep: true });
 
+const parseLocaleFloat = (val) => {
+    if (val === null || val === undefined) return NaN;
+    let str = val.toString().trim();
+    if (!str) return NaN;
+    
+    // Remove everything except numbers, commas, and dots
+    str = str.replace(/[^\d.,-]/g, '');
+    
+    // Check if both comma and dot exist (e.g. 1.234,56 or 1,234.56)
+    if (str.includes(',') && str.includes('.')) {
+        const firstComma = str.indexOf(',');
+        const firstDot = str.indexOf('.');
+        if (firstComma < firstDot) {
+            // comma is thousands, dot is decimal (1,234.56)
+            str = str.replace(/,/g, '');
+        } else {
+            // dot is thousands, comma is decimal (1.234,56)
+            str = str.replace(/\./g, '').replace(',', '.');
+        }
+    } else if (str.includes(',')) {
+        // Only comma is present.
+        const parts = str.split(',');
+        if (parts.length > 2) {
+            // e.g. 1,234,567
+            str = str.replace(/,/g, '');
+        } else {
+            // e.g. 12,34 or 1,234
+            const decimals = parts[1];
+            if (decimals.length === 2 || decimals.length === 1) {
+                // likely decimal
+                str = str.replace(',', '.');
+            } else {
+                // likely thousands
+                str = str.replace(/,/g, '');
+            }
+        }
+    } else if (str.includes('.')) {
+        // Only dot is present.
+        const parts = str.split('.');
+        if (parts.length > 2) {
+            // e.g. 1.234.567
+            str = str.replace(/\./g, '');
+        } else {
+            // e.g. 12.34 or 1.234
+            const decimals = parts[1];
+            if (decimals.length === 3) {
+                // likely thousands (e.g. 1.234)
+                str = str.replace(/\./g, '');
+            }
+        }
+    }
+    
+    const parsed = parseFloat(str);
+    return isNaN(parsed) ? NaN : parsed;
+};
+
 const submitCost = (id) => {
     const f = forms.value[id];
     if (!f) return;
     
+    const parsedBsVal = parseLocaleFloat(f.costo_importacion_unitario);
+    if (isNaN(parsedBsVal)) return;
+    
     router.post(route('inventario.precio_pendiente.update', id), {
-        costo_importacion_unitario: f.costo_importacion_unitario,
+        costo_importacion_unitario: parsedBsVal,
     }, {
         preserveScroll: true,
         onStart: () => {
@@ -119,11 +178,7 @@ const onUsdChange = (id) => {
     const f = forms.value[id];
     if (!f) return;
     
-    // Clean and validate input
-    let valStr = (f.costo_usd || '').toString().replace(/[^\d.,]/g, '').replace(',', '.');
-    f.costo_usd = valStr;
-
-    const usdVal = parseFloat(valStr);
+    const usdVal = parseLocaleFloat(f.costo_usd);
     if (!isNaN(usdVal) && props.tasa_bcv > 0) {
         f.costo_importacion_unitario = (usdVal * props.tasa_bcv).toFixed(2);
     } else {
@@ -135,11 +190,7 @@ const onBsChange = (id) => {
     const f = forms.value[id];
     if (!f) return;
     
-    // Clean and validate input
-    let valStr = (f.costo_importacion_unitario || '').toString().replace(/[^\d.,]/g, '').replace(',', '.');
-    f.costo_importacion_unitario = valStr;
-
-    const bsVal = parseFloat(valStr);
+    const bsVal = parseLocaleFloat(f.costo_importacion_unitario);
     if (!isNaN(bsVal) && props.tasa_bcv > 0) {
         f.costo_usd = (bsVal / props.tasa_bcv).toFixed(2);
     } else {
