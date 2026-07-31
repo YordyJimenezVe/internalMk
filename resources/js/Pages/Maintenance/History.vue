@@ -19,11 +19,11 @@ const user = computed(() => page.props.auth.user);
 
 const isSuperUser = computed(() => {
     // Handling different case variants and both 'rol' column and spatie roles if available
-    const roles = user.value.roles || [];
-    const directRol = user.value.rol || '';
+    const roles = (user.value?.roles || []).map(r => typeof r === 'string' ? r : r.name || '');
+    const directRol = user.value?.rol || '';
     const superRoles = ['Superusuario', 'SUPERUSUARIO', 'Administrador', 'ADMINISTRADOR'];
     
-    return superRoles.includes(directRol) || roles.some(r => superRoles.includes(r.name));
+    return superRoles.includes(directRol) || roles.some(name => superRoles.includes(name));
 });
 
 const columns = [

@@ -5,13 +5,43 @@ import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { ref, onMounted, computed } from 'vue';
 import axios from 'axios';
 
 const props = defineProps({
     title: String,
 });
+
+const page = usePage();
+const userRoles = computed(() => {
+    const roles = page.props.auth.user?.roles || [];
+    return roles.map(r => typeof r === 'string' ? r : r.name || '');
+});
+const userPermissions = computed(() => {
+    const permissions = page.props.auth.user?.permissions || [];
+    return permissions.map(p => typeof p === 'string' ? p : p.name || '');
+});
+
+const hasSuperusuario = computed(() => {
+    const directRol = page.props.auth.user?.rol || '';
+    return directRol === 'Superusuario' || userRoles.value.includes('Superusuario');
+});
+const hasFacturacion = computed(() => {
+    const directRol = page.props.auth.user?.rol || '';
+    return directRol === 'Facturacion' || directRol === 'FACTURACION' || 
+           userRoles.value.includes('Facturacion') || userRoles.value.includes('FACTURACION');
+});
+const hasManageRoles = computed(() => userPermissions.value.includes('manage roles'));
+const hasViewPartida = computed(() => userPermissions.value.includes('view partida'));
+const hasViewMaintenance = computed(() => userPermissions.value.includes('view maintenance'));
+const hasManageBilling = computed(() => userPermissions.value.includes('manage billing'));
+const hasViewBilling = computed(() => userPermissions.value.includes('view billing'));
+const hasManageUsers = computed(() => userPermissions.value.includes('manage users'));
+const hasViewBitacora = computed(() => userPermissions.value.includes('view bitacora'));
+const hasViewReports = computed(() => userPermissions.value.includes('view reports'));
+const hasAccessScan = computed(() => userPermissions.value.includes('access scan'));
+const isAdministrador = computed(() => page.props.auth.user?.rol === 'Administrador');
 
 const displayTitle = computed(() => {
     const prefix = unreadCount.value > 0 ? `(${unreadCount.value}) ` : '';
@@ -193,77 +223,77 @@ const logout = () => {
                         <span v-if="!isSidebarCollapsed">Panel de Control</span>
                     </NavLink>
 
-                    <div class="pt-4 pb-2" v-if="!isSidebarCollapsed && ($page.props.auth.user.permissions?.includes('manage roles') || $page.props.auth.user.permissions?.includes('view partida') || $page.props.auth.user.permissions?.includes('view maintenance') || $page.props.auth.user.roles?.includes('Superusuario'))">
+                    <div class="pt-4 pb-2" v-if="!isSidebarCollapsed && (hasManageRoles || hasViewPartida || hasViewMaintenance || hasSuperusuario)">
                         <p class="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Gestión</p>
                     </div>
-                     <div class="pt-4 pb-2 flex justify-center" v-else-if="isSidebarCollapsed && ($page.props.auth.user.permissions?.includes('manage roles') || $page.props.auth.user.permissions?.includes('view partida') || $page.props.auth.user.permissions?.includes('view maintenance') || $page.props.auth.user.roles?.includes('Superusuario'))">
+                     <div class="pt-4 pb-2 flex justify-center" v-else-if="isSidebarCollapsed && (hasManageRoles || hasViewPartida || hasViewMaintenance || hasSuperusuario)">
                         <div class="w-4 h-1 bg-gray-200 dark:bg-gray-700 rounded"></div>
                     </div>
 
-                    <NavLink v-if="$page.props.auth.user.permissions?.includes('manage roles') || $page.props.auth.user.roles?.includes('Superusuario')" :href="route('container')" :active="route().current('container')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('container') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Contenedor' : ''">
+                    <NavLink v-if="hasManageRoles || hasSuperusuario" :href="route('container')" :active="route().current('container')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('container') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Contenedor' : ''">
                         <font-awesome-icon icon="fa-solid fa-cube" class="w-5 h-5 shrink-0" :class="[route().current('container') ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 group-hover:text-gray-500 dark:text-gray-400', isSidebarCollapsed ? '' : 'mr-3']" />
                         <span v-if="!isSidebarCollapsed">Contenedor</span>
                     </NavLink>
 
-                    <NavLink v-if="$page.props.auth.user.permissions?.includes('view partida') || $page.props.auth.user.roles?.includes('Superusuario')" :href="route('inventario')" :active="route().current('inventario')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('inventario') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Inventario' : ''">
+                    <NavLink v-if="hasViewPartida || hasSuperusuario" :href="route('inventario')" :active="route().current('inventario')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('inventario') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Inventario' : ''">
                         <font-awesome-icon icon="fa-solid fa-box" class="w-5 h-5 shrink-0" :class="[route().current('inventario') ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 group-hover:text-gray-500 dark:text-gray-400', isSidebarCollapsed ? '' : 'mr-3']" />
                         <span v-if="!isSidebarCollapsed">Inventario</span>
                     </NavLink>
 
-                    <NavLink v-if="$page.props.auth.user.permissions?.includes('manage billing') || $page.props.auth.user.roles?.includes('Superusuario')" :href="route('inventario.precio_pendiente')" :active="route().current('inventario.precio_pendiente')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('inventario.precio_pendiente') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Precio Pendiente' : ''">
+                    <NavLink v-if="hasManageBilling || hasSuperusuario" :href="route('inventario.precio_pendiente')" :active="route().current('inventario.precio_pendiente')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('inventario.precio_pendiente') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Precio Pendiente' : ''">
                         <font-awesome-icon icon="fa-solid fa-hourglass-half" class="w-5 h-5 shrink-0" :class="[route().current('inventario.precio_pendiente') ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 group-hover:text-gray-500 dark:text-gray-400', isSidebarCollapsed ? '' : 'mr-3']" />
                         <span v-if="!isSidebarCollapsed">Precio Pendiente</span>
                     </NavLink>
 
 
-                     <NavLink v-if="$page.props.auth.user.permissions?.includes('view maintenance') || $page.props.auth.user.roles?.includes('Superusuario')" :href="route('maintenance')" :active="route().current('maintenance')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('maintenance') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Mantenimiento' : ''">
+                     <NavLink v-if="hasViewMaintenance || hasSuperusuario" :href="route('maintenance')" :active="route().current('maintenance')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('maintenance') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Mantenimiento' : ''">
                         <font-awesome-icon icon="fa-solid fa-wrench" class="w-5 h-5 shrink-0" :class="[route().current('maintenance') ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 group-hover:text-gray-500 dark:text-gray-400', isSidebarCollapsed ? '' : 'mr-3']" />
                         <span v-if="!isSidebarCollapsed">Mantenimiento</span>
                     </NavLink>
 
-                    <a v-if="$page.props.auth.user.permissions?.includes('manage partida') || $page.props.auth.user.permissions?.includes('access scan') || $page.props.auth.user.permissions?.includes('manage billing') || $page.props.auth.user.roles?.includes('Superusuario')" href="/generar-qr-etiquetas" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white" :class="[isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Etiquetas QR' : ''">
+                    <a v-if="hasViewPartida || hasAccessScan || hasManageBilling || hasSuperusuario" href="/generar-qr-etiquetas" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white" :class="[isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Etiquetas QR' : ''">
                         <font-awesome-icon icon="fa-solid fa-qrcode" class="w-5 h-5 shrink-0 text-gray-400 group-hover:text-gray-500 dark:text-gray-400" :class="[isSidebarCollapsed ? '' : 'mr-3']" />
                         <span v-if="!isSidebarCollapsed">Etiquetas QR</span>
                     </a>
                     
-                    <div class="pt-4 pb-2" v-if="!isSidebarCollapsed && ($page.props.auth.user.permissions?.includes('manage users') || $page.props.auth.user.permissions?.includes('manage roles') || $page.props.auth.user.permissions?.includes('view bitacora') || $page.props.auth.user.permissions?.includes('view billing') || $page.props.auth.user.permissions?.includes('view reports') || $page.props.auth.user.permissions?.includes('access scan') || $page.props.auth.user.roles?.includes('Superusuario'))">
+                    <div class="pt-4 pb-2" v-if="!isSidebarCollapsed && (hasManageUsers || hasManageRoles || hasViewBitacora || hasViewBilling || hasViewReports || hasAccessScan || hasSuperusuario)">
                          <p class="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Administración</p>
                     </div>
-                     <div class="pt-4 pb-2 flex justify-center" v-else-if="isSidebarCollapsed && ($page.props.auth.user.permissions?.includes('manage users') || $page.props.auth.user.permissions?.includes('manage roles') || $page.props.auth.user.permissions?.includes('view bitacora') || $page.props.auth.user.permissions?.includes('view billing') || $page.props.auth.user.permissions?.includes('view reports') || $page.props.auth.user.permissions?.includes('access scan') || $page.props.auth.user.roles?.includes('Superusuario'))">
+                     <div class="pt-4 pb-2 flex justify-center" v-else-if="isSidebarCollapsed && (hasManageUsers || hasManageRoles || hasViewBitacora || hasViewBilling || hasViewReports || hasAccessScan || hasSuperusuario)">
                         <div class="w-4 h-1 bg-gray-200 dark:bg-gray-700 rounded"></div>
                     </div>
 
-                    <NavLink v-if="$page.props.auth.user.permissions?.includes('manage users') || $page.props.auth.user.roles?.includes('Superusuario')" :href="route('users.index')" :active="route().current('users.index')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('users.index') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Usuarios' : ''">
+                    <NavLink v-if="hasManageUsers || hasSuperusuario" :href="route('users.index')" :active="route().current('users.index')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('users.index') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Usuarios' : ''">
                         <font-awesome-icon icon="fa-solid fa-users" class="w-5 h-5 shrink-0" :class="[route().current('users.index') ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 group-hover:text-gray-500 dark:text-gray-400', isSidebarCollapsed ? '' : 'mr-3']" />
                         <span v-if="!isSidebarCollapsed">Usuarios</span>
                     </NavLink>
 
-                    <NavLink v-if="$page.props.auth.user.permissions?.includes('manage roles') || $page.props.auth.user.roles?.includes('Superusuario')" :href="route('roles.index')" :active="route().current('roles.index')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('roles.index') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Roles' : ''">
+                    <NavLink v-if="hasManageRoles || hasSuperusuario" :href="route('roles.index')" :active="route().current('roles.index')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('roles.index') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Roles' : ''">
                         <font-awesome-icon icon="fa-solid fa-shield-halved" class="w-5 h-5 shrink-0" :class="[route().current('roles.index') ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 group-hover:text-gray-500 dark:text-gray-400', isSidebarCollapsed ? '' : 'mr-3']" />
                         <span v-if="!isSidebarCollapsed">Roles y Permisos</span>
                     </NavLink>
 
-                    <NavLink v-if="$page.props.auth.user.permissions?.includes('view bitacora') || $page.props.auth.user.roles?.includes('Superusuario')" :href="route('bitacora.index')" :active="route().current('bitacora.index')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('bitacora.index') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Bitácora' : ''">
+                    <NavLink v-if="hasViewBitacora || hasSuperusuario" :href="route('bitacora.index')" :active="route().current('bitacora.index')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('bitacora.index') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Bitácora' : ''">
                         <font-awesome-icon icon="fa-solid fa-book" class="w-5 h-5 shrink-0" :class="[route().current('bitacora.index') ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 group-hover:text-gray-500 dark:text-gray-400', isSidebarCollapsed ? '' : 'mr-3']" />
                         <span v-if="!isSidebarCollapsed">Bitácora</span>
                     </NavLink>
 
-                    <NavLink v-if="$page.props.auth.user.permissions?.includes('view billing') || $page.props.auth.user.roles?.includes('Superusuario') || $page.props.auth.user.roles?.includes('FACTURACION')" :href="route('billing.requests.index')" :active="route().current('billing.requests.index')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('billing.requests.index') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Solicitudes' : ''">
+                    <NavLink v-if="hasViewBilling || hasSuperusuario || hasFacturacion" :href="route('billing.requests.index')" :active="route().current('billing.requests.index')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('billing.requests.index') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Solicitudes' : ''">
                         <font-awesome-icon icon="fa-solid fa-file-circle-exclamation" class="w-5 h-5 shrink-0" :class="[route().current('billing.requests.index') ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 group-hover:text-gray-500 dark:text-gray-400', isSidebarCollapsed ? '' : 'mr-3']" />
                         <span v-if="!isSidebarCollapsed">Solicitudes</span>
                     </NavLink>
 
-                    <NavLink v-if="$page.props.auth.user.permissions?.includes('manage billing') || $page.props.auth.user.roles?.includes('Superusuario')" :href="route('maintenance.conciliacion')" :active="route().current('maintenance.conciliacion')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('maintenance.conciliacion') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Conciliación Taller' : ''">
+                    <NavLink v-if="hasManageBilling || hasSuperusuario" :href="route('maintenance.conciliacion')" :active="route().current('maintenance.conciliacion')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('maintenance.conciliacion') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Conciliación Taller' : ''">
                         <font-awesome-icon icon="fa-solid fa-scale-balanced" class="w-5 h-5 shrink-0" :class="[route().current('maintenance.conciliacion') ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 group-hover:text-gray-500 dark:text-gray-400', isSidebarCollapsed ? '' : 'mr-3']" />
                         <span v-if="!isSidebarCollapsed">Conciliación Taller</span>
                     </NavLink>
 
-                    <NavLink v-if="$page.props.auth.user.permissions?.includes('view billing') || $page.props.auth.user.roles?.includes('Superusuario') || $page.props.auth.user.roles?.includes('FACTURACION')" :href="route('billing')" :active="route().current('billing')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('billing') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Historial' : ''">
+                    <NavLink v-if="hasViewBilling || hasSuperusuario || hasFacturacion" :href="route('billing')" :active="route().current('billing')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('billing') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Historial' : ''">
                         <font-awesome-icon icon="fa-solid fa-file-invoice-dollar" class="w-5 h-5 shrink-0" :class="[route().current('billing') ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 group-hover:text-gray-500 dark:text-gray-400', isSidebarCollapsed ? '' : 'mr-3']" />
                         <span v-if="!isSidebarCollapsed">Historial de Ventas</span>
                     </NavLink>
 
-                    <NavLink v-if="$page.props.auth.user.permissions?.includes('view reports') || $page.props.auth.user.roles?.includes('Superusuario')" :href="route('reports')" :active="route().current('reports')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('reports') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Reportes' : ''">
+                    <NavLink v-if="hasViewReports || hasSuperusuario" :href="route('reports')" :active="route().current('reports')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('reports') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Reportes' : ''">
                         <svg class="w-6 h-6 shrink-0" :class="[route().current('reports') ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 group-hover:text-gray-500 dark:text-gray-400', isSidebarCollapsed ? '' : 'mr-3']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
                         </svg>
@@ -271,12 +301,12 @@ const logout = () => {
                     </NavLink>
 
                     <!-- Notificaciones Admin Menu -->
-                    <NavLink v-if="$page.props.auth.user.rol === 'Administrador' || $page.props.auth.user.roles?.includes('Superusuario')" :href="route('admin.notifications.index')" :active="route().current('admin.notifications.index')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('admin.notifications.index') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Alertas y Avisos' : ''">
+                    <NavLink v-if="isAdministrador || hasSuperusuario" :href="route('admin.notifications.index')" :active="route().current('admin.notifications.index')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('admin.notifications.index') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Alertas y Avisos' : ''">
                         <font-awesome-icon icon="fa-solid fa-bell" class="w-5 h-5 shrink-0" :class="[route().current('admin.notifications.index') ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 group-hover:text-gray-500 dark:text-gray-400', isSidebarCollapsed ? '' : 'mr-3']" />
                         <span v-if="!isSidebarCollapsed">Alertas y Avisos</span>
                     </NavLink>
 
-                    <NavLink v-if="$page.props.auth.user.permissions?.includes('access scan') || $page.props.auth.user.roles?.includes('Superusuario')" :href="route('scan.index')" :active="route().current('scan.index')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('scan.index') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Escaneo' : ''">
+                    <NavLink v-if="hasAccessScan || hasSuperusuario" :href="route('scan.index')" :active="route().current('scan.index')" class="flex items-center px-3 py-3 text-sm font-medium rounded-lg transition-colors duration-150 ease-in-out group" :class="[route().current('scan.index') ? 'bg-indigo-50 text-indigo-700 dark:bg-gray-700 dark:text-white' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white', isSidebarCollapsed ? 'justify-center' : '']" :title="isSidebarCollapsed ? 'Escaneo' : ''">
                         <svg class="w-6 h-6 shrink-0" :class="[route().current('scan.index') ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 group-hover:text-gray-500 dark:text-gray-400', isSidebarCollapsed ? '' : 'mr-3']" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 17h.01M4.5 20h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 20z" />
                         </svg>

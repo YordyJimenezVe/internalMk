@@ -65,24 +65,28 @@ import { usePage } from '@inertiajs/vue3';
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
+const userRoles = computed(() => {
+    const roles = user.value?.roles || [];
+    return roles.map(r => typeof r === 'string' ? r : r.name || '');
+});
 const isFacturacion = computed(() => {
     const rol = (user.value?.rol || '').toLowerCase();
-    return rol.includes('fact') || (user.value?.roles || []).some(r => (r?.name || '').toLowerCase().includes('fact'));
+    return rol.includes('fact') || userRoles.value.some(name => name.toLowerCase().includes('fact'));
 });
 const isMechanic = computed(() => {
     const rol = (user.value?.rol || '').toLowerCase();
-    return rol.includes('mecan') || rol.includes('tecn') || rol.includes('tall') || (user.value?.roles || []).some(r => {
-        const name = (r?.name || '').toLowerCase();
-        return name.includes('mecan') || name.includes('tecn') || name.includes('tall');
+    return rol.includes('mecan') || rol.includes('tecn') || rol.includes('tall') || userRoles.value.some(name => {
+        const lowerName = name.toLowerCase();
+        return lowerName.includes('mecan') || lowerName.includes('tecn') || lowerName.includes('tall');
     });
 });
 const isInventory = computed(() => {
     const rol = (user.value?.rol || '').toLowerCase();
-    return rol.includes('inv') || (user.value?.roles || []).some(r => (r?.name || '').toLowerCase().includes('inv'));
+    return rol.includes('inv') || userRoles.value.some(name => name.toLowerCase().includes('inv'));
 });
 const isAdminOrSuper = computed(() => {
     const rol = (user.value?.rol || '').toLowerCase();
-    return rol.includes('admin') || rol.includes('super') || (user.value?.roles || []).some(r => ['superusuario', 'administrador'].includes((r?.name || '').toLowerCase()));
+    return rol.includes('admin') || rol.includes('super') || userRoles.value.some(name => ['superusuario', 'administrador'].includes(name.toLowerCase()));
 });
 
 // Using inline SVGs to avoid dependency issues with @heroicons/vue
@@ -522,7 +526,7 @@ const submitUtility = () => {
                     </div>
 
                     <!-- Right Column (Activity) -->
-                    <div v-if="$page.props.auth.user.roles.some(r => ['Superusuario', 'Administrador', 'Facturacion'].includes(r.name))"
+                    <div v-if="isFacturacion || isAdminOrSuper"
                          class="bg-white dark:bg-gray-800 overflow-hidden shadow-xl rounded-2xl border border-gray-100 dark:border-gray-700">
                          <div class="px-6 py-5 border-b border-gray-100 dark:border-gray-700">
                              <h3 class="text-lg font-bold text-gray-900 dark:text-white">Facturación Reciente</h3>

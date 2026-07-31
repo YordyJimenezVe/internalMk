@@ -19,26 +19,21 @@ const page = usePage();
 const user = computed(() => page.props.auth.user);
 
 const isSuperUser = computed(() => {
-    const roles = user.value?.roles || [];
+    const roles = (user.value?.roles || []).map(r => typeof r === 'string' ? r : r.name || '');
     const directRol = user.value?.rol || '';
     const superRoles = ['Superusuario', 'SUPERUSUARIO', 'Administrador', 'ADMINISTRADOR'];
-    return superRoles.includes(directRol) || roles.some(r => {
-        const name = typeof r === 'string' ? r : r.name;
-        return superRoles.includes(name);
-    });
+    return superRoles.includes(directRol) || roles.some(name => superRoles.includes(name));
 });
 
 const isReadOnly = computed(() => {
-    const roles = user.value?.roles || [];
+    const roles = (user.value?.roles || []).map(r => typeof r === 'string' ? r : r.name || '');
     const directRol = user.value?.rol || '';
     if (roles.includes('Administrador Consulta') || directRol === 'Administrador Consulta') return true;
     
-    const permissions = user.value?.permissions || [];
+    const permissions = (user.value?.permissions || []).map(p => typeof p === 'string' ? p : p.name || '');
     const hasWritePermission = permissions.some(p => ['manage billing', 'manage partida', 'manage users', 'manage roles', 'create maintenance'].includes(p));
-    const hasWriteRole = roles.some(r => {
-        const name = typeof r === 'string' ? r : r.name;
-        return ['Superusuario', 'Administrador', 'Facturacion', 'Vendedor', 'Inventario', 'Tecnico'].includes(name);
-    });
+    const hasWriteRole = ['Superusuario', 'Administrador', 'Facturacion', 'Vendedor', 'Inventario', 'Tecnico'].includes(directRol) || 
+                         roles.some(name => ['Superusuario', 'Administrador', 'Facturacion', 'Vendedor', 'Inventario', 'Tecnico'].includes(name));
     return !hasWritePermission && !hasWriteRole;
 });
 

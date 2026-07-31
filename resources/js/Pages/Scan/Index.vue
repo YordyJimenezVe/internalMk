@@ -7,9 +7,18 @@ const searchTerm = ref('');
 const inputRef = ref(null);
 const page = usePage();
 
-const userRoles = computed(() => page.props.auth.user?.roles || []);
-const isTecnico = computed(() => userRoles.value.includes('Tecnico'));
-const isFacturacion = computed(() => userRoles.value.includes('Facturacion'));
+const userRoles = computed(() => {
+    const roles = page.props.auth.user?.roles || [];
+    return roles.map(r => typeof r === 'string' ? r : r.name || '');
+});
+const isTecnico = computed(() => {
+    const directRol = page.props.auth.user?.rol || '';
+    return directRol === 'Tecnico' || userRoles.value.includes('Tecnico');
+});
+const isFacturacion = computed(() => {
+    const directRol = page.props.auth.user?.rol || '';
+    return directRol === 'Facturacion' || userRoles.value.includes('Facturacion');
+});
 
 const handleSearch = () => {
     const term = searchTerm.value.trim();

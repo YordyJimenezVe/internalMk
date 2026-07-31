@@ -13,18 +13,28 @@ const props = defineProps({
 });
 
 const page = usePage();
-const userRoles = computed(() => page.props.auth.user?.roles || []);
-const userPermissions = computed(() => page.props.auth.user?.permissions || []);
+const userRoles = computed(() => {
+    const roles = page.props.auth.user?.roles || [];
+    return roles.map(r => typeof r === 'string' ? r : r.name || '');
+});
+const userPermissions = computed(() => {
+    const permissions = page.props.auth.user?.permissions || [];
+    return permissions.map(p => typeof p === 'string' ? p : p.name || '');
+});
 
 const isReadOnlyUser = computed(() => {
-    if (userRoles.value.includes('Administrador Consulta')) return true;
+    const directRol = page.props.auth.user?.rol || '';
+    if (userRoles.value.includes('Administrador Consulta') || directRol === 'Administrador Consulta') return true;
     const hasManagePermission = userPermissions.value.some(p => ['manage billing', 'manage partida', 'manage users', 'manage roles'].includes(p));
-    const hasWriteRole = userRoles.value.some(r => ['Superusuario', 'Administrador', 'Facturacion', 'Vendedor', 'Inventario'].includes(r));
+    const hasWriteRole = ['Superusuario', 'Administrador', 'Facturacion', 'Vendedor', 'Inventario'].includes(directRol) || 
+                         userRoles.value.some(r => ['Superusuario', 'Administrador', 'Facturacion', 'Vendedor', 'Inventario'].includes(r));
     return !hasManagePermission && !hasWriteRole;
 });
 
 const canRequestBilling = computed(() => {
-    return userRoles.value.some(r => ['Superusuario', 'Administrador', 'Facturacion', 'Vendedor'].includes(r));
+    const directRol = page.props.auth.user?.rol || '';
+    return ['Superusuario', 'Administrador', 'Facturacion', 'Vendedor'].includes(directRol) || 
+           userRoles.value.some(r => ['Superusuario', 'Administrador', 'Facturacion', 'Vendedor'].includes(r));
 });
 
 const showQrCodes = computed(() => !isReadOnlyUser.value);

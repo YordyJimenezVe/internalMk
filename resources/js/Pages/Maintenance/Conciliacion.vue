@@ -11,16 +11,15 @@ const props = defineProps({
 const page = usePage();
 const user = computed(() => page.props.auth.user);
 const isReadOnly = computed(() => {
-    const roles = user.value?.roles || [];
+    const rawRoles = user.value?.roles || [];
+    const roles = rawRoles.map(r => typeof r === 'string' ? r : r.name || '');
     const directRol = user.value?.rol || '';
     if (roles.includes('Administrador Consulta') || directRol === 'Administrador Consulta') return true;
     
-    const permissions = user.value?.permissions || [];
+    const permissions = (user.value?.permissions || []).map(p => typeof p === 'string' ? p : p.name || '');
     const hasWritePermission = permissions.some(p => ['manage billing', 'manage partida'].includes(p));
-    const hasWriteRole = roles.some(r => {
-        const name = typeof r === 'string' ? r : r.name;
-        return ['Superusuario', 'Administrador', 'Facturacion', 'Vendedor'].includes(name);
-    });
+    const hasWriteRole = ['Superusuario', 'Administrador', 'Facturacion', 'Vendedor'].includes(directRol) || 
+                         roles.some(name => ['Superusuario', 'Administrador', 'Facturacion', 'Vendedor'].includes(name));
     return !hasWritePermission && !hasWriteRole;
 });
 
