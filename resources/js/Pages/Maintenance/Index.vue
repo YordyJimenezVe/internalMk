@@ -99,6 +99,10 @@ const getBrandSlug = (brand) => {
     if (!brand) return null;
     const b = brand.toLowerCase().trim();
     
+    if (b === 'cat' || b.startsWith('cat ') || b.includes('caterpillar') || b.includes('caterpilar')) {
+        return 'caterpillar';
+    }
+    
     const slugMap = {
         'toyota': 'toyota',
         'totota': 'toyota',
