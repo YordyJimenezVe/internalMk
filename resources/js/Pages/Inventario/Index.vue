@@ -27,6 +27,10 @@ const getBrandSlug = (brand) => {
         return 'international';
     }
     
+    if (b.includes('mack')) {
+        return 'mack';
+    }
+    
     const slugMap = {
         'toyota': 'toyota',
         'totota': 'toyota',
@@ -81,6 +85,10 @@ const getBrandIcon = (brand, id) => {
     
     if (slug === 'international') {
         return '/international-logo.svg';
+    }
+    
+    if (slug === 'mack') {
+        return '/mack-logo.svg';
     }
     
     const urls = [
