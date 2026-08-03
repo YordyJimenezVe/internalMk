@@ -581,12 +581,12 @@ const formatDate = (dateStr) => {
                                                 </button>
 
                                                 <!-- Edit Button -->
-                                                <button v-if="item.status !== 'CONCILIADO' && canEditItem" type="button" @click="openEditModal(item)" class="p-2 text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20 rounded-lg transition-all" title="Editar detalles de factura/costo">
+                                                <button type="button" @click="openEditModal(item)" class="p-2 text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20 rounded-lg transition-all" title="Editar detalles de factura/costo">
                                                     <i class="fa-solid fa-pen-to-square text-sm"></i>
                                                 </button>
 
                                                 <!-- Delete Button -->
-                                                <button v-if="item.status !== 'CONCILIADO'" type="button" @click="confirmDelete(item.id)" class="p-2 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-lg transition-all" title="Eliminar ítem">
+                                                <button type="button" @click="confirmDelete(item.id)" class="p-2 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-lg transition-all" title="Eliminar ítem">
                                                     <i class="fa-solid fa-trash-can"></i>
                                                 </button>
                                             </div>

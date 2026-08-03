@@ -994,9 +994,6 @@ class MaintenancesController extends Controller
     {
         $item = MaintenanceItem::findOrFail($itemId);
 
-        if ($item->status === 'CONCILIADO') {
-            return redirect()->back()->with('error', 'No se puede editar un ítem que ya ha sido conciliado.');
-        }
 
         $request->validate([
             'cost' => 'nullable|numeric|min:0',
