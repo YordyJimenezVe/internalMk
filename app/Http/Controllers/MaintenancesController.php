@@ -758,7 +758,6 @@ class MaintenancesController extends Controller
         $baseImponible = $request->input('base_imponible') ?? 0;
 
         if ($request->input('source') === 'INVENTARIO') {
-            $cost = 0;
             $baseImponible = 0;
         }
 
@@ -1016,9 +1015,8 @@ class MaintenancesController extends Controller
         $baseImponible = $request->input('base_imponible') ?? 0;
         $documentType = $request->input('document_type');
 
-        // Si el origen es inventario, forzar costo y base imponible a 0
+        // Si el origen es inventario, forzar base imponible a 0 y tipo de documento a NINGUNO, pero permitir costo
         if ($item->source === 'INVENTARIO') {
-            $cost = 0;
             $baseImponible = 0;
             $documentType = 'NINGUNO';
         }

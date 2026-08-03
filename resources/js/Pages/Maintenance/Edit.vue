@@ -87,6 +87,33 @@ const activeDetailItem = ref(null);
 const showDeleteConfirmModal = ref(false);
 const itemToDeleteId = ref(null);
 
+const suggestions = [
+    { name: 'CONCHA DE BIELA', type: 'REPUESTO' },
+    { name: 'CONCHA DE BANCADA', type: 'REPUESTO' },
+    { name: 'ANILLOS', type: 'REPUESTO' },
+    { name: 'EMPACADURA CÁMARA', type: 'REPUESTO' },
+    { name: 'EMPACADURA DEL CARTER', type: 'REPUESTO' },
+    { name: 'KIT DE EMPACADURAS', type: 'REPUESTO' },
+    { name: 'TAPA VÁLVULA', type: 'REPUESTO' },
+    { name: 'TAPA CADENA', type: 'REPUESTO' },
+    { name: 'CARTER', type: 'REPUESTO' },
+    { name: 'PESCADOR', type: 'REPUESTO' },
+    { name: 'PISTÓN O BRAZO', type: 'REPUESTO' },
+    { name: 'BAÑO QUÍMICO', type: 'SERVICIO' },
+    { name: 'GOMA VÁLVULA', type: 'SERVICIO' },
+    { name: 'PLANOS', type: 'SERVICIO' },
+    { name: 'VÁLVULAS', type: 'SERVICIO' },
+    { name: 'RECTIFICACIÓN', type: 'SERVICIO' },
+    { name: 'ASIENTOS', type: 'SERVICIO' },
+    { name: 'CAMISAS BLOQUES', type: 'SERVICIO' },
+    { name: 'LEVA CAMISAS', type: 'SERVICIO' }
+];
+
+const selectSuggestion = (sug) => {
+    addForm.description = sug.name;
+    addForm.type = sug.type;
+};
+
 const addForm = useForm({
     description: '',
     type: 'REPUESTO',
@@ -124,7 +151,7 @@ const editForm = useForm({
 
 const handleSourceChange = () => {
     if (addForm.source === 'INVENTARIO') {
-        addForm.cost = 0;
+        addForm.cost = '';
         addForm.document_type = 'NINGUNO';
         addForm.invoice_number = '';
         addForm.base_imponible = 0;
@@ -461,10 +488,7 @@ const formatDate = (dateStr) => {
                             </template>
                         </div>
 
-                        <h4 class="text-center mb-6 font-bold text-lg text-blue-600 dark:text-blue-400 tracking-tight uppercase">Información De Materiales y Accesorios</h4>
-                        <div class="bg-white dark:bg-slate-800/40 p-5 rounded-xl border border-gray-100 dark:border-slate-700/50 mb-8 shadow-sm transition-colors">
-                            <MaterialsEngine v-bind:materials="materials" v-bind:accesorios="accesorios" />
-                        </div>
+
 
                         <!-- Panel de Repuestos y Trabajos Externos -->
                         <div class="mb-8">
@@ -624,6 +648,16 @@ const formatDate = (dateStr) => {
                         <input type="text" v-model="addForm.description" required class="block w-full bg-gray-50 dark:bg-slate-800 text-gray-900 dark:text-white border border-gray-200 dark:border-slate-700 rounded-xl py-2 px-4 focus:ring-2 focus:ring-indigo-500 uppercase font-bold" placeholder="EJ: ANILLOS, PISTONES, REVISIÓN CIGÜEÑAL">
                     </div>
 
+                    <!-- Sugerencias de repuestos y servicios -->
+                    <div class="space-y-1.5">
+                        <label class="block text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-wider">Sugerencias rápidas:</label>
+                        <div class="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-2 bg-gray-50 dark:bg-slate-800/40 rounded-xl border border-gray-150 dark:border-slate-800/70">
+                            <button v-for="sug in suggestions" :key="sug.name" type="button" @click="selectSuggestion(sug)" class="px-2 py-1 bg-white dark:bg-slate-850 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-gray-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 text-[10px] font-extrabold uppercase rounded-lg border border-gray-200 dark:border-slate-700/60 shadow-sm transition-all">
+                                {{ sug.name }}
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">
@@ -650,21 +684,22 @@ const formatDate = (dateStr) => {
                         <label for="requires_outflow" class="text-xs font-bold text-gray-700 dark:text-slate-300 uppercase cursor-pointer select-none">¿Requiere salida a rectificadora / taller externo?</label>
                     </div>
 
-                    <!-- Datos de Compra Directa (si es comprado y no va a rectificadora) -->
-                    <div v-if="addForm.source === 'COMPRADO' && !addForm.requires_outflow" class="p-4 bg-gray-50 dark:bg-slate-800/40 border border-gray-100 dark:border-slate-800 rounded-2xl space-y-4 animate-in slide-in-from-top-4 duration-200">
+                    <!-- Datos de Compra Directa o Referencia de Stock (si no va a rectificadora) -->
+                    <div v-if="(addForm.source === 'COMPRADO' || addForm.source === 'INVENTARIO') && !addForm.requires_outflow" class="p-4 bg-gray-50 dark:bg-slate-800/40 border border-gray-100 dark:border-slate-800 rounded-2xl space-y-4 animate-in slide-in-from-top-4 duration-200">
                         <div class="text-[10px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-1.5">
-                            <i class="fa-solid fa-file-invoice-dollar"></i>Datos del Soporte de Compra
+                            <i class="fa-solid fa-file-invoice-dollar"></i>
+                            {{ addForm.source === 'COMPRADO' ? 'Datos del Soporte de Compra' : 'Costo de Referencia (Stock)' }}
                         </div>
                         
                         <div class="grid grid-cols-2 gap-4">
-                            <div>
+                            <div :class="addForm.source === 'INVENTARIO' ? 'col-span-2' : ''">
                                 <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">
                                     <i class="fa-solid fa-hand-holding-dollar text-indigo-500 mr-1.5"></i>Costo ($ USD)
                                 </label>
                                 <input type="number" step="0.01" v-model="addForm.cost" required class="block w-full bg-white dark:bg-slate-900 text-gray-900 dark:text-white border border-gray-200 dark:border-slate-700 rounded-xl py-2 px-4 focus:ring-2 focus:ring-indigo-500 text-xs font-bold" placeholder="0.00">
                                 <span v-if="addForm.errors.cost" class="text-[9px] text-rose-500 font-extrabold mt-1 block uppercase tracking-tight">{{ addForm.errors.cost }}</span>
                             </div>
-                            <div>
+                            <div v-if="addForm.source === 'COMPRADO'">
                                 <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">
                                     <i class="fa-solid fa-file-invoice text-indigo-500 mr-1.5"></i>Soporte Fiscal
                                 </label>
@@ -676,7 +711,7 @@ const formatDate = (dateStr) => {
                             </div>
                         </div>
 
-                        <div v-if="addForm.document_type !== 'NINGUNO'" class="grid grid-cols-2 gap-4">
+                        <div v-if="addForm.source === 'COMPRADO' && addForm.document_type !== 'NINGUNO'" class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">
                                     <i class="fa-solid fa-hashtag text-indigo-500 mr-1.5"></i>Nro. Factura/Recibo
@@ -692,7 +727,7 @@ const formatDate = (dateStr) => {
                             </div>
                         </div>
 
-                        <div v-if="addForm.document_type !== 'NINGUNO'">
+                        <div v-if="addForm.source === 'COMPRADO' && addForm.document_type !== 'NINGUNO'">
                             <label class="block text-[10px] font-black text-gray-400 uppercase mb-1">
                                 <i class="fa-solid fa-image text-indigo-500 mr-1.5"></i>Imagen de la Factura o Recibo
                             </label>
