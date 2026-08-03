@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('billings', function (Blueprint $table) {
-            $table->string('status')->default('ACTIVA')->after('partida_id'); // ACTIVA, ANULADA
-        });
+        if (!Schema::hasColumn('billings', 'status')) {
+            Schema::table('billings', function (Blueprint $table) {
+                $table->string('status')->default('ACTIVA')->after('partida_id'); // ACTIVA, ANULADA
+            });
+        }
     }
 
     /**
@@ -21,8 +23,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('billings', function (Blueprint $table) {
-            $table->dropColumn('status');
-        });
+        if (Schema::hasColumn('billings', 'status')) {
+            Schema::table('billings', function (Blueprint $table) {
+                $table->dropColumn('status');
+            });
+        }
     }
 };
