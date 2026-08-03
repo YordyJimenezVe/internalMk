@@ -46,7 +46,7 @@ const submit = () => {
             <i class="fas fa-triangle-exclamation text-lg text-rose-500 animate-pulse shrink-0"></i>
             <div>
                 <p class="font-extrabold uppercase tracking-wide text-rose-500 mb-0.5">⚠️ ALERTA DE ALOJAMIENTO</p>
-                <p class="text-gray-300 font-medium">Quedan 11 días de alojamiento. Por favor, cancelemos al proveedor lo antes posible.</p>
+                <p class="text-gray-300 font-medium">Quedan 11 días de alojamiento. Por favor cancelar el proveedor lo antes posible.</p>
             </div>
         </div>
 
