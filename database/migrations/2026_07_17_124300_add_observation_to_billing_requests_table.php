@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('billing_requests', function (Blueprint $table) {
-            $table->text('observation')->nullable();
-        });
+        if (!Schema::hasColumn('billing_requests', 'observation')) {
+            Schema::table('billing_requests', function (Blueprint $table) {
+                $table->text('observation')->nullable();
+            });
+        }
     }
 
     /**
@@ -21,8 +23,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('billing_requests', function (Blueprint $table) {
-            $table->dropColumn('observation');
-        });
+        if (Schema::hasColumn('billing_requests', 'observation')) {
+            Schema::table('billing_requests', function (Blueprint $table) {
+                $table->dropColumn('observation');
+            });
+        }
     }
 };

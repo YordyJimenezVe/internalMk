@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('inventarios', function (Blueprint $table) {
-            $table->string('serial_image_path')->nullable()->after('serial');
-        });
+        if (!Schema::hasColumn('inventarios', 'serial_image_path')) {
+            Schema::table('inventarios', function (Blueprint $table) {
+                $table->string('serial_image_path')->nullable()->after('serial');
+            });
+        }
     }
 
     /**
@@ -21,8 +23,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('inventarios', function (Blueprint $table) {
-            $table->dropColumn('serial_image_path');
-        });
+        if (Schema::hasColumn('inventarios', 'serial_image_path')) {
+            Schema::table('inventarios', function (Blueprint $table) {
+                $table->dropColumn('serial_image_path');
+            });
+        }
     }
 };
