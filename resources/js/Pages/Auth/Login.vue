@@ -41,6 +41,15 @@ const submit = () => {
             {{ status }}
         </div>
 
+        <!-- Hosting Expiration Notice -->
+        <div class="mb-6 p-4 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-xl text-left text-xs font-bold flex items-center gap-3">
+            <i class="fas fa-triangle-exclamation text-lg text-rose-500 animate-pulse shrink-0"></i>
+            <div>
+                <p class="font-extrabold uppercase tracking-wide text-rose-500 mb-0.5">⚠️ ALERTA DE ALOJAMIENTO</p>
+                <p class="text-gray-300 font-medium">Quedan 11 días de alojamiento. Por favor, cancelemos al proveedor lo antes posible.</p>
+            </div>
+        </div>
+
         <h2 class="text-center text-white text-xl font-bold mb-6 opacity-90 tracking-tight">BIENVENIDO</h2>
 
         <form @submit.prevent="submit" class="space-y-5">
