@@ -10,15 +10,17 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('maintenance_status_logs', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('maintenance_id');
-            $table->string('status');
-            $table->string('photo_path')->nullable();
-            $table->timestamps();
+        if (!Schema::hasTable('maintenance_status_logs')) {
+            Schema::create('maintenance_status_logs', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('maintenance_id');
+                $table->string('status');
+                $table->string('photo_path')->nullable();
+                $table->timestamps();
 
-            $table->foreign('maintenance_id')->references('id')->on('maintenances')->onDelete('cascade');
-        });
+                $table->foreign('maintenance_id')->references('id')->on('maintenances')->onDelete('cascade');
+            });
+        }
     }
 
     /**
