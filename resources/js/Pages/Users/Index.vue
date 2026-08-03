@@ -101,6 +101,7 @@ const translatePermission = (name) => {
         'access scan': 'Acceso a Escáner',
         'create maintenance': 'Crear Mantenimiento',
         'delete bitacora': 'Eliminar Bitácora',
+        'edit maintenance items': 'Editar Items de Mantenimiento',
         'manage backups': 'Gestionar Respaldos',
         'manage billing': 'Gestionar Facturación',
         'manage partida': 'Gestionar Inventario',

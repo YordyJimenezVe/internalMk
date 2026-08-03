@@ -26,6 +26,12 @@ const isAdminOrSuper = computed(() => {
            user.value.rol === 'Superusuario';
 });
 
+const canEditItem = computed(() => {
+    if (!user.value) return false;
+    const permissions = user.value.permissions || [];
+    return permissions.includes('edit maintenance items');
+});
+
 const initialStatus = props.maintenance.status;
 const currentStatus = ref(props.maintenance.status);
 const statusPhotoFile = ref(null);
@@ -575,7 +581,7 @@ const formatDate = (dateStr) => {
                                                 </button>
 
                                                 <!-- Edit Button -->
-                                                <button v-if="item.status !== 'CONCILIADO' && item.source !== 'INVENTARIO'" type="button" @click="openEditModal(item)" class="p-2 text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20 rounded-lg transition-all" title="Editar detalles de factura/costo">
+                                                <button v-if="item.status !== 'CONCILIADO' && canEditItem" type="button" @click="openEditModal(item)" class="p-2 text-amber-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20 rounded-lg transition-all" title="Editar detalles de factura/costo">
                                                     <i class="fa-solid fa-pen-to-square text-sm"></i>
                                                 </button>
 
@@ -651,8 +657,8 @@ const formatDate = (dateStr) => {
                     <!-- Sugerencias de repuestos y servicios -->
                     <div class="space-y-1.5">
                         <label class="block text-[9px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-wider">Sugerencias rápidas:</label>
-                        <div class="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-2 bg-gray-50 dark:bg-slate-800/40 rounded-xl border border-gray-150 dark:border-slate-800/70">
-                            <button v-for="sug in suggestions" :key="sug.name" type="button" @click="selectSuggestion(sug)" class="px-2 py-1 bg-white dark:bg-slate-850 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 text-gray-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 text-[10px] font-extrabold uppercase rounded-lg border border-gray-200 dark:border-slate-700/60 shadow-sm transition-all">
+                        <div class="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto p-2 bg-slate-950 dark:bg-black rounded-xl border border-slate-800">
+                            <button v-for="sug in suggestions" :key="sug.name" type="button" @click="selectSuggestion(sug)" class="px-2 py-1 bg-slate-900 hover:bg-slate-800 text-slate-200 hover:text-white text-[10px] font-extrabold uppercase rounded-lg border border-slate-800 shadow-sm transition-all">
                                 {{ sug.name }}
                             </button>
                         </div>
