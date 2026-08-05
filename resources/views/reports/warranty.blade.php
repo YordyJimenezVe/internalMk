@@ -6,16 +6,16 @@
     <style>
         body {
             font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            font-size: 9.5px;
+            font-size: 10.5px;
             color: #222;
-            line-height: 1.35;
+            line-height: 1.3;
             margin: 0;
             padding: 0;
         }
         .header-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
         }
         .logo-title {
             color: #1E3A8A;
@@ -39,8 +39,8 @@
         .warranty-dates {
             background-color: #F9FAFB;
             border: 1px solid #E5E7EB;
-            padding: 6px 10px;
-            margin-bottom: 10px;
+            padding: 5px 10px;
+            margin-bottom: 6px;
             border-radius: 6px;
         }
         .dates-table {
@@ -48,22 +48,22 @@
             border-collapse: collapse;
         }
         .dates-table td {
-            font-size: 10px;
+            font-size: 10.5px;
         }
         .section-title {
             background-color: #1E3A8A;
             color: #FFFFFF;
-            font-size: 9px;
+            font-size: 10px;
             font-weight: bold;
-            padding: 3px 6px;
-            margin-top: 8px;
-            margin-bottom: 4px;
+            padding: 2px 5px;
+            margin-top: 5px;
+            margin-bottom: 3px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             border-radius: 3px;
         }
         .content-block {
-            margin-bottom: 6px;
+            margin-bottom: 4px;
             text-align: justify;
         }
         .list-style {
@@ -76,13 +76,13 @@
         .footer-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+            margin-top: 8px;
             border-top: 1px solid #ddd;
-            padding-top: 8px;
+            padding-top: 6px;
         }
         .footer-table td {
             vertical-align: top;
-            font-size: 9px;
+            font-size: 10.5px;
         }
         .info-table {
             width: 100%;
@@ -116,7 +116,7 @@
         }
         .signature-box {
             border: 1px dashed #9CA3AF;
-            height: 55px;
+            height: 85px;
             border-radius: 4px;
             background-color: #F9FAFB;
         }
@@ -124,7 +124,7 @@
             text-align: center;
             font-weight: bold;
             margin-bottom: 3px;
-            font-size: 8.5px;
+            font-size: 10.5px;
             text-transform: uppercase;
         }
     </style>
