@@ -116,20 +116,16 @@
         }
         .signature-box {
             border: 1px dashed #9CA3AF;
-            height: 45px;
-            text-align: center;
-            vertical-align: middle;
-            font-size: 8px;
-            color: #6B7280;
-            padding-top: 20px;
+            height: 55px;
             border-radius: 4px;
             background-color: #F9FAFB;
         }
         .signature-label {
             text-align: center;
             font-weight: bold;
-            margin-top: 3px;
+            margin-bottom: 3px;
             font-size: 8.5px;
+            text-transform: uppercase;
         }
     </style>
 </head>
@@ -254,12 +250,12 @@
                 <table class="signature-container">
                     <tr>
                         <td>
-                            <div class="signature-box">FIRMA CLIENTE</div>
-                            <div class="signature-label">RECIBE CONFORME</div>
+                            <div class="signature-label">FIRMA</div>
+                            <div class="signature-box">&nbsp;</div>
                         </td>
                         <td>
-                            <div class="signature-box">SELLO EMPRESA</div>
-                            <div class="signature-label">MAIKEL CARS, C.A.</div>
+                            <div class="signature-label">SELLO</div>
+                            <div class="signature-box">&nbsp;</div>
                         </td>
                     </tr>
                 </table>
