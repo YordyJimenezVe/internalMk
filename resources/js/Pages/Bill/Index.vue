@@ -62,6 +62,12 @@ onMounted(() => {
             window.open(route('billing.pdf', id), '_blank');
         });
     }
+    const warrantyIds = page.props?.flash?.warranty_ids || [];
+    if (warrantyIds.length > 0) {
+        warrantyIds.forEach(id => {
+            window.open(route('billing.warranty', id), '_blank');
+        });
+    }
 });
 
 const filteredFacturas = computed(() => {
@@ -112,6 +118,10 @@ const devolucionFactura = (id) => {
 
 const visualizeFact = (id) => {
     window.open(route('billing.pdf', { id }), '_blank');
+};
+
+const visualizeWarranty = (id) => {
+    window.open(route('billing.warranty', { id }), '_blank');
 };
 
 const exportExcel = () => {
@@ -274,6 +284,9 @@ const exportPdf = () => {
                                         <div class="flex items-center justify-end gap-2.5">
                                             <button @click="visualizeFact(factura.id)" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-indigo-500 hover:shadow-xl hover:shadow-indigo-500/20 transition-all transform hover:scale-110 active:scale-95" title="Ver Detalle">
                                                 <i class="fa-solid fa-eye text-sm"></i>
+                                            </button>
+                                            <button v-if="factura.partidas && String(factura.partidas.tipo).toUpperCase().includes('MOTOR')" @click="visualizeWarranty(factura.id)" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-amber-500 hover:shadow-xl hover:shadow-amber-500/20 transition-all transform hover:scale-110 active:scale-95" title="Póliza de Garantía">
+                                                <i class="fa-solid fa-shield-halved text-sm"></i>
                                             </button>
                                             <button v-if="!isReadOnly && factura.status !== 'ANULADA'" @click="editBilling(factura.id)" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-blue-500 hover:shadow-xl hover:shadow-blue-500/20 transition-all transform hover:scale-110 active:scale-95" title="Editar">
                                                 <i class="fa-solid fa-pen-to-square text-sm"></i>

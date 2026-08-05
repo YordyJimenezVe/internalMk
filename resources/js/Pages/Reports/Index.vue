@@ -33,6 +33,30 @@ import { router } from '@inertiajs/vue3'
                                     </div>
                                 </button>
 
+                                <!-- Warranty Policy Test Section -->
+                                <div class="mt-6 border-t border-gray-200 dark:border-gray-700 pt-6">
+                                    <h4 class="font-bold text-sm text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-2">
+                                        <i class="fa-solid fa-shield-halved mr-1.5 text-indigo-500"></i>Prueba de Póliza de Garantía
+                                    </h4>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-4 leading-relaxed">
+                                        Selecciona una factura de motor para visualizar el documento de garantía en PDF con los datos cargados automáticamente.
+                                    </p>
+                                    <div class="flex flex-col sm:flex-row gap-3">
+                                        <select v-model="selectedBillingId" class="flex-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 outline-none text-xs">
+                                            <option value="">Seleccione una factura de motor...</option>
+                                            <option v-for="bill in motorBillings" :key="bill.id" :value="bill.id">
+                                                Factura #{{ bill.numero_factura || String(bill.id).padStart(6, '0') }} - {{ bill.client_name }}
+                                            </option>
+                                        </select>
+                                        <button 
+                                            @click="viewWarrantyPDF" 
+                                            :disabled="!selectedBillingId"
+                                            class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-5 rounded-xl text-xs transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-md shadow-indigo-100 dark:shadow-none"
+                                        >
+                                            <i class="fa-solid fa-file-pdf"></i> Probar PDF
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -153,8 +177,12 @@ import { router } from '@inertiajs/vue3'
 
 <script>
 export default {
+    props: {
+        motorBillings: Array,
+    },
     data() {
         return {
+            selectedBillingId: '',
             form: {
                 tipo: 'partidas', // partidas (inventario), facturas (ventas)
                 start_date: '',
@@ -167,6 +195,11 @@ export default {
     methods: {
         bitacora() {
              router.visit(route('bitacora.index'));
+        },
+        viewWarrantyPDF() {
+            if (this.selectedBillingId) {
+                window.open(route('billing.warranty', { id: this.selectedBillingId }), '_blank');
+            }
         },
         generateReport() {
             // Construct the URL with query parameters

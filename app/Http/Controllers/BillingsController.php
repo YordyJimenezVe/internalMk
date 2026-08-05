@@ -289,7 +289,14 @@ class BillingsController extends Controller
             . "👤 <b>Registrada por:</b> " . Auth::user()->name;
         \App\Services\TelegramService::sendMessage($telegramMessage);
 
-        return redirect()->route('billing')->with('success', 'Factura registrada con éxito.')->with('billing_ids', [$partida->id]);
+        $redirect = redirect()->route('billing')->with('success', 'Factura registrada con éxito.')->with('billing_ids', [$partida->id]);
+        
+        $tipo = strtoupper($inventario->tipo ?? '');
+        if (str_contains($tipo, 'MOTOR')) {
+            $redirect = $redirect->with('warranty_ids', [$partida->id]);
+        }
+
+        return $redirect;
     }
 
     /**
@@ -478,5 +485,26 @@ class BillingsController extends Controller
         $pdf->setPaper('letter', 'portrait');
 
         return $pdf->stream('Factura-' . str_pad($bill->id, 6, '0', STR_PAD_LEFT) . '.pdf');
+    }
+
+    /**
+     * Genera y transmite el PDF de la Póliza de Garantía de Motor utilizando DomPDF.
+     *
+     * @param  string|int  $id  Identificador único de la factura.
+     * @return \Illuminate\Http\Response|\Illuminate\Http\RedirectResponse
+     */
+    public function warrantyPdf($id)
+    {
+        $bill = Billing::with('partida')->findOrFail($id);
+
+        $tipo = strtoupper($bill->partida->tipo ?? '');
+        if (!str_contains($tipo, 'MOTOR')) {
+            return redirect()->back()->with('error', 'La póliza de garantía solo aplica para motores.');
+        }
+
+        $pdf = \PDF::loadView('reports.warranty', compact('bill'));
+        $pdf->setPaper('letter', 'portrait');
+
+        return $pdf->stream('Garantia-' . str_pad($bill->id, 6, '0', STR_PAD_LEFT) . '.pdf');
     }
 }

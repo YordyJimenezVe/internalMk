@@ -122,6 +122,7 @@ Route::middleware([
     Route::group(['middleware' => ['check_permission:view billing']], function () {
         Route::get('/billing', 'App\Http\Controllers\BillingsController@index')->name('billing');
         Route::get('/billing/pdf/{id}', 'App\Http\Controllers\BillingsController@pdf')->name('billing.pdf');
+        Route::get('/billing/warranty/{id}', 'App\Http\Controllers\BillingsController@warrantyPdf')->name('billing.warranty');
         Route::get('/billing-requests', 'App\Http\Controllers\BillingRequestController@index')->name('billing.requests.index');
     });
 

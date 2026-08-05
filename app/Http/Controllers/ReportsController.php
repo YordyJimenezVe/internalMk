@@ -29,7 +29,16 @@ class ReportsController extends Controller
      */
     public function index()
     {
-        return inertia('Reports/Index');
+        $motorBillings = \App\Models\Billing::with('partida')
+            ->whereHas('partida', function($query) {
+                $query->where('tipo', 'LIKE', '%MOTOR%');
+            })
+            ->orderBy('id', 'desc')
+            ->get();
+
+        return inertia('Reports/Index', [
+            'motorBillings' => $motorBillings
+        ]);
     }
 
     /**
