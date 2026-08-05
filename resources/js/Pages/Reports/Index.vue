@@ -33,10 +33,10 @@ import { router } from '@inertiajs/vue3'
                                     </div>
                                 </button>
 
-                                <!-- Warranty Policy Test Section -->
+                                <!-- Warranty Policy Section -->
                                 <div class="mt-6 border-t border-gray-200 dark:border-gray-700 pt-6">
                                     <h4 class="font-bold text-sm text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-2">
-                                        <i class="fa-solid fa-shield-halved mr-1.5 text-indigo-500"></i>Prueba de Póliza de Garantía
+                                        <i class="fa-solid fa-shield-halved mr-1.5 text-indigo-500"></i>Póliza de Garantía
                                     </h4>
                                     <p class="text-xs text-gray-500 dark:text-gray-400 mb-4 leading-relaxed">
                                         Selecciona una factura de motor para visualizar el documento de garantía en PDF con los datos cargados automáticamente.
@@ -53,7 +53,7 @@ import { router } from '@inertiajs/vue3'
                                             :disabled="!selectedBillingId"
                                             class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-5 rounded-xl text-xs transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-md shadow-indigo-100 dark:shadow-none"
                                         >
-                                            <i class="fa-solid fa-file-pdf"></i> Probar PDF
+                                            <i class="fa-solid fa-file-pdf"></i> Generar PDF
                                         </button>
                                     </div>
                                 </div>

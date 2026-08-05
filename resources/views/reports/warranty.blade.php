@@ -166,7 +166,7 @@
     <div class="warranty-dates">
         <table class="dates-table">
             <tr>
-                <td style="width: 38%;"><strong>FECHA DE COMPRAVENTA (INICIO):</strong></td>
+                <td style="width: 38%;"><strong>FECHA DE COMPRA (INICIO):</strong></td>
                 <td style="width: 14%; color: #1E3A8A; font-weight: bold;">{{ $fechaInicio }}</td>
                 <td style="width: 34%;"><strong>FECHA DE VENCIMIENTO (LÍMITE):</strong></td>
                 <td style="width: 14%; color: #DC2626; font-weight: bold;">{{ $fechaFin }}</td>
