@@ -46,7 +46,7 @@ const submit = () => {
             <i class="fas fa-triangle-exclamation text-lg text-rose-500 animate-pulse shrink-0"></i>
             <div>
                 <p class="font-extrabold uppercase tracking-wide text-rose-500 mb-0.5">⚠️ AVISO DEL PROVEEDOR DE HOSPEDAJE</p>
-                <p class="text-gray-300 font-medium">La suscripción del plan de negocios para <span class="text-white font-bold">maikelcars.com</span> vencerá en 09 días. Por favor, realice el pago de renovación a la brevedad para evitar la suspensión del servicio.</p>
+                <p class="text-gray-300 font-medium">La suscripción del plan de negocios para <span class="text-white font-bold">maikelcars.com</span> vencerá en 08 días. Por favor, realice el pago de renovación a la brevedad para evitar la suspensión del servicio.</p>
             </div>
         </div>
 
