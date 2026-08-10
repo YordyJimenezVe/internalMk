@@ -47,6 +47,8 @@ class HandleInertiaRequests extends Middleware
                 'success' => fn() => $request->session()->get('success'),
                 'error' => fn() => $request->session()->get('error'),
                 'billing_ids' => fn() => $request->session()->get('billing_ids'),
+                'warranty_ids' => fn() => $request->session()->get('warranty_ids'),
+                'is_motor' => fn() => $request->session()->get('is_motor'),
             ],
         ]);
     }
