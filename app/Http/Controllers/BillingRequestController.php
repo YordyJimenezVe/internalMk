@@ -100,16 +100,19 @@ class BillingRequestController extends Controller
         }
 
         // Notify billing and admin users
-        $usersToNotify = \App\Models\User::where(function($query) {
-            $query->where('rol', 'LIKE', '%fact%')
-                  ->orWhere('rol', 'LIKE', '%admin%')
-                  ->orWhere('rol', 'LIKE', '%super%')
-                  ->orWhereHas('roles', function($q) {
-                      $q->where('name', 'LIKE', '%fact%')
-                        ->orWhere('name', 'LIKE', '%admin%')
-                        ->orWhere('name', 'LIKE', '%super%');
-                  });
-        })->get();
+        $usersToNotify = \App\Models\User::all()->filter(function ($u) {
+            $rol = strtolower($u->rol ?? '');
+            if (str_contains($rol, 'fact') || str_contains($rol, 'admin') || str_contains($rol, 'super') || str_contains($rol, 'conta')) {
+                return true;
+            }
+            if ($u->hasAnyRole(['Superusuario', 'SUPERUSUARIO', 'Administrador', 'ADMINISTRADOR', 'Facturacion', 'FACTURACION', 'Contador', 'CONTADOR'])) {
+                return true;
+            }
+            if ($u->can('manage billing') || $u->can('view billing')) {
+                return true;
+            }
+            return false;
+        });
 
         $clientName = $request->client_name ? strip_tags($request->client_name) : 'No especificado';
 
@@ -157,6 +160,9 @@ class BillingRequestController extends Controller
             'request_ids' => 'required|array',
             'request_ids.*' => 'exists:billing_requests,id',
         ]);
+
+        $createdBillingIds = [];
+        $createdWarrantyIds = [];
 
         foreach ($request->request_ids as $id) {
             $billingRequest = BillingRequest::with(['inventario', 'partida'])->find($id);
@@ -211,11 +217,19 @@ class BillingRequestController extends Controller
                 })
                 ->delete();
 
-            // Collect ID
+            // Collect IDs
             $createdBillingIds[] = $newBill->id;
+
+            $tipo = strtoupper($partida->tipo ?? '');
+            if (str_contains($tipo, 'MOTOR')) {
+                $createdWarrantyIds[] = $newBill->id;
+            }
         }
 
-        return redirect()->back()->with('success', 'Solicitudes procesadas y ventas registradas.')->with('billing_ids', $createdBillingIds ?? []);
+        return redirect()->back()
+            ->with('success', 'Solicitudes procesadas y ventas registradas.')
+            ->with('billing_ids', $createdBillingIds)
+            ->with('warranty_ids', $createdWarrantyIds);
     }
 
     /**

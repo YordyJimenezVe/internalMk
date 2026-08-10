@@ -1,6 +1,6 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { defineProps, ref, computed, onMounted } from 'vue'; // Consolidated imports
+import { defineProps, ref, computed, onMounted, watch } from 'vue'; // Consolidated imports
 /* import the fontawesome core */
 import { library } from '@fortawesome/fontawesome-svg-core'
  
@@ -35,6 +35,12 @@ const deleteModal = ref({
     processing: false
 });
 
+const docModal = ref({
+    show: false,
+    billingIds: [],
+    warrantyIds: []
+});
+
 const openDeleteModal = (id) => {
     deleteModal.value = { show: true, id, processing: false };
 };
@@ -43,32 +49,45 @@ const closeDeleteModal = () => {
     deleteModal.value = { show: false, id: null, processing: false };
 };
 
-const confirmDelete = () => {
-    deleteModal.value.processing = true;
-    router.delete(`/billing/delete/${deleteModal.value.id}`, {
-        onSuccess: () => closeDeleteModal(),
-        onFinish: () => deleteModal.value.processing = false,
-    });
+const closeDocModal = () => {
+    docModal.value = { show: false, billingIds: [], warrantyIds: [] };
 };
 
-const isGeneratingPdf = ref(false);
-
-const searchQuery = ref(''); //Should really load it from the query string
-
-onMounted(() => {
-    const billingIds = page.props?.flash?.billing_ids || [];
-    if (billingIds.length > 0) {
-        billingIds.forEach(id => {
+const openAllDocs = () => {
+    if (docModal.value.billingIds.length > 0) {
+        docModal.value.billingIds.forEach(id => {
             window.open(route('billing.pdf', id), '_blank');
         });
     }
-    const warrantyIds = page.props?.flash?.warranty_ids || [];
-    if (warrantyIds.length > 0) {
-        warrantyIds.forEach(id => {
-            window.open(route('billing.warranty', id), '_blank');
-        });
+    if (docModal.value.warrantyIds.length > 0) {
+        setTimeout(() => {
+            docModal.value.warrantyIds.forEach(id => {
+                window.open(route('billing.warranty', id), '_blank');
+            });
+        }, 300);
     }
+};
+
+const checkAndOpenDocuments = () => {
+    const billingIds = page.props?.flash?.billing_ids || [];
+    const warrantyIds = page.props?.flash?.warranty_ids || [];
+
+    if (billingIds.length > 0 || warrantyIds.length > 0) {
+        docModal.value = {
+            show: true,
+            billingIds: [...billingIds],
+            warrantyIds: [...warrantyIds]
+        };
+    }
+};
+
+onMounted(() => {
+    checkAndOpenDocuments();
 });
+
+watch(() => page.props.flash, () => {
+    checkAndOpenDocuments();
+}, { deep: true });
 
 const filteredFacturas = computed(() => {
   const searchTerms = searchQuery.value.toLowerCase().trim();
@@ -344,6 +363,70 @@ const exportPdf = () => {
                             CANCELAR
                         </button>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Document Success Modal (Factura y Póliza de Garantía) -->
+        <div v-if="docModal.show" class="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md transition-all animate-in fade-in duration-300">
+            <div class="bg-white dark:bg-gray-800 rounded-[2.5rem] w-full max-w-lg shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden transform animate-in zoom-in-95 duration-300">
+                <div class="p-8 text-center">
+                    <div class="h-20 w-20 bg-emerald-50 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-5 text-emerald-500 border-4 border-emerald-100 dark:border-emerald-900/30 transition-transform scale-110">
+                        <i class="fa-solid fa-circle-check text-4xl"></i>
+                    </div>
+                    
+                    <h3 class="text-2xl font-black text-gray-800 dark:text-white uppercase tracking-tight mb-2">
+                        ¡Venta Registrada Exitosamente!
+                    </h3>
+                    <p class="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider mb-6 font-semibold">
+                        Los documentos oficiales están listos para ser visualizados o impresos:
+                    </p>
+
+                    <div class="space-y-3 mb-6">
+                        <!-- Invoice Buttons -->
+                        <div v-for="id in docModal.billingIds" :key="'bill-' + id" class="flex gap-2">
+                            <a 
+                                :href="route('billing.pdf', id)" 
+                                target="_blank"
+                                class="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-indigo-500/20 transition-all transform active:scale-98 text-sm"
+                            >
+                                <i class="fa-solid fa-file-invoice text-lg"></i>
+                                <span>Ver / Imprimir Factura #{{ String(id).padStart(6, '0') }}</span>
+                                <i class="fa-solid fa-arrow-up-right-from-square text-xs opacity-70 ml-1"></i>
+                            </a>
+                        </div>
+
+                        <!-- Warranty Buttons -->
+                        <div v-for="id in docModal.warrantyIds" :key="'warranty-' + id" class="flex gap-2">
+                            <a 
+                                :href="route('billing.warranty', id)" 
+                                target="_blank"
+                                class="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-amber-500/20 transition-all transform active:scale-98 text-sm"
+                            >
+                                <i class="fa-solid fa-shield-halved text-lg"></i>
+                                <span>Ver / Imprimir Póliza de Garantía</span>
+                                <i class="fa-solid fa-arrow-up-right-from-square text-xs opacity-70 ml-1"></i>
+                            </a>
+                        </div>
+
+                        <!-- Open All Button if both exist -->
+                        <button 
+                            v-if="docModal.billingIds.length > 0 && docModal.warrantyIds.length > 0"
+                            @click="openAllDocs"
+                            type="button"
+                            class="w-full flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold py-2.5 px-4 rounded-xl transition-all text-xs uppercase tracking-wider"
+                        >
+                            <i class="fa-solid fa-folder-open"></i>
+                            <span>Abrir Ambos Documentos (PDF)</span>
+                        </button>
+                    </div>
+
+                    <button 
+                        @click="closeDocModal" 
+                        class="w-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold py-3.5 rounded-2xl transition-all text-sm"
+                    >
+                        Listo, Continuar
+                    </button>
                 </div>
             </div>
         </div>

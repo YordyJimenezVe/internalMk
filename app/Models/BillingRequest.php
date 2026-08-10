@@ -55,17 +55,12 @@ class BillingRequest extends Model
         // 2. Get all billing requests where underlying engine (partida) is VENDIDO
         $soldRequestIds = self::whereHas('inventario', function($q) {
             $q->where('status', 'VENDIDO');
-        })->pluck('id')->toArray();
+        })->where('status', 'processed')->pluck('id')->toArray();
 
         $allCompletedRequestIds = array_unique(array_merge($processedRequestIds, $soldRequestIds));
 
         if (!empty($allCompletedRequestIds)) {
-            // Mark the requests as processed just in case
-            self::whereIn('id', $allCompletedRequestIds)
-                ->where('status', 'pending')
-                ->update(['status' => 'processed']);
-
-            // Delete notifications for these requests
+            // Delete notifications ONLY for these processed requests
             foreach ($allCompletedRequestIds as $requestId) {
                 \Illuminate\Support\Facades\DB::table('notifications')
                     ->where(function($query) use ($requestId) {
@@ -74,23 +69,6 @@ class BillingRequest extends Model
                     })
                     ->delete();
             }
-        }
-
-        // 3. Clean up notifications using sold items description (for old notifications that don't have billing_request_id)
-        try {
-            $soldItems = \App\Models\Inventario::where('status', 'VENDIDO')->get();
-            foreach ($soldItems as $item) {
-                $brand = trim($item->marca);
-                $model = trim($item->modelo);
-                if (!empty($brand) && !empty($model)) {
-                    \Illuminate\Support\Facades\DB::table('notifications')
-                        ->where('data', 'like', '%' . $brand . '%')
-                        ->where('data', 'like', '%' . $model . '%')
-                        ->delete();
-                }
-            }
-        } catch (\Exception $e) {
-            // Silence exceptions in background cleanup
         }
     }
 }
