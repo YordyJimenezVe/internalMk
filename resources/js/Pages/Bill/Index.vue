@@ -49,6 +49,17 @@ const closeDeleteModal = () => {
     deleteModal.value = { show: false, id: null, processing: false };
 };
 
+const confirmDelete = () => {
+    deleteModal.value.processing = true;
+    router.delete(`/billing/delete/${deleteModal.value.id}`, {
+        onSuccess: () => closeDeleteModal(),
+        onFinish: () => deleteModal.value.processing = false,
+    });
+};
+
+const isGeneratingPdf = ref(false);
+const searchQuery = ref('');
+
 const closeDocModal = () => {
     docModal.value = { show: false, billingIds: [], warrantyIds: [] };
 };
