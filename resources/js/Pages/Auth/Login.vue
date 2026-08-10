@@ -1,4 +1,5 @@
 <script setup>
+import { ref, onMounted, onUnmounted } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import AuthenticationCard from '@/Components/AuthenticationCard.vue';
 import AuthenticationCardLogo from '@/Components/AuthenticationCardLogo.vue';
@@ -17,6 +18,57 @@ const form = useForm({
     email: '',
     password: '',
     remember: false,
+});
+
+// Countdown to Saturday Aug 15, 2026 at 00:01:00 UTC
+const targetDate = new Date('2026-08-15T00:01:00Z').getTime();
+const timeLeft = ref({
+    days: '00',
+    hours: '00',
+    minutes: '00',
+    seconds: '00',
+    isExpired: false,
+});
+
+let timer = null;
+
+const updateCountdown = () => {
+    const now = Date.now();
+    const difference = targetDate - now;
+
+    if (difference <= 0) {
+        timeLeft.value = {
+            days: '00',
+            hours: '00',
+            minutes: '00',
+            seconds: '00',
+            isExpired: true,
+        };
+        if (timer) clearInterval(timer);
+        return;
+    }
+
+    const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+
+    timeLeft.value = {
+        days: String(days).padStart(2, '0'),
+        hours: String(hours).padStart(2, '0'),
+        minutes: String(minutes).padStart(2, '0'),
+        seconds: String(seconds).padStart(2, '0'),
+        isExpired: false,
+    };
+};
+
+onMounted(() => {
+    updateCountdown();
+    timer = setInterval(updateCountdown, 1000);
+});
+
+onUnmounted(() => {
+    if (timer) clearInterval(timer);
 });
 
 const submit = () => {
@@ -41,13 +93,47 @@ const submit = () => {
             {{ status }}
         </div>
 
-        <!-- Hosting Expiration Notice -->
-        <div class="mb-6 p-4 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-xl text-left text-xs font-bold flex items-center gap-3">
-            <i class="fas fa-triangle-exclamation text-lg text-rose-500 animate-pulse shrink-0"></i>
-            <div>
-                <p class="font-extrabold uppercase tracking-wide text-rose-500 mb-0.5">⚠️ AVISO DEL PROVEEDOR DE HOSPEDAJE</p>
-                <p class="text-gray-300 font-medium">La suscripción del plan de negocios para <span class="text-white font-bold">maikelcars.com</span> vencerá en 07 días. Por favor, realice el pago de renovación a la brevedad para evitar la suspensión del servicio.</p>
+        <!-- Hosting Expiration Notice with Countdown -->
+        <div class="mb-6 p-4 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-xl text-left text-xs font-medium space-y-3">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-triangle-exclamation text-xl text-rose-500 animate-pulse shrink-0"></i>
+                <div>
+                    <p class="font-extrabold uppercase tracking-wide text-rose-500 text-xs">⚠️ AVISO DEL PROVEEDOR DE HOSPEDAJE</p>
+                    <p class="text-gray-300 text-[11px] leading-tight mt-0.5">
+                        La suscripción del plan para <span class="text-white font-bold">maikelcars.com</span> está por expirar. Realice el pago de renovación para evitar la suspensión.
+                    </p>
+                </div>
             </div>
+
+            <!-- Countdown Display -->
+            <div class="bg-slate-900/80 border border-rose-500/20 rounded-lg p-2.5 flex items-center justify-between text-center">
+                <div class="flex-1">
+                    <span class="block text-base font-black text-rose-400 font-mono tracking-wider">{{ timeLeft.days }}</span>
+                    <span class="text-[9px] uppercase tracking-wider text-gray-400 font-semibold">Días</span>
+                </div>
+                <span class="text-rose-500/50 font-bold text-sm -mt-3">:</span>
+                <div class="flex-1">
+                    <span class="block text-base font-black text-rose-400 font-mono tracking-wider">{{ timeLeft.hours }}</span>
+                    <span class="text-[9px] uppercase tracking-wider text-gray-400 font-semibold">Horas</span>
+                </div>
+                <span class="text-rose-500/50 font-bold text-sm -mt-3">:</span>
+                <div class="flex-1">
+                    <span class="block text-base font-black text-rose-400 font-mono tracking-wider">{{ timeLeft.minutes }}</span>
+                    <span class="text-[9px] uppercase tracking-wider text-gray-400 font-semibold">Min</span>
+                </div>
+                <span class="text-rose-500/50 font-bold text-sm -mt-3">:</span>
+                <div class="flex-1">
+                    <span class="block text-base font-black text-rose-400 font-mono tracking-wider">{{ timeLeft.seconds }}</span>
+                    <span class="text-[9px] uppercase tracking-wider text-gray-400 font-semibold">Seg</span>
+                </div>
+            </div>
+            
+            <p v-if="timeLeft.isExpired" class="text-rose-400 text-center font-bold text-xs uppercase animate-pulse">
+                El periodo de hospedaje ha vencido (Sábado 15 - 00:01 UTC)
+            </p>
+            <p v-else class="text-gray-400 text-[10px] text-center font-normal">
+                Vence el <span class="text-gray-200 font-semibold">Sábado 15 a las 00:01 UTC</span>
+            </p>
         </div>
 
         <h2 class="text-center text-white text-xl font-bold mb-6 opacity-90 tracking-tight">BIENVENIDO</h2>
