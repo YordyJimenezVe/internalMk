@@ -31,6 +31,10 @@ const getBrandSlug = (brand) => {
         return 'mack';
     }
     
+    if (b.includes('daewoo') || b.includes('daewo')) {
+        return 'daewoo';
+    }
+    
     const slugMap = {
         'toyota': 'toyota',
         'totota': 'toyota',
@@ -64,6 +68,8 @@ const getBrandSlug = (brand) => {
         'peugeot': 'peugeot',
         'cummins': 'cummins',
         'cumins': 'cummins',
+        'daewoo': 'daewoo',
+        'daewo': 'daewoo',
     };
 
     for (const key in slugMap) {
@@ -89,6 +95,10 @@ const getBrandIcon = (brand, id) => {
     
     if (slug === 'mack') {
         return '/mack-logo.svg';
+    }
+    
+    if (slug === 'daewoo') {
+        return '/daewoo-logo.svg';
     }
     
     const urls = [
