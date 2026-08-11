@@ -245,6 +245,7 @@ const confirmDelete = () => {
                             <option value="VENDIDO">VENDIDOS</option>
                             <option value="GARANTIA">GARANTÍAS</option>
                             <option value="INOPERATIVO-DESARMADO">INOPERATIVO-DESARMADO</option>
+                            <option value="USO INTERNO">USO INTERNO</option>
                             <option value="ALL">LISTADO COMPLETO</option>
                         </select>
                     </div>

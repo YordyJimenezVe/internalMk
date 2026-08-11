@@ -59,7 +59,6 @@ class PartidasExports implements FromView, WithEvents, ShouldAutoSize, WithColum
         // ->leftJoin('billings', 'inventarios.id', '=', 'billings.partida_id');
 
         // Filter Logic
-        // Status Filter
         if ($this->status === 'DISPONIBLE') {
             $query->where('status', '!=', 'VENDIDO')
                 ->whereDoesntHave('bill');
@@ -67,6 +66,14 @@ class PartidasExports implements FromView, WithEvents, ShouldAutoSize, WithColum
             $query->where(function ($q) {
                 $q->where('status', 'VENDIDO')->orHas('bill');
             });
+        } elseif ($this->status === 'GARANTIA') {
+            $query->whereIn('status', ['GARANTIA', 'GARANTÍA']);
+        } elseif ($this->status === 'PRECIO PENDIENTE') {
+            $query->where('status', 'PRECIO PENDIENTE');
+        } elseif ($this->status === 'INOPERATIVO-DESARMADO') {
+            $query->where('status', 'INOPERATIVO-DESARMADO');
+        } elseif ($this->status === 'USO INTERNO') {
+            $query->where('status', 'USO INTERNO');
         }
 
         // Date Logic (Created At vs Sold Date)

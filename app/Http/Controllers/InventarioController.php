@@ -108,6 +108,8 @@ class InventarioController extends Controller
             $inventarios->where('status', 'PRECIO PENDIENTE');
         } elseif ($statusFilter === 'INOPERATIVO-DESARMADO') {
             $inventarios->where('status', 'INOPERATIVO-DESARMADO');
+        } elseif ($statusFilter === 'USO INTERNO') {
+            $inventarios->where('status', 'USO INTERNO');
         }
         // If 'ALL', we don't filter by billing/status, just show everything.
 

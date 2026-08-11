@@ -351,6 +351,7 @@ const submitBilling = () => {
                                             'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300': props.inventario.status === 'VENDIDO',
                                             'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300': props.inventario.status === 'EN TALLER',
                                             'bg-slate-100 text-slate-800 dark:bg-slate-900/40 dark:text-slate-300': props.inventario.status === 'INOPERATIVO-DESARMADO',
+                                            'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300': props.inventario.status === 'USO INTERNO',
                                         }" class="px-4 py-2 rounded-xl text-sm font-bold uppercase border border-transparent">
                                             {{ props.inventario.status }}
                                         </span>
@@ -460,6 +461,16 @@ const submitBilling = () => {
                                     <div>
                                         <p class="font-bold text-lg">Inoperativo / Desarmado</p>
                                         <p class="text-sm opacity-80 mt-1">Este ítem se encuentra inoperativo o desarmado. No está disponible para la venta o facturación.</p>
+                                    </div>
+                                </div>
+
+                                <div v-else-if="props.inventario.status === 'USO INTERNO'" class="bg-white/10 dark:bg-black/20 p-6 rounded-2xl border border-white/20 dark:border-indigo-800/50 flex flex-col items-center text-center space-y-4">
+                                    <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+                                        <i class="fa-solid fa-building-user text-3xl opacity-55"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-bold text-lg">Uso Interno</p>
+                                        <p class="text-sm opacity-80 mt-1">Este ítem está asignado para uso interno de la empresa. No está disponible para la venta o facturación.</p>
                                     </div>
                                 </div>
 
