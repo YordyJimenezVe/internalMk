@@ -12,11 +12,12 @@ const props = defineProps({
 const showCedulaModal = ref(false);
 const showSerialZoomModal = ref(false);
 
-const formatSerial = (serial) => {
-    if (!serial) return '';
+const formatSerial = (serial, imageUrl = null) => {
+    if (!serial && !imageUrl) return 'NO APARENTA SERIAL';
+    if (!serial) return 'VER FOTO ADJUNTA';
     const upper = serial.toUpperCase();
-    if (upper === 'S/S' || upper === 'SIN SERIAL' || upper === 'NO APARENTE SERIAL' || upper === 'NO APARENTA SERIAL') {
-        return 'NO APARENTA SERIAL';
+    if (['S/S', 'SIN SERIAL', 'NO APARENTE SERIAL', 'NO APARENTA SERIAL'].includes(upper)) {
+        return imageUrl ? 'VER FOTO ADJUNTA' : 'NO APARENTA SERIAL';
     }
     return serial;
 };
@@ -234,7 +235,7 @@ const formatSerial = (serial) => {
                                         <label class="block text-[10px] font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-widest mb-1 flex items-center gap-1">
                                             <i class="fa-solid fa-barcode text-indigo-500"></i> Serial del Motor / Caja
                                         </label>
-                                        <p class="text-sm font-black text-indigo-900 dark:text-indigo-300 uppercase">{{ formatSerial(data.serial) || 'NO CARGADO' }}</p>
+                                        <p class="text-sm font-black text-indigo-900 dark:text-indigo-300 uppercase">{{ formatSerial(data.serial, data.serial_image_url) }}</p>
                                     </div>
                                 </div>
 

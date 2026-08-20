@@ -84,6 +84,15 @@ const getDefaultDispatchDetail = () => {
     return '';
 };
 
+const getInitialSerial = (serial) => {
+    if (!serial) return '';
+    const upper = serial.toUpperCase();
+    if (['S/S', 'SIN SERIAL', 'NO APARENTE SERIAL', 'NO APARENTA SERIAL'].includes(upper)) {
+        return '';
+    }
+    return serial;
+};
+
 const form = useForm({
     partida_id: props.inventario.id,
     price: '',
@@ -95,8 +104,20 @@ const form = useForm({
     quantity: 1,
     client_cedula_file: null,
     serial_file: null,
-    serial: props.inventario.serial || '',
+    serial: getInitialSerial(props.inventario.serial),
     observation: getDefaultDispatchDetail(),
+});
+
+const serialDisplayText = computed(() => {
+    const s = props.inventario.serial;
+    const hasPhoto = !!props.inventario.serial_image_url;
+    if (s && !['S/S', 'SIN SERIAL', 'NO APARENTE SERIAL', 'NO APARENTA SERIAL'].includes(s.toUpperCase())) {
+        return s;
+    }
+    if (hasPhoto) {
+        return 'VER FOTO ADJUNTA';
+    }
+    return 'NO APARENTA SERIAL';
 });
 
 // Camera and Preview state
@@ -288,11 +309,16 @@ const submitBilling = () => {
                                     </div>
                                 </div>
                                 <div>
-                                    <label class="block uppercase tracking-wide text-gray-500 dark:text-gray-400 text-xs font-bold mb-2">
-                                        <i class="fa-solid fa-barcode mr-1"></i>Serial
+                                    <label class="block uppercase tracking-wide text-gray-500 dark:text-gray-400 text-xs font-bold mb-2 flex items-center justify-between">
+                                        <span><i class="fa-solid fa-barcode mr-1"></i>Serial</span>
+                                        <span v-if="props.inventario.serial_image_url" class="text-[10px] text-indigo-500 font-bold flex items-center gap-1 cursor-pointer hover:underline" @click="showSerialZoomModal = true">
+                                            <i class="fa-solid fa-camera"></i> Ver Foto
+                                        </span>
                                     </label>
-                                    <div class="w-full bg-gray-50 dark:bg-gray-700/50 text-gray-800 dark:text-white rounded-xl py-3 px-4 font-semibold border border-gray-100 dark:border-gray-700">
-                                        {{ props.inventario.serial || '-' }}
+                                    <div class="w-full bg-gray-50 dark:bg-gray-700/50 text-gray-800 dark:text-white rounded-xl py-3 px-4 font-semibold border border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                                        <span :class="{'text-indigo-600 dark:text-indigo-400 font-bold': props.inventario.serial_image_url && (!props.inventario.serial || ['S/S', 'SIN SERIAL', 'NO APARENTE SERIAL', 'NO APARENTA SERIAL'].includes(props.inventario.serial.toUpperCase()))}">
+                                            {{ serialDisplayText }}
+                                        </span>
                                     </div>
                                 </div>
                                 <div>

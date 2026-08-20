@@ -94,7 +94,11 @@ class BillingRequestController extends Controller
         if ($partida) {
             $partida->price_sale = $request->price;
             if ($request->filled('serial')) {
-                $partida->serial = strip_tags($request->serial);
+                $cleanSerial = strip_tags($request->serial);
+                $upperSerial = strtoupper($cleanSerial);
+                if (!in_array($upperSerial, ['S/S', 'SIN SERIAL', 'NO APARENTE SERIAL', 'NO APARENTA SERIAL'])) {
+                    $partida->serial = $cleanSerial;
+                }
             }
             if ($request->hasFile('serial_file')) {
                 $serialPath = \App\Helpers\ImageHelper::compressAndStore($request->file('serial_file'), 'serial_captures');
@@ -269,8 +273,12 @@ class BillingRequestController extends Controller
             if ($request->has('price')) {
                 $partida->price_sale = $request->price;
             }
-            if ($request->has('serial')) {
-                $partida->serial = strip_tags($request->serial);
+            if ($request->filled('serial')) {
+                $cleanSerial = strip_tags($request->serial);
+                $upperSerial = strtoupper($cleanSerial);
+                if (!in_array($upperSerial, ['S/S', 'SIN SERIAL', 'NO APARENTE SERIAL', 'NO APARENTA SERIAL'])) {
+                    $partida->serial = $cleanSerial;
+                }
             }
             $partida->saveQuietly();
         }
