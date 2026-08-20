@@ -96,6 +96,7 @@ const editForm = useForm({
     client_phone: '',
     client_address: '',
     client_email: '',
+    serial: '',
     observation: '',
 });
 
@@ -117,6 +118,7 @@ const startEdit = (req) => {
     editForm.client_phone = req.client_phone || '';
     editForm.client_address = req.client_address || '';
     editForm.client_email = req.client_email || '';
+    editForm.serial = (req.inventario || req.partida)?.serial || '';
     editForm.observation = req.observation || '';
 };
 
@@ -417,6 +419,14 @@ const goToCreateBilling = (id, requestId) => {
                                     <div class="relative group">
                                         <i class="fa-solid fa-location-dot absolute left-4 top-[18px] text-gray-400 group-focus-within:text-blue-500 transition-colors"></i>
                                         <textarea v-model="editForm.client_address" rows="2" class="block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-3.5 pl-12 pr-[14px] focus:ring-2 focus:ring-blue-500 transition-all font-bold outline-none resize-none" placeholder="Dirección completa del cliente"></textarea>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest ml-1">Serial de Motor / Caja (Opcional)</label>
+                                    <div class="relative group">
+                                        <i class="fa-solid fa-barcode absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors"></i>
+                                        <input v-model="editForm.serial" @input="editForm.serial = editForm.serial.toUpperCase()" type="text" class="block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-3.5 pl-12 pr-4 focus:ring-2 focus:ring-blue-500 transition-all font-bold outline-none uppercase" placeholder="Ej: 4G63-XXXXXX">
                                     </div>
                                 </div>
 

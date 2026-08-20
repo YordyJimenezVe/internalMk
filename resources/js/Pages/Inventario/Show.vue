@@ -95,6 +95,7 @@ const form = useForm({
     quantity: 1,
     client_cedula_file: null,
     serial_file: null,
+    serial: props.inventario.serial || '',
     observation: getDefaultDispatchDetail(),
 });
 
@@ -219,13 +220,14 @@ const submitBilling = () => {
         ...data,
         client_name: data.client_name ? data.client_name.toUpperCase() : '',
         client_cedula: data.client_cedula ? data.client_cedula.toUpperCase() : '',
+        serial: data.serial ? data.serial.toUpperCase() : '',
         observation: data.observation ? data.observation.toUpperCase() : '',
         price: data.price ? data.price.toString().replace(/\./g, '').replace(',', '.') : ''
     })).post(route('billing.requests.store'), {
         preserveScroll: true,
         forceFormData: true,
         onSuccess: () => {
-            form.reset('client_name', 'client_cedula_file', 'quantity', 'serial_file', 'observation');
+            form.reset('client_name', 'client_cedula_file', 'quantity', 'serial_file', 'serial', 'observation');
             if (imagePreviewUrl.value) {
                 URL.revokeObjectURL(imagePreviewUrl.value);
                 imagePreviewUrl.value = null;
@@ -537,6 +539,11 @@ const submitBilling = () => {
                                             </button>
                                         </div>
                                         <p v-if="!imagePreviewUrl" class="mt-2 text-[10px] text-white/50 text-center">Formatos permitidos: JPG, PNG (Máx 2MB)</p>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-xs font-bold mb-2 uppercase opacity-80">Serial de Motor/Caja (Opcional)</label>
+                                        <input v-model="form.serial" type="text" @input="form.serial = form.serial.toUpperCase()" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:ring-2 focus:ring-white outline-none uppercase font-bold" placeholder="Ej: 4G63-XXXXXX">
                                     </div>
 
                                     <div>

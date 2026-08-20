@@ -60,6 +60,7 @@ class BillingRequestController extends Controller
             'client_phone' => 'nullable|string|max:30',
             'client_address' => 'nullable|string|max:500',
             'client_email' => 'nullable|email|max:255',
+            'serial' => 'nullable|string|max:255',
             'serial_file' => 'nullable|image|max:2048',
             'observation' => 'nullable|string|max:1000',
         ]);
@@ -92,6 +93,9 @@ class BillingRequestController extends Controller
         $partida = \App\Models\Inventario::find($request->partida_id);
         if ($partida) {
             $partida->price_sale = $request->price;
+            if ($request->filled('serial')) {
+                $partida->serial = strip_tags($request->serial);
+            }
             if ($request->hasFile('serial_file')) {
                 $serialPath = \App\Helpers\ImageHelper::compressAndStore($request->file('serial_file'), 'serial_captures');
                 $partida->serial_image_path = $serialPath;
@@ -251,6 +255,7 @@ class BillingRequestController extends Controller
             'client_phone' => 'nullable|string|max:30',
             'client_address' => 'nullable|string|max:500',
             'client_email' => 'nullable|email|max:255',
+            'serial' => 'nullable|string|max:255',
             'observation' => 'nullable|string|max:1000',
         ]);
 
@@ -260,8 +265,13 @@ class BillingRequestController extends Controller
         ]));
 
         $partida = $billingRequest->inventario;
-        if ($partida && $request->has('price')) {
-            $partida->price_sale = $request->price;
+        if ($partida) {
+            if ($request->has('price')) {
+                $partida->price_sale = $request->price;
+            }
+            if ($request->has('serial')) {
+                $partida->serial = strip_tags($request->serial);
+            }
             $partida->saveQuietly();
         }
 
