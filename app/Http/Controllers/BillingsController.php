@@ -86,7 +86,7 @@ class BillingsController extends Controller
         }
 
         $requestId = $request->input('request_id');
-        $billing = Inventario::findOrFail($id);
+        $billing = Inventario::with('container')->findOrFail($id);
 
         if ($requestId) {
             $billingRequest = BillingRequest::find($requestId);

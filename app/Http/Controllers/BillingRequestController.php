@@ -23,7 +23,7 @@ class BillingRequestController extends Controller
      */
     public function index()
     {
-        $requests = BillingRequest::with(['inventario', 'partida', 'user'])
+        $requests = BillingRequest::with(['inventario.container', 'partida.container', 'user'])
             ->where('status', 'pending')
             ->orderBy('created_at', 'desc')
             ->get();

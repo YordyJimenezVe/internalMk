@@ -266,6 +266,13 @@ const goToCreateBilling = (id, requestId) => {
                                             <div class="flex flex-col">
                                                 <span class="text-sm font-black text-gray-800 dark:text-white uppercase leading-tight">{{ getDisplayType(req) }} - {{ (req.inventario || req.partida)?.marca }} {{ (req.inventario || req.partida)?.modelo }}</span>
                                                 <span class="text-[10px] font-bold text-gray-400 mt-0.5">ID: {{ (req.inventario || req.partida)?.codInv }} | {{ (req.inventario || req.partida)?.año }}</span>
+                                                <span class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 mt-0.5 flex items-center gap-1">
+                                                    <i class="fa-solid fa-folder-closed text-[9px]"></i>
+                                                    Expediente: {{ (req.inventario || req.partida)?.container?.expediente || (req.inventario || req.partida)?.expediente || 'N/A' }}
+                                                    <span v-if="(req.inventario || req.partida)?.container?.cod" class="text-[9px] text-gray-400 font-normal">
+                                                        ({{ (req.inventario || req.partida).container.cod }})
+                                                    </span>
+                                                </span>
                                             </div>
                                         </div>
                                         <div v-else class="flex flex-col">
@@ -364,6 +371,19 @@ const goToCreateBilling = (id, requestId) => {
                                 </div>
                             </div>
                             
+                            <div v-if="editingRequest?.inventario || editingRequest?.partida" class="mb-6 p-3.5 bg-indigo-50/50 dark:bg-indigo-900/20 rounded-2xl border border-indigo-100/60 dark:border-indigo-800/30 flex items-center justify-between text-xs">
+                                <div class="flex items-center gap-2">
+                                    <i class="fa-solid fa-folder-closed text-indigo-500"></i>
+                                    <span class="font-bold text-gray-500 dark:text-gray-400 uppercase text-[10px]">Expediente Contenedor:</span>
+                                </div>
+                                <span class="font-black text-indigo-900 dark:text-indigo-300 uppercase">
+                                    {{ (editingRequest.inventario || editingRequest.partida)?.container?.expediente || (editingRequest.inventario || editingRequest.partida)?.expediente || 'N/A' }}
+                                    <span v-if="(editingRequest.inventario || editingRequest.partida)?.container?.cod" class="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold ml-1">
+                                        ({{ (editingRequest.inventario || editingRequest.partida).container.cod }})
+                                    </span>
+                                </span>
+                            </div>
+
                             <div class="space-y-6">
                                 <div class="grid gap-4" :class="isFacturacion ? 'grid-cols-1' : 'grid-cols-2'">
                                     <div class="space-y-2">

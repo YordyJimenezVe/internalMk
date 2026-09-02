@@ -75,6 +75,19 @@ const formatSerial = (serial, imageUrl = null) => {
                                     </div>
                                     <input type="hidden" name="partida_id" :value="data.id">
                                 </div>
+                                <div class="mt-3 p-3.5 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-100 dark:border-gray-700/60 flex items-center justify-between">
+                                    <span class="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest flex items-center gap-1.5">
+                                        <i class="fa-solid fa-folder-closed text-indigo-500"></i> Expediente del Contenedor
+                                    </span>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs font-black text-gray-800 dark:text-white uppercase">
+                                            {{ data.container?.expediente || data.expediente || 'N/A' }}
+                                        </span>
+                                        <span v-if="data.container?.cod" class="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-300 font-bold text-[10px] border border-indigo-100 dark:border-indigo-800/30">
+                                            {{ data.container.cod }}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -231,11 +244,22 @@ const formatSerial = (serial, imageUrl = null) => {
                                         </label>
                                         <p class="text-xs text-amber-700 dark:text-amber-300 font-bold uppercase">{{ data.observation }}</p>
                                     </div>
-                                    <div class="p-4 bg-indigo-50/50 dark:bg-indigo-900/20 rounded-2xl border border-indigo-100 dark:border-indigo-900/30">
-                                        <label class="block text-[10px] font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-widest mb-1 flex items-center gap-1">
-                                            <i class="fa-solid fa-barcode text-indigo-500"></i> Serial del Motor / Caja
-                                        </label>
-                                        <p class="text-sm font-black text-indigo-900 dark:text-indigo-300 uppercase">{{ formatSerial(data.serial, data.serial_image_url) }}</p>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div class="p-4 bg-indigo-50/50 dark:bg-indigo-900/20 rounded-2xl border border-indigo-100 dark:border-indigo-900/30">
+                                            <label class="block text-[10px] font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-widest mb-1 flex items-center gap-1">
+                                                <i class="fa-solid fa-barcode text-indigo-500"></i> Serial del Motor / Caja
+                                            </label>
+                                            <p class="text-sm font-black text-indigo-900 dark:text-indigo-300 uppercase">{{ formatSerial(data.serial, data.serial_image_url) }}</p>
+                                        </div>
+                                        <div class="p-4 bg-indigo-50/50 dark:bg-indigo-900/20 rounded-2xl border border-indigo-100 dark:border-indigo-900/30">
+                                            <label class="block text-[10px] font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-widest mb-1 flex items-center gap-1">
+                                                <i class="fa-solid fa-folder-closed text-indigo-500"></i> Expediente Contenedor
+                                            </label>
+                                            <p class="text-sm font-black text-indigo-900 dark:text-indigo-300 uppercase">
+                                                {{ data.container?.expediente || data.expediente || 'N/A' }}
+                                                <span v-if="data.container?.cod" class="text-xs text-indigo-500 dark:text-indigo-400 font-bold ml-1">({{ data.container.cod }})</span>
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
 
