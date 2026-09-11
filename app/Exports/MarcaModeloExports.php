@@ -201,14 +201,14 @@ class MarcaModeloExports implements FromView, WithEvents, ShouldAutoSize, WithCo
             $grouped[$marca]['modelos'][$modelo]['contenedores'][$containerCode]++;
         }
 
-        // Formatear la cadena de contenedores por cada modelo
+        // Formatear la cadena de contenedores con salto de línea entre cada uno
         foreach ($grouped as &$marcaData) {
             foreach ($marcaData['modelos'] as &$modeloData) {
                 $contParts = [];
                 foreach ($modeloData['contenedores'] as $cCode => $count) {
                     $contParts[] = "{$cCode} ({$count} u.)";
                 }
-                $modeloData['contenedores_str'] = implode(', ', $contParts);
+                $modeloData['contenedores_str'] = implode("\n", $contParts);
             }
         }
 
@@ -241,12 +241,12 @@ class MarcaModeloExports implements FromView, WithEvents, ShouldAutoSize, WithCo
             'D' => 16, // STOCK DISPONIBLE
             'E' => 16, // OTROS ESTATUS
             'F' => 16, // TOTAL PIEZAS
-            'G' => 50, // CONTENEDORES DE ORIGEN
+            'G' => 45, // CONTENEDORES DE ORIGEN (con salto de línea)
         ];
     }
 
     /**
-     * Registrar eventos de configuración de hoja (landscape y ajuste para PDF/Excel).
+     * Registrar eventos de configuración de hoja (landscape, ajuste y wrap text en columna de contenedores).
      *
      * @return array
      */
@@ -258,6 +258,12 @@ class MarcaModeloExports implements FromView, WithEvents, ShouldAutoSize, WithCo
                 $sheet->getPageSetup()->setOrientation(PageSetup::ORIENTATION_LANDSCAPE);
                 $sheet->getPageSetup()->setFitToWidth(1);
                 $sheet->getPageSetup()->setFitToHeight(0);
+
+                // Habilitar ajuste de texto automático (Wrap Text) en la columna G (Contenedores)
+                $highestRow = $sheet->getHighestRow();
+                $sheet->getStyle("G1:G{$highestRow}")
+                    ->getAlignment()
+                    ->setWrapText(true);
             },
         ];
     }

@@ -84,7 +84,7 @@
                         <td style="background-color: #FFFFFF; color: #15803D; font-weight: bold; font-size: 10pt; border: 1px solid #E2E8F0; text-align: center;">{{ number_format($m['disponibles']) }}</td>
                         <td style="background-color: #FFFFFF; color: #B45309; font-weight: bold; font-size: 10pt; border: 1px solid #E2E8F0; text-align: center;">{{ number_format($m['otros']) }}</td>
                         <td style="background-color: #FFFFFF; color: #0F172A; font-weight: bold; font-size: 10pt; border: 1px solid #E2E8F0; text-align: center;">{{ number_format($m['total']) }}</td>
-                        <td style="background-color: #FFFFFF; color: #334155; font-size: 9.5pt; border: 1px solid #E2E8F0; text-align: left;">{{ $m['contenedores_str'] }}</td>
+                        <td style="background-color: #FFFFFF; color: #334155; font-size: 9.5pt; border: 1px solid #E2E8F0; text-align: left; white-space: pre-line;">{!! nl2br(e($m['contenedores_str'])) !!}</td>
                     </tr>
                 @endforeach
 
