@@ -73,6 +73,7 @@ import { router } from '@inertiajs/vue3'
                                     </label>
                                     <select v-model="form.tipo" class="w-full bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
                                         <option value="partidas">Inventario (Partidas)</option>
+                                        <option value="marca_modelo">Inventario por Marca y Modelo</option>
                                         <option value="facturas">Ventas (Facturación)</option>
                                         <option value="maintenance">Mantenimientos</option>
                                     </select>
@@ -93,7 +94,7 @@ import { router } from '@inertiajs/vue3'
                                     </div>
                                 </div>
 
-                                <div v-if="form.tipo === 'partidas'">
+                                <div v-if="form.tipo === 'partidas' || form.tipo === 'marca_modelo'">
                                     <label class="block uppercase tracking-wide text-gray-700 dark:text-gray-300 text-xs font-bold mb-2">
                                         <i class="fa-solid fa-filter mr-1"></i>Estatus
                                     </label>

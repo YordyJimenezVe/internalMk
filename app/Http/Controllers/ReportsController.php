@@ -9,8 +9,8 @@ use App\Exports\PartidasExports;
 use App\Exports\BillsExports;
 use App\Exports\BitacoraExports;
 use App\Exports\HistoryExports;
-
 use App\Exports\MaintenanceExports;
+use App\Exports\MarcaModeloExports;
 
 /**
  * Controlador para la exportación de Reportes y generación masiva de etiquetas.
@@ -127,7 +127,9 @@ class ReportsController extends Controller
         $endDate = $request->query('fecha_fin');
         $status = $request->query('status');
 
-        if ($tipo == 'partidas' || $tipo == 'Inventarios' || $tipo == 'inventario') {
+        if ($tipo == 'marca_modelo' || $tipo == 'marca-modelo' || $tipo == 'marcamodelo') {
+            return Excel::download(new MarcaModeloExports($caso, $termino, $startDate, $endDate, $status), 'inventario_marca_modelo.xlsx');
+        } else if ($tipo == 'partidas' || $tipo == 'Inventarios' || $tipo == 'inventario') {
             return Excel::download(new PartidasExports($caso, $termino, $startDate, $endDate, $status), $tipo . '.xlsx');
         } else if ($tipo == 'facturas') {
             return Excel::download(new BillsExports($caso, $termino, $startDate, $endDate), $tipo . '.xlsx');
@@ -144,7 +146,7 @@ class ReportsController extends Controller
      * Filtra y exporta datos en formato PDF (visualización inline) utilizando DomPDF o Excel-raw.
      *
      * @param  \Illuminate\Http\Request  $request  Petición HTTP con filtros de rango de fechas y estado.
-     * @param  string  $tipo  Tipo de reporte ('partidas', 'facturas', 'bitacora', 'history', 'maintenance').
+     * @param  string  $tipo  Tipo de reporte ('partidas', 'facturas', 'bitacora', 'history', 'maintenance', 'marca_modelo').
      * @param  string  $caso  Criterio de búsqueda o agrupación.
      * @param  string|null  $termino  Término de búsqueda textual.
      * @return \Illuminate\Http\Response
@@ -165,7 +167,22 @@ class ReportsController extends Controller
 
         $export = null;
 
-        if ($tipo == 'partidas' || $tipo == 'Inventarios' || $tipo == 'inventario') {
+        if ($tipo == 'marca_modelo' || $tipo == 'marca-modelo' || $tipo == 'marcamodelo') {
+            $export = new MarcaModeloExports($caso, $termino, $startDate, $endDate, $status);
+            $data = $export->getGroupedData();
+            $pdfContent = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.marca_modelo', [
+                'groups' => $data['groups'],
+                'kpis' => $data['kpis'],
+                'startDate' => $startDate,
+                'endDate' => $endDate,
+                'statusFilter' => $status,
+                'casoFilter' => $caso,
+                'isExcel' => false
+            ])
+                ->setPaper('a4', 'landscape')
+                ->output();
+            return response($pdfContent, 200, $headers);
+        } else if ($tipo == 'partidas' || $tipo == 'Inventarios' || $tipo == 'inventario') {
             $export = new PartidasExports($caso, $termino, $startDate, $endDate, $status);
             $data = $export->getCollection();
             $pdfContent = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.partidas', ['partidas' => $data])
