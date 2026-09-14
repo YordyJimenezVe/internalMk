@@ -6,20 +6,20 @@
     <style>
         @page {
             size: letter landscape;
-            margin: 12mm 8mm 12mm 8mm;
+            margin: 8mm 5mm 8mm 5mm;
         }
         body {
             font-family: Arial, Helvetica, sans-serif;
-            font-size: 7.5pt;
+            font-size: 7pt;
             color: #1a1a1a;
             margin: 0;
             padding: 0;
         }
         .header-container {
             width: 100%;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             border-bottom: 2px solid #1e293b;
-            padding-bottom: 6px;
+            padding-bottom: 4px;
         }
         .header-table {
             width: 100%;
@@ -29,21 +29,21 @@
             vertical-align: top;
         }
         .title-main {
-            font-size: 13pt;
+            font-size: 12pt;
             font-weight: bold;
             text-transform: uppercase;
             color: #0f172a;
             letter-spacing: 0.5px;
         }
         .subtitle {
-            font-size: 9.5pt;
+            font-size: 9pt;
             font-weight: bold;
             color: #475569;
             margin-top: 2px;
         }
         .info-box {
             text-align: right;
-            font-size: 8pt;
+            font-size: 7.5pt;
             line-height: 1.3;
         }
         .info-box strong {
@@ -54,13 +54,16 @@
         .report-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 5px;
+            margin-top: 4px;
+            table-layout: fixed;
         }
         .report-table th, .report-table td {
             border: 1px solid #cbd5e1;
-            padding: 4px 4px;
-            font-size: 7pt;
+            padding: 3px 2px;
+            font-size: 6.5pt;
             vertical-align: top;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
         .report-table th {
             background-color: #f1f5f9;
@@ -68,10 +71,11 @@
             font-weight: bold;
             text-align: center;
             text-transform: uppercase;
+            padding: 3px 1px;
         }
         .report-table th.sub-header {
             background-color: #f8fafc;
-            font-size: 6.5pt;
+            font-size: 6pt;
         }
         .report-table th.header-unidades {
             background-color: #e0f2fe;
@@ -86,25 +90,27 @@
         }
         .report-table td.num {
             text-align: right;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 6.5pt;
         }
         .report-table td.center {
             text-align: center;
         }
         .report-table td.container-tag {
-            font-size: 6.5pt;
+            font-size: 6pt;
             color: #475569;
+            line-height: 1.2;
         }
         .report-table tr.row-total td {
             background-color: #e2e8f0;
             font-weight: bold;
             border-top: 2px solid #475569;
-            font-size: 7.5pt;
+            font-size: 7pt;
         }
 
         /* Footer Signatures */
         .footer-signatures {
-            margin-top: 30px;
+            margin-top: 25px;
             width: 100%;
         }
         .signature-table {
@@ -115,14 +121,14 @@
             width: 50%;
             text-align: center;
             vertical-align: bottom;
-            padding-top: 35px;
+            padding-top: 30px;
         }
         .signature-line {
             width: 60%;
             margin: 0 auto;
             border-top: 1px solid #334155;
             padding-top: 4px;
-            font-size: 7.5pt;
+            font-size: 7pt;
             font-weight: bold;
             color: #334155;
         }
@@ -151,28 +157,28 @@
     <table class="report-table">
         <thead>
             <tr>
-                <th rowspan="2" style="width: 12%;">MARCA / MODELO</th>
-                <th rowspan="2" style="width: 18%;">PRODUCTO / DESCRIPCIÓN</th>
-                <th rowspan="2" style="width: 12%;">LOTES (CONTENEDORES)</th>
+                <th rowspan="2" style="width: 10%;">MARCA / MODELO</th>
+                <th rowspan="2" style="width: 15%;">PRODUCTO / DESCRIPCIÓN</th>
+                <th rowspan="2" style="width: 11%;">LOTES (CONTENEDORES)</th>
                 <th colspan="6" class="header-unidades">UNIDADES (FÍSICAS)</th>
                 <th colspan="6" class="header-valores">VALORES (BOLÍVARES - Bs.)</th>
             </tr>
             <tr>
                 <!-- Unidades Subheaders -->
-                <th class="sub-header" style="width: 4%;">INICIAL</th>
-                <th class="sub-header" style="width: 4%;">ENTRADAS</th>
-                <th class="sub-header" style="width: 4%;">SALIDAS</th>
-                <th class="sub-header" style="width: 4%;">RETIROS</th>
-                <th class="sub-header" style="width: 4%;">AUTOCONS.</th>
-                <th class="sub-header" style="width: 4.5%;">FINAL</th>
+                <th class="sub-header" style="width: 3.5%;">INICIAL</th>
+                <th class="sub-header" style="width: 3.5%;">ENTRADAS</th>
+                <th class="sub-header" style="width: 3.5%;">SALIDAS</th>
+                <th class="sub-header" style="width: 3.5%;">RETIROS</th>
+                <th class="sub-header" style="width: 3.5%;">AUTOCONS.</th>
+                <th class="sub-header" style="width: 4%;">FINAL</th>
 
                 <!-- Valores Subheaders -->
-                <th class="sub-header" style="width: 6.5%;">INICIAL</th>
-                <th class="sub-header" style="width: 6.5%;">ENTRADAS</th>
-                <th class="sub-header" style="width: 6.5%;">SALIDAS</th>
-                <th class="sub-header" style="width: 6.5%;">RETIROS</th>
-                <th class="sub-header" style="width: 6.5%;">AUTOCONS.</th>
-                <th class="sub-header" style="width: 7%;">FINAL</th>
+                <th class="sub-header" style="width: 7%;">INICIAL</th>
+                <th class="sub-header" style="width: 7%;">ENTRADAS</th>
+                <th class="sub-header" style="width: 7%;">SALIDAS</th>
+                <th class="sub-header" style="width: 7%;">RETIROS</th>
+                <th class="sub-header" style="width: 7%;">AUTOCONS.</th>
+                <th class="sub-header" style="width: 7.5%;">FINAL</th>
             </tr>
         </thead>
         <tbody>
