@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Reporte Mensual de Inventario - {{ $monthName }} {{ $year }}</title>
+    <title>Inventario Mensual</title>
     <style>
         @page {
             size: letter landscape;
@@ -222,7 +222,7 @@
                 <td class="num">{{ number_format($totales['valores_entradas'] ?? 0, 2, ',', '.') }}</td>
                 <td class="num">{{ number_format($totales['valores_salidas'] ?? 0, 2, ',', '.') }}</td>
                 <td class="num">{{ number_format($totales['valores_retiros'] ?? 0, 2, ',', '.') }}</td>
-                <td class="num">{{ number_format($totales['valores_autoconsumo'] ?? 0, 2, ',', '.') }}</td>
+                <td class="num">{{ number_format($totales['valores_autoconsumo'] ?? 0, 0, ',', '.') }}</td>
                 <td class="num">{{ number_format($totales['valores_final'] ?? 0, 2, ',', '.') }}</td>
             </tr>
         </tbody>
