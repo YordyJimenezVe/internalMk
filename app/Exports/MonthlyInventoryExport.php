@@ -22,7 +22,15 @@ class MonthlyInventoryExport implements FromView, WithEvents, ShouldAutoSize, Wi
 
     public function title(): string
     {
-        return 'Inventario ' . ($this->data['monthName'] ?? 'Mensual');
+        $month = $this->data['monthName'] ?? 'Mensual';
+        $year = $this->data['year'] ?? '';
+        $rawTitle = "Inv {$month} {$year}";
+        
+        // Eliminar caracteres prohibidos en nombres de pestañas de Excel (\ / ? * : [ ])
+        $cleanTitle = preg_replace('/[\\\\\/*?:\[\]]/', '', $rawTitle);
+
+        // Garantizar que no exceda el límite estricto de 31 caracteres de PhpSpreadsheet
+        return mb_substr($cleanTitle, 0, 30);
     }
 
     public function view(): View
