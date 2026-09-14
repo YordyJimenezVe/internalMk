@@ -20,14 +20,12 @@ class MonthlyInventoryExport implements FromView, WithEvents, ShouldAutoSize, Wi
         $this->data = $data;
     }
 
+    /**
+     * Título de la pestaña de la hoja de cálculo en Excel (Máximo 31 caracteres).
+     */
     public function title(): string
     {
-        $month = $this->data['monthName'] ?? 'Mensual';
-        $year = $this->data['year'] ?? '';
-        $rawTitle = "Inv {$month} {$year}";
-        
-        $cleanTitle = preg_replace('/[\\\\\/*?:\[\]]/', '', $rawTitle);
-        return mb_substr($cleanTitle, 0, 30);
+        return 'Inventario Mensual';
     }
 
     public function view(): View
