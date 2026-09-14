@@ -148,6 +148,10 @@ Route::middleware([
     // Reports Access
     Route::group(['middleware' => ['check_permission:view reports']], function () {
         Route::get('/reports', 'App\Http\Controllers\ReportsController@index')->name('reports');
+        Route::get('/reports/monthly', 'App\Http\Controllers\MonthlyInventoryReportController@index')->name('reports.monthly');
+        Route::get('/reports/monthly/data', 'App\Http\Controllers\MonthlyInventoryReportController@data')->name('reports.monthly.data');
+        Route::get('/reports/monthly/pdf', 'App\Http\Controllers\MonthlyInventoryReportController@exportPdf')->name('reports.monthly.pdf');
+        Route::get('/reports/monthly/excel', 'App\Http\Controllers\MonthlyInventoryReportController@exportExcel')->name('reports.monthly.excel');
         Route::get('/report/reporteExcel/{tipo}/{caso}/{termino?}', 'App\Http\Controllers\ReportsController@exportExcel')->name('reporteExcel');
         Route::get('/report/reportePdf/{tipo}/{caso}/{termino?}', 'App\Http\Controllers\ReportsController@exportPdf')->name('reportePdf');
         Route::get('/report/print-labels/{tipo}', 'App\Http\Controllers\ReportsController@bulkPrintLabels')->name('printLabels');
