@@ -10,6 +10,9 @@ use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Color;
 
 class MonthlyInventoryExport implements FromView, WithEvents, ShouldAutoSize, WithColumnWidths, WithTitle
 {
@@ -61,6 +64,24 @@ class MonthlyInventoryExport implements FromView, WithEvents, ShouldAutoSize, Wi
                 $sheet = $event->sheet->getDelegate();
                 $sheet->getPageSetup()->setOrientation(PageSetup::ORIENTATION_LANDSCAPE);
                 $sheet->getPageSetup()->setPaperSize(PageSetup::PAPERSIZE_LETTER);
+
+                $highestRow = $sheet->getHighestRow();
+                $highestColumn = $sheet->getHighestColumn();
+
+                // Habilitar ajuste automático de texto (saltos de línea en contenedores) y alineación superior
+                $sheet->getStyle("A1:{$highestColumn}{$highestRow}")
+                    ->getAlignment()
+                    ->setVertical(Alignment::VERTICAL_TOP)
+                    ->setWrapText(true);
+
+                // Bordes para la tabla de inventario
+                if ($highestRow >= 9) {
+                    $sheet->getStyle("A9:{$highestColumn}{$highestRow}")
+                        ->getBorders()
+                        ->getAllBorders()
+                        ->setBorderStyle(Border::BORDER_THIN)
+                        ->setColor(new Color('CBD5E1'));
+                }
             },
         ];
     }

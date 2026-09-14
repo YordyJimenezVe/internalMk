@@ -60,6 +60,7 @@
             border: 1px solid #cbd5e1;
             padding: 4px 4px;
             font-size: 7pt;
+            vertical-align: top;
         }
         .report-table th {
             background-color: #f1f5f9;
@@ -179,7 +180,7 @@
                 <tr>
                     <td class="center"><strong>{{ $item['code'] }}</strong></td>
                     <td>{{ $item['description'] }}</td>
-                    <td class="container-tag">{{ $item['containers_str'] }}</td>
+                    <td class="container-tag">{!! nl2br(e($item['containers_str'])) !!}</td>
 
                     <!-- Unidades -->
                     <td class="num">{{ number_format($item['unidades_inicial'], 0, ',', '.') }}</td>

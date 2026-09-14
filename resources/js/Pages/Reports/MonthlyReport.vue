@@ -294,10 +294,10 @@ const goBack = () => {
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                                <tr v-for="(item, idx) in filteredItems" :key="idx" class="hover:bg-gray-50/80 dark:hover:bg-gray-700/50 transition-colors">
+                                <tr v-for="(item, idx) in filteredItems" :key="idx" class="hover:bg-gray-50/80 dark:hover:bg-gray-700/50 transition-colors align-top">
                                     <td class="py-3 px-3 font-mono font-bold text-gray-900 dark:text-white border-r border-gray-100 dark:border-gray-700">{{ item.code }}</td>
                                     <td class="py-3 px-4 font-medium text-gray-800 dark:text-gray-200 border-r border-gray-100 dark:border-gray-700">{{ item.description }}</td>
-                                    <td class="py-3 px-3 text-gray-500 dark:text-gray-400 font-mono text-[11px] border-r border-gray-100 dark:border-gray-700">{{ item.containers_str }}</td>
+                                    <td class="py-3 px-3 text-gray-500 dark:text-gray-400 font-mono text-[11px] border-r border-gray-100 dark:border-gray-700 whitespace-pre-line leading-relaxed">{{ item.containers_str }}</td>
 
                                     <!-- Unidades -->
                                     <td class="py-3 px-2 text-right font-mono text-gray-600 dark:text-gray-300">{{ formatNum(item.unidades_inicial) }}</td>

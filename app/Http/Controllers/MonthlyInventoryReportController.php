@@ -311,7 +311,7 @@ class MonthlyInventoryReportController extends Controller
             foreach ($gItem['containers_map'] as $cCode => $cnt) {
                 $cList[] = "{$cCode} ({$cnt})";
             }
-            $gItem['containers_str'] = implode(', ', $cList);
+            $gItem['containers_str'] = implode("\n", $cList);
             unset($gItem['containers_map']);
         }
 
