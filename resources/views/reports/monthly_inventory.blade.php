@@ -136,7 +136,25 @@
 </head>
 <body>
 
-    <!-- Header Section -->
+@if(isset($isExcel) && $isExcel)
+    <!-- Header Rows para Excel con Colspans para que el título respire a lo ancho -->
+    <table>
+        <tr>
+            <td colspan="9" style="font-size: 14pt; font-weight: bold; color: #0f172a;">{{ $companyName ?? 'INTERNAL MAIKEL CARS, C.A.' }}</td>
+            <td colspan="6" style="text-align: right; font-size: 9pt; font-weight: bold; color: #334155;">RIF: {{ $companyRif ?? 'J-50000000-0' }}</td>
+        </tr>
+        <tr>
+            <td colspan="9" style="font-size: 11pt; font-weight: bold; color: #475569;">REPORTE MENSUAL DE INVENTARIO (LIBRO DE CONTROL FISCAL)</td>
+            <td colspan="6" style="text-align: right; font-size: 9pt; font-weight: bold; color: #334155;">MES Y AÑO: {{ $monthName }} / {{ $year }}</td>
+        </tr>
+        <tr>
+            <td colspan="9"></td>
+            <td colspan="6" style="text-align: right; font-size: 9pt; font-weight: bold; color: #0369a1;">TASA BCV: {{ number_format($exchangeRate ?? 1.0, 2, ',', '.') }} Bs./USD</td>
+        </tr>
+        <tr><td colspan="15"></td></tr>
+    </table>
+@else
+    <!-- Header Section para PDF / HTML -->
     <div class="header-container">
         <table class="header-table">
             <tr>
@@ -152,6 +170,7 @@
             </tr>
         </table>
     </div>
+@endif
 
     <!-- Inventory Table -->
     <table class="report-table">
@@ -189,20 +208,20 @@
                     <td class="container-tag">{!! nl2br(e($item['containers_str'])) !!}</td>
 
                     <!-- Unidades -->
-                    <td class="num">{{ number_format($item['unidades_inicial'], 0, ',', '.') }}</td>
-                    <td class="num">{{ number_format($item['unidades_entradas'], 0, ',', '.') }}</td>
-                    <td class="num">{{ number_format($item['unidades_salidas'], 0, ',', '.') }}</td>
-                    <td class="num">{{ number_format($item['unidades_retiros'], 0, ',', '.') }}</td>
-                    <td class="num">{{ number_format($item['unidades_autoconsumo'], 0, ',', '.') }}</td>
-                    <td class="num"><strong>{{ number_format($item['unidades_final'], 0, ',', '.') }}</strong></td>
+                    <td class="num">{{ isset($isExcel) && $isExcel ? $item['unidades_inicial'] : number_format($item['unidades_inicial'], 0, ',', '.') }}</td>
+                    <td class="num">{{ isset($isExcel) && $isExcel ? $item['unidades_entradas'] : number_format($item['unidades_entradas'], 0, ',', '.') }}</td>
+                    <td class="num">{{ isset($isExcel) && $isExcel ? $item['unidades_salidas'] : number_format($item['unidades_salidas'], 0, ',', '.') }}</td>
+                    <td class="num">{{ isset($isExcel) && $isExcel ? $item['unidades_retiros'] : number_format($item['unidades_retiros'], 0, ',', '.') }}</td>
+                    <td class="num">{{ isset($isExcel) && $isExcel ? $item['unidades_autoconsumo'] : number_format($item['unidades_autoconsumo'], 0, ',', '.') }}</td>
+                    <td class="num"><strong>{{ isset($isExcel) && $isExcel ? $item['unidades_final'] : number_format($item['unidades_final'], 0, ',', '.') }}</strong></td>
 
                     <!-- Valores (Bs.) -->
-                    <td class="num">{{ number_format($item['valores_inicial'], 2, ',', '.') }}</td>
-                    <td class="num">{{ number_format($item['valores_entradas'], 2, ',', '.') }}</td>
-                    <td class="num">{{ number_format($item['valores_salidas'], 2, ',', '.') }}</td>
-                    <td class="num">{{ number_format($item['valores_retiros'], 2, ',', '.') }}</td>
-                    <td class="num">{{ number_format($item['valores_autoconsumo'], 2, ',', '.') }}</td>
-                    <td class="num"><strong>{{ number_format($item['valores_final'], 2, ',', '.') }}</strong></td>
+                    <td class="num">{{ isset($isExcel) && $isExcel ? $item['valores_inicial'] : number_format($item['valores_inicial'], 2, ',', '.') }}</td>
+                    <td class="num">{{ isset($isExcel) && $isExcel ? $item['valores_entradas'] : number_format($item['valores_entradas'], 2, ',', '.') }}</td>
+                    <td class="num">{{ isset($isExcel) && $isExcel ? $item['valores_salidas'] : number_format($item['valores_salidas'], 2, ',', '.') }}</td>
+                    <td class="num">{{ isset($isExcel) && $isExcel ? $item['valores_retiros'] : number_format($item['valores_retiros'], 2, ',', '.') }}</td>
+                    <td class="num">{{ isset($isExcel) && $isExcel ? $item['valores_autoconsumo'] : number_format($item['valores_autoconsumo'], 2, ',', '.') }}</td>
+                    <td class="num"><strong>{{ isset($isExcel) && $isExcel ? $item['valores_final'] : number_format($item['valores_final'], 2, ',', '.') }}</strong></td>
                 </tr>
             @empty
                 <tr>
@@ -217,20 +236,20 @@
                 <td colspan="3" class="center">TOTALES GENERALES</td>
 
                 <!-- Totales Unidades -->
-                <td class="num">{{ number_format($totales['unidades_inicial'] ?? 0, 0, ',', '.') }}</td>
-                <td class="num">{{ number_format($totales['unidades_entradas'] ?? 0, 0, ',', '.') }}</td>
-                <td class="num">{{ number_format($totales['unidades_salidas'] ?? 0, 0, ',', '.') }}</td>
-                <td class="num">{{ number_format($totales['unidades_retiros'] ?? 0, 0, ',', '.') }}</td>
-                <td class="num">{{ number_format($totales['unidades_autoconsumo'] ?? 0, 0, ',', '.') }}</td>
-                <td class="num">{{ number_format($totales['unidades_final'] ?? 0, 0, ',', '.') }}</td>
+                <td class="num">{{ isset($isExcel) && $isExcel ? ($totales['unidades_inicial'] ?? 0) : number_format($totales['unidades_inicial'] ?? 0, 0, ',', '.') }}</td>
+                <td class="num">{{ isset($isExcel) && $isExcel ? ($totales['unidades_entradas'] ?? 0) : number_format($totales['unidades_entradas'] ?? 0, 0, ',', '.') }}</td>
+                <td class="num">{{ isset($isExcel) && $isExcel ? ($totales['unidades_salidas'] ?? 0) : number_format($totales['unidades_salidas'] ?? 0, 0, ',', '.') }}</td>
+                <td class="num">{{ isset($isExcel) && $isExcel ? ($totales['unidades_retiros'] ?? 0) : number_format($totales['unidades_retiros'] ?? 0, 0, ',', '.') }}</td>
+                <td class="num">{{ isset($isExcel) && $isExcel ? ($totales['unidades_autoconsumo'] ?? 0) : number_format($totales['unidades_autoconsumo'] ?? 0, 0, ',', '.') }}</td>
+                <td class="num">{{ isset($isExcel) && $isExcel ? ($totales['unidades_final'] ?? 0) : number_format($totales['unidades_final'] ?? 0, 0, ',', '.') }}</td>
 
                 <!-- Totales Valores (Bs.) -->
-                <td class="num">{{ number_format($totales['valores_inicial'] ?? 0, 2, ',', '.') }}</td>
-                <td class="num">{{ number_format($totales['valores_entradas'] ?? 0, 2, ',', '.') }}</td>
-                <td class="num">{{ number_format($totales['valores_salidas'] ?? 0, 2, ',', '.') }}</td>
-                <td class="num">{{ number_format($totales['valores_retiros'] ?? 0, 2, ',', '.') }}</td>
-                <td class="num">{{ number_format($totales['valores_autoconsumo'] ?? 0, 0, ',', '.') }}</td>
-                <td class="num">{{ number_format($totales['valores_final'] ?? 0, 2, ',', '.') }}</td>
+                <td class="num">{{ isset($isExcel) && $isExcel ? ($totales['valores_inicial'] ?? 0) : number_format($totales['valores_inicial'] ?? 0, 2, ',', '.') }}</td>
+                <td class="num">{{ isset($isExcel) && $isExcel ? ($totales['valores_entradas'] ?? 0) : number_format($totales['valores_entradas'] ?? 0, 2, ',', '.') }}</td>
+                <td class="num">{{ isset($isExcel) && $isExcel ? ($totales['valores_salidas'] ?? 0) : number_format($totales['valores_salidas'] ?? 0, 2, ',', '.') }}</td>
+                <td class="num">{{ isset($isExcel) && $isExcel ? ($totales['valores_retiros'] ?? 0) : number_format($totales['valores_retiros'] ?? 0, 2, ',', '.') }}</td>
+                <td class="num">{{ isset($isExcel) && $isExcel ? ($totales['valores_autoconsumo'] ?? 0) : number_format($totales['valores_autoconsumo'] ?? 0, 2, ',', '.') }}</td>
+                <td class="num">{{ isset($isExcel) && $isExcel ? ($totales['valores_final'] ?? 0) : number_format($totales['valores_final'] ?? 0, 2, ',', '.') }}</td>
             </tr>
         </tbody>
     </table>
