@@ -155,7 +155,7 @@ class MonthlyInventoryReportController extends Controller
     }
 
     /**
-     * Calcula los saldos de inventario del mes seleccionado con trazabilidad por contenedor.
+     * Calcula los saldos de inventario del mes seleccionado con montos directos en Bolívares.
      */
     private function calculateMonthlyData(int $month, int $year, string $groupingMode = 'base'): array
     {
@@ -189,10 +189,14 @@ class MonthlyInventoryReportController extends Controller
             // Código del Contenedor de origen
             $containerCode = $item->container ? ($item->container->cod ?: ($item->container->expediente ?? 'CONTAINER')) : 'S/C';
 
-            // Determinar costo / valor base en USD por unidad
-            $costUsd = (float) ($item->costo ?? $item->price ?? 0);
-            if ($costUsd <= 0 && $item->costo_importacion_unitario) {
-                $costUsd = (float) $item->costo_importacion_unitario;
+            // Determinar valor / costo en Bolívares (Bs.) de la base de datos (ya almacenado en Bs.)
+            $unitValueBs = 0.0;
+            if ($item->costo_importacion_unitario && (float) $item->costo_importacion_unitario > 0) {
+                $unitValueBs = (float) $item->costo_importacion_unitario;
+            } elseif ($item->costo && (float) $item->costo > 0) {
+                $unitValueBs = (float) $item->costo;
+            } elseif ($item->price && (float) $item->price > 0) {
+                $unitValueBs = (float) $item->price;
             }
 
             $createdAt = Carbon::parse($item->created_at);
@@ -271,13 +275,13 @@ class MonthlyInventoryReportController extends Controller
             }
             $groupedItems[$groupKey]['containers_map'][$containerCode]++;
 
-            // Valores monetarios en Bolívares (Costo unitario * Tasa BCV)
-            $valInicial = $existenciaInicial * $costUsd * $exchangeRate;
-            $valEntradas = $entradas * $costUsd * $exchangeRate;
-            $valSalidas = $salidas * $costUsd * $exchangeRate;
-            $valRetiros = $retiros * $costUsd * $exchangeRate;
-            $valAutoconsumo = $autoconsumos * $costUsd * $exchangeRate;
-            $valFinal = $existenciaFinal * $costUsd * $exchangeRate;
+            // Valores monetarios directamente en Bolívares (Bs.)
+            $valInicial = $existenciaInicial * $unitValueBs;
+            $valEntradas = $entradas * $unitValueBs;
+            $valSalidas = $salidas * $unitValueBs;
+            $valRetiros = $retiros * $unitValueBs;
+            $valAutoconsumo = $autoconsumos * $unitValueBs;
+            $valFinal = $existenciaFinal * $unitValueBs;
 
             // Acumular cantidades por tipo + modelo
             $groupedItems[$groupKey]['unidades_inicial'] += $existenciaInicial;
