@@ -22,12 +22,14 @@ class MonthlyInventoryReportController extends Controller
     {
         $month = (int) $request->input('month', date('n'));
         $year = (int) $request->input('year', date('Y'));
+        $groupingMode = $request->input('grouping_mode', 'base');
 
-        $reportData = $this->calculateMonthlyData($month, $year);
+        $reportData = $this->calculateMonthlyData($month, $year, $groupingMode);
 
         return inertia('Reports/MonthlyReport', [
             'initialMonth' => $month,
             'initialYear' => $year,
+            'initialGroupingMode' => $groupingMode,
             'reportData' => $reportData,
         ]);
     }
@@ -39,8 +41,9 @@ class MonthlyInventoryReportController extends Controller
     {
         $month = (int) $request->input('month', date('n'));
         $year = (int) $request->input('year', date('Y'));
+        $groupingMode = $request->input('grouping_mode', 'base');
 
-        $reportData = $this->calculateMonthlyData($month, $year);
+        $reportData = $this->calculateMonthlyData($month, $year, $groupingMode);
 
         return response()->json($reportData);
     }
@@ -55,8 +58,9 @@ class MonthlyInventoryReportController extends Controller
 
         $month = (int) $request->input('month', date('n'));
         $year = (int) $request->input('year', date('Y'));
+        $groupingMode = $request->input('grouping_mode', 'base');
 
-        $reportData = $this->calculateMonthlyData($month, $year);
+        $reportData = $this->calculateMonthlyData($month, $year, $groupingMode);
 
         $pdf = Pdf::loadView('reports.monthly_inventory', $reportData)
             ->setPaper('letter', 'landscape')
@@ -85,8 +89,9 @@ class MonthlyInventoryReportController extends Controller
 
         $month = (int) $request->input('month', date('n'));
         $year = (int) $request->input('year', date('Y'));
+        $groupingMode = $request->input('grouping_mode', 'base');
 
-        $reportData = $this->calculateMonthlyData($month, $year);
+        $reportData = $this->calculateMonthlyData($month, $year, $groupingMode);
         $monthName = $this->getMonthName($month);
 
         return Excel::download(
@@ -96,9 +101,49 @@ class MonthlyInventoryReportController extends Controller
     }
 
     /**
-     * Calcula los datos del reporte AGRUPADOS POR MODELO / PRODUCTO para el mes y año solicitados.
+     * Normaliza y extrae el modelo base (ej: CHEVROLET 5.3L) consolidando variantes como L83, IV GEN, NEW GEN.
      */
-    private function calculateMonthlyData(int $month, int $year): array
+    private function normalizeModelInfo(string $tipo, string $marca, string $modelo, bool $useBaseModel = true): array
+    {
+        $tipoClean = mb_strtoupper(trim($tipo));
+        $marcaClean = mb_strtoupper(trim($marca));
+        $modeloClean = mb_strtoupper(trim($modelo));
+
+        if ($useBaseModel && !empty($modeloClean)) {
+            // Extraer cilindraje numérico principal (ej: 5.3, 4.5, 3.5, 2.0, 2.4, etc.)
+            if (preg_match('/\b(\d+\.\d+)\s*L?\b/i', $modeloClean, $matches)) {
+                $displacement = $matches[1] . 'L';
+
+                // Mantener variantes principales si aplican (ej: 1FZ, VORTEC, HEMI, TRITON)
+                $variant = '';
+                if (preg_match('/\b(1FZ|2TR|1GR|VORTEC|HEMI|TRITON|CUMMINS|POWERSTROKE)\b/i', $modeloClean, $vMatches)) {
+                    $variant = ' ' . strtoupper($vMatches[1]);
+                }
+
+                $modeloClean = $displacement . $variant;
+            } else {
+                // Eliminar sufijos secundarios como IV GEN, NEW GEN, L83, L86 si no hay cilindraje
+                $modeloClean = preg_replace('/\b(L83|L86|IV GEN|NEW GEN|OLD GEN|GEN 4|GEN 5)\b/i', '', $modeloClean);
+                $modeloClean = trim(preg_replace('/\s+/', ' ', $modeloClean));
+            }
+        }
+
+        $codeParts = array_filter([$marcaClean, $modeloClean]);
+        $code = !empty($codeParts) ? implode(' ', $codeParts) : ($tipoClean ?: 'PRODUCTO');
+
+        $descParts = array_filter([$tipoClean, $marcaClean, $modeloClean]);
+        $description = !empty($descParts) ? implode(' ', $descParts) : 'PRODUCTO GENERAL';
+
+        return [
+            'code' => $code,
+            'description' => $description,
+        ];
+    }
+
+    /**
+     * Calcula los datos del reporte AGRUPADOS POR MODELO para el mes y año solicitados.
+     */
+    private function calculateMonthlyData(int $month, int $year, string $groupingMode = 'base'): array
     {
         $startOfMonth = Carbon::createFromDate($year, $month, 1)->startOfMonth();
         $endOfMonth = Carbon::createFromDate($year, $month, 1)->endOfMonth();
@@ -114,29 +159,19 @@ class MonthlyInventoryReportController extends Controller
         // Obtener todos los inventarios con sus relaciones de facturación y mantenimientos
         $inventarios = Inventario::with(['container', 'bill', 'maintenances'])->get();
 
-        // Agrupar items por Modelo / Tipo / Marca
+        // Agrupar items por Modelo
         $groupedItems = [];
+        $useBaseModel = ($groupingMode === 'base');
 
         foreach ($inventarios as $item) {
-            // Construir clave de agrupación por Modelo / Tipo / Marca (Ej: MOTOR CHEVROLET 5.3)
             $tipo = trim($item->tipo ?? '');
             $marca = trim($item->marca ?? '');
             $modelo = trim($item->modelo ?? '');
 
-            $parts = array_filter([$tipo, $marca, $modelo]);
-            if (!empty($parts)) {
-                $description = mb_strtoupper(implode(' ', $parts));
-            } else {
-                $description = mb_strtoupper($item->item ?? $item->categorie ?? 'PRODUCTO GENERAL');
-            }
-
-            // Código representativo para la tabla (Marca y Modelo o Tipo)
-            $codeParts = array_filter([$marca, $modelo]);
-            if (!empty($codeParts)) {
-                $code = mb_strtoupper(implode(' ', $codeParts));
-            } else {
-                $code = mb_strtoupper($tipo ?: ($item->codInv ?? 'INV'));
-            }
+            // Normalizar y obtener código y descripción del modelo
+            $modelInfo = $this->normalizeModelInfo($tipo, $marca, $modelo, $useBaseModel);
+            $code = $modelInfo['code'];
+            $description = $modelInfo['description'];
 
             // Determinar costo / valor base en USD por unidad
             $costUsd = (float) ($item->costo ?? $item->price ?? 0);
@@ -190,7 +225,7 @@ class MonthlyInventoryReportController extends Controller
                 continue;
             }
 
-            // Agrupación en la fila del modelo correspondiente
+            // Clave única de agrupación por Modelo
             $groupKey = $description;
 
             if (!isset($groupedItems[$groupKey])) {
@@ -237,7 +272,7 @@ class MonthlyInventoryReportController extends Controller
             $groupedItems[$groupKey]['valores_final'] += $valFinal;
         }
 
-        // Ordenar alfabéticamente por la clave del modelo
+        // Ordenar alfabéticamente por modelo
         ksort($groupedItems);
 
         $itemsList = array_values($groupedItems);
@@ -264,6 +299,7 @@ class MonthlyInventoryReportController extends Controller
             'month' => $month,
             'monthName' => strtoupper($this->getMonthName($month)),
             'year' => $year,
+            'groupingMode' => $groupingMode,
             'exchangeRate' => $exchangeRate,
             'items' => $itemsList,
             'totales' => $totales,

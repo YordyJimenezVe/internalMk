@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed } from 'vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { router } from '@inertiajs/vue3';
 import axios from 'axios';
@@ -7,11 +7,13 @@ import axios from 'axios';
 const props = defineProps({
     initialMonth: Number,
     initialYear: Number,
+    initialGroupingMode: String,
     reportData: Object,
 });
 
 const selectedMonth = ref(props.initialMonth || new Date().getMonth() + 1);
 const selectedYear = ref(props.initialYear || new Date().getFullYear());
+const selectedGroupingMode = ref(props.initialGroupingMode || 'base');
 const searchQuery = ref('');
 const isLoading = ref(false);
 const currentReportData = ref(props.reportData);
@@ -47,6 +49,7 @@ const fetchReportData = async () => {
             params: {
                 month: selectedMonth.value,
                 year: selectedYear.value,
+                grouping_mode: selectedGroupingMode.value,
             }
         });
         currentReportData.value = response.data;
@@ -80,6 +83,7 @@ const exportPdf = () => {
     const url = route('reports.monthly.pdf', {
         month: selectedMonth.value,
         year: selectedYear.value,
+        grouping_mode: selectedGroupingMode.value,
     });
     window.open(url, '_blank');
 };
@@ -88,6 +92,7 @@ const exportExcel = () => {
     const url = route('reports.monthly.excel', {
         month: selectedMonth.value,
         year: selectedYear.value,
+        grouping_mode: selectedGroupingMode.value,
     });
     window.open(url, '_blank');
 };
@@ -121,7 +126,7 @@ const goBack = () => {
                 <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
                     <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                         
-                        <!-- Month & Year Selectors -->
+                        <!-- Month, Year & Grouping Mode Selectors -->
                         <div class="flex flex-wrap items-center gap-4 w-full lg:w-auto">
                             <div>
                                 <label class="block text-xs uppercase font-bold text-gray-500 dark:text-gray-400 mb-1">
@@ -146,6 +151,20 @@ const goBack = () => {
                                     class="bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-semibold text-sm rounded-xl border border-gray-200 dark:border-gray-600 py-2.5 px-4 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                                 >
                                     <option v-for="y in availableYears" :key="y" :value="y">{{ y }}</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-xs uppercase font-bold text-gray-500 dark:text-gray-400 mb-1">
+                                    <i class="fa-solid fa-layer-group mr-1 text-indigo-500"></i>Agrupación
+                                </label>
+                                <select 
+                                    v-model="selectedGroupingMode" 
+                                    @change="fetchReportData"
+                                    class="bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-semibold text-sm rounded-xl border border-gray-200 dark:border-gray-600 py-2.5 px-4 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                                >
+                                    <option value="base">Por Modelo General (Ej: CHEVROLET 5.3L)</option>
+                                    <option value="exact">Por Modelo Exacto (Con variantes L83, IV GEN)</option>
                                 </select>
                             </div>
 
@@ -213,7 +232,7 @@ const goBack = () => {
                     <div class="p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div>
                             <h3 class="font-bold text-lg text-gray-800 dark:text-white">
-                                Detalle Mensual de Inventario
+                                Detalle Mensual de Inventario Agrupado por Modelo
                             </h3>
                             <p class="text-xs text-gray-500 dark:text-gray-400">
                                 Movimientos de {{ currentReportData?.monthName }} {{ currentReportData?.year }}
@@ -225,7 +244,7 @@ const goBack = () => {
                             <input 
                                 v-model="searchQuery" 
                                 type="text" 
-                                placeholder="Buscar por código o producto..."
+                                placeholder="Buscar por modelo..."
                                 class="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white text-xs rounded-xl border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none"
                             >
                         </div>
@@ -234,7 +253,7 @@ const goBack = () => {
                     <!-- Loading State -->
                     <div v-if="isLoading" class="p-12 text-center text-gray-500">
                         <i class="fa-solid fa-circle-notch fa-spin text-3xl text-indigo-600 mb-3"></i>
-                        <p class="text-sm font-semibold">Procesando movimientos del inventario...</p>
+                        <p class="text-sm font-semibold">Procesando y agrupando movimientos del inventario...</p>
                     </div>
 
                     <!-- Main Data Table -->
@@ -243,7 +262,7 @@ const goBack = () => {
                             <thead>
                                 <!-- Top Headers Row -->
                                 <tr class="bg-gray-100 dark:bg-gray-900/80 text-gray-700 dark:text-gray-300 font-bold uppercase tracking-wider text-[11px] border-b border-gray-200 dark:border-gray-700">
-                                    <th class="py-3 px-3 border-r border-gray-200 dark:border-gray-700">Código</th>
+                                    <th class="py-3 px-3 border-r border-gray-200 dark:border-gray-700">Marca / Modelo</th>
                                     <th class="py-3 px-4 border-r border-gray-200 dark:border-gray-700 min-w-[200px]">Producto / Descripción</th>
                                     <th colspan="6" class="py-3 px-3 text-center bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border-r border-gray-200 dark:border-gray-700">Unidades (Físicas)</th>
                                     <th colspan="6" class="py-3 px-3 text-center bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">Valores en Bolívares (Bs.)</th>
