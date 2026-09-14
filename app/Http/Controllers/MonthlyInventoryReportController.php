@@ -204,7 +204,17 @@ class MonthlyInventoryReportController extends Controller
                 $costUsd = ($rawVal > 5000 && $exchangeRate > 0) ? ($rawVal / $exchangeRate) : $rawVal;
             }
 
-            $createdAt = Carbon::parse($item->created_at);
+            // Determinar la fecha real de ingreso / llegada de la mercancía (tomando la fecha del contenedor si existe)
+            $entryDate = null;
+            if ($item->container) {
+                if (!empty($item->container->fecha)) {
+                    $entryDate = Carbon::parse($item->container->fecha);
+                } else {
+                    $entryDate = Carbon::parse($item->container->created_at);
+                }
+            } else {
+                $entryDate = Carbon::parse($item->created_at);
+            }
 
             // Fechas de salida/venta
             $soldAt = null;
@@ -218,8 +228,8 @@ class MonthlyInventoryReportController extends Controller
             }
 
             // Evaluar movimientos
-            $isCreatedBeforeMonth = $createdAt->lt($startOfMonth);
-            $isCreatedInMonth = $createdAt->gte($startOfMonth) && $createdAt->lte($endOfMonth);
+            $isCreatedBeforeMonth = $entryDate->lt($startOfMonth);
+            $isCreatedInMonth = $entryDate->gte($startOfMonth) && $entryDate->lte($endOfMonth);
 
             $isSoldBeforeMonth = $soldAt && $soldAt->lt($startOfMonth);
             $isSoldInMonth = $soldAt && $soldAt->gte($startOfMonth) && $soldAt->lte($endOfMonth);
