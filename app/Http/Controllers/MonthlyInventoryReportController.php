@@ -102,7 +102,6 @@ class MonthlyInventoryReportController extends Controller
 
     /**
      * Normaliza el Tipo de producto y el Modelo para agrupar por Tipo + Marca + Modelo Base.
-     * (Ej: Todos los 'MOTOR 7/8 CHEVROLET 5.3' se consolidan juntos, y si hay 'MOTOR COMPLETO CHEVROLET 5.3' van en su propia fila).
      */
     private function normalizeModelInfo(string $tipo, string $marca, string $modelo, bool $useBaseModel = true): array
     {
@@ -110,7 +109,7 @@ class MonthlyInventoryReportController extends Controller
         $marcaClean = mb_strtoupper(trim($marca));
         $modeloClean = mb_strtoupper(trim($modelo));
 
-        // Standardize Tipo (MOTOR 7/8, MOTOR 3/4, MOTOR COMPLETO, CAJA, CÁMARA, AUTOPARTE)
+        // Normalizar Tipo (MOTOR 7/8, MOTOR 3/4, MOTOR COMPLETO, CAJA, CÁMARA, AUTOPARTE)
         if (strpos($tipoClean, '7/8') !== false) {
             $tipoClean = 'MOTOR 7/8';
         } elseif (strpos($tipoClean, '3/4') !== false) {
@@ -124,7 +123,6 @@ class MonthlyInventoryReportController extends Controller
         }
 
         if ($useBaseModel && !empty($modeloClean)) {
-            // Extraer cilindraje si está presente (ej: 5.3, 4.5, 3.5, 2.0, 2.4, etc.)
             if (preg_match('/\b(\d+\.\d+)\s*L?\b/i', $modeloClean, $matches)) {
                 $displacement = $matches[1] . 'L';
 
@@ -139,7 +137,6 @@ class MonthlyInventoryReportController extends Controller
                     $modeloClean = $displacement;
                 }
             } else {
-                // Eliminar sufijos secundarios si no hay cilindraje explícito
                 $modeloClean = preg_replace('/\b(L83|L86|IV GEN|NEW GEN|OLD GEN|GEN 4|GEN 5|GEN III|III GEN|TA|TP|V8|LS4|V6|LS)\b/i', '', $modeloClean);
                 $modeloClean = trim(preg_replace('/\s+/', ' ', $modeloClean));
             }
@@ -158,7 +155,7 @@ class MonthlyInventoryReportController extends Controller
     }
 
     /**
-     * Calcula los datos del reporte AGRUPADOS POR TIPO + MODELO para el mes y año solicitados.
+     * Calcula los saldos de inventario del mes seleccionado con trazabilidad por contenedor.
      */
     private function calculateMonthlyData(int $month, int $year, string $groupingMode = 'base'): array
     {
@@ -173,10 +170,9 @@ class MonthlyInventoryReportController extends Controller
         $companyName = Setting::where('key', 'company_name')->value('value') ?? 'INTERNAL MAIKEL CARS, C.A.';
         $companyRif = Setting::where('key', 'company_rif')->value('value') ?? 'J-50000000-0';
 
-        // Obtener todos los inventarios con sus relaciones de facturación y mantenimientos
+        // Obtener todos los inventarios con sus relaciones de contenedor, facturación y mantenimientos
         $inventarios = Inventario::with(['container', 'bill', 'maintenances'])->get();
 
-        // Agrupar items por Tipo + Marca + Modelo
         $groupedItems = [];
         $useBaseModel = ($groupingMode === 'base');
 
@@ -185,10 +181,13 @@ class MonthlyInventoryReportController extends Controller
             $marca = trim($item->marca ?? '');
             $modelo = trim($item->modelo ?? '');
 
-            // Normalizar y obtener código y descripción del tipo/modelo
+            // Normalizar Tipo + Modelo
             $modelInfo = $this->normalizeModelInfo($tipo, $marca, $modelo, $useBaseModel);
             $code = $modelInfo['code'];
             $description = $modelInfo['description'];
+
+            // Código del Contenedor de origen
+            $containerCode = $item->container ? ($item->container->cod ?: ($item->container->expediente ?? 'CONTAINER')) : 'S/C';
 
             // Determinar costo / valor base en USD por unidad
             $costUsd = (float) ($item->costo ?? $item->price ?? 0);
@@ -209,7 +208,7 @@ class MonthlyInventoryReportController extends Controller
                 $soldAt = Carbon::parse($item->updated_at);
             }
 
-            // Evaluar movimientos del mes
+            // Evaluar movimientos
             $isCreatedBeforeMonth = $createdAt->lt($startOfMonth);
             $isCreatedInMonth = $createdAt->gte($startOfMonth) && $createdAt->lte($endOfMonth);
 
@@ -224,7 +223,7 @@ class MonthlyInventoryReportController extends Controller
                 && Carbon::parse($item->updated_at)->gte($startOfMonth)
                 && Carbon::parse($item->updated_at)->lte($endOfMonth);
 
-            // Existencia Inicial (Creado antes del mes y NO vendido ni retirado antes del mes)
+            // Existencia Inicial (Creado antes del mes y NO vendido ni retirado antes del inicio del mes)
             $existenciaInicial = ($isCreatedBeforeMonth && !$isSoldBeforeMonth) ? 1 : 0;
             $entradas = $isCreatedInMonth ? 1 : 0;
             $salidas = $isSoldInMonth ? 1 : 0;
@@ -249,6 +248,8 @@ class MonthlyInventoryReportController extends Controller
                 $groupedItems[$groupKey] = [
                     'code' => $code,
                     'description' => $description,
+                    'containers_map' => [],
+                    'containers_str' => '',
                     'unidades_inicial' => 0,
                     'unidades_entradas' => 0,
                     'unidades_salidas' => 0,
@@ -264,7 +265,13 @@ class MonthlyInventoryReportController extends Controller
                 ];
             }
 
-            // Valores monetarios en Bolívares
+            // Registrar desglose de contenedores
+            if (!isset($groupedItems[$groupKey]['containers_map'][$containerCode])) {
+                $groupedItems[$groupKey]['containers_map'][$containerCode] = 0;
+            }
+            $groupedItems[$groupKey]['containers_map'][$containerCode]++;
+
+            // Valores monetarios en Bolívares (Costo unitario * Tasa BCV)
             $valInicial = $existenciaInicial * $costUsd * $exchangeRate;
             $valEntradas = $entradas * $costUsd * $exchangeRate;
             $valSalidas = $salidas * $costUsd * $exchangeRate;
@@ -280,13 +287,23 @@ class MonthlyInventoryReportController extends Controller
             $groupedItems[$groupKey]['unidades_autoconsumo'] += $autoconsumos;
             $groupedItems[$groupKey]['unidades_final'] += $existenciaFinal;
 
-            // Acumular valores en Bs. por tipo + modelo
+            // Acumular valores en Bs. del mes actual
             $groupedItems[$groupKey]['valores_inicial'] += $valInicial;
             $groupedItems[$groupKey]['valores_entradas'] += $valEntradas;
             $groupedItems[$groupKey]['valores_salidas'] += $valSalidas;
             $groupedItems[$groupKey]['valores_retiros'] += $valRetiros;
             $groupedItems[$groupKey]['valores_autoconsumo'] += $valAutoconsumo;
             $groupedItems[$groupKey]['valores_final'] += $valFinal;
+        }
+
+        // Construir string de contenedores de origen para cada fila (ej: MK-2025-01 (7), MK-2025-02 (3))
+        foreach ($groupedItems as $key => &$gItem) {
+            $cList = [];
+            foreach ($gItem['containers_map'] as $cCode => $cnt) {
+                $cList[] = "{$cCode} ({$cnt})";
+            }
+            $gItem['containers_str'] = implode(', ', $cList);
+            unset($gItem['containers_map']);
         }
 
         // Ordenar alfabéticamente por tipo + modelo

@@ -26,10 +26,7 @@ class MonthlyInventoryExport implements FromView, WithEvents, ShouldAutoSize, Wi
         $year = $this->data['year'] ?? '';
         $rawTitle = "Inv {$month} {$year}";
         
-        // Eliminar caracteres prohibidos en nombres de pestañas de Excel (\ / ? * : [ ])
         $cleanTitle = preg_replace('/[\\\\\/*?:\[\]]/', '', $rawTitle);
-
-        // Garantizar que no exceda el límite estricto de 31 caracteres de PhpSpreadsheet
         return mb_substr($cleanTitle, 0, 30);
     }
 
@@ -41,20 +38,21 @@ class MonthlyInventoryExport implements FromView, WithEvents, ShouldAutoSize, Wi
     public function columnWidths(): array
     {
         return [
-            'A' => 18, // Código
-            'B' => 35, // Producto
-            'C' => 14, // Unid Inicial
-            'D' => 12, // Unid Entradas
-            'E' => 12, // Unid Salidas
-            'F' => 12, // Unid Retiros
-            'G' => 14, // Unid Autoconsumo
-            'H' => 14, // Unid Final
-            'I' => 18, // Val Inicial
-            'J' => 16, // Val Entradas
-            'K' => 16, // Val Salidas
-            'L' => 16, // Val Retiros
-            'M' => 18, // Val Autoconsumo
-            'N' => 18, // Val Final
+            'A' => 20, // Marca / Modelo
+            'B' => 32, // Producto / Descripción
+            'C' => 25, // Lotes (Contenedores)
+            'D' => 12, // Unid Inicial
+            'E' => 12, // Unid Entradas
+            'F' => 12, // Unid Salidas
+            'G' => 12, // Unid Retiros
+            'H' => 14, // Unid Autoconsumo
+            'I' => 14, // Unid Final
+            'J' => 18, // Val Inicial
+            'K' => 16, // Val Entradas
+            'L' => 16, // Val Salidas
+            'M' => 16, // Val Retiros
+            'N' => 18, // Val Autoconsumo
+            'O' => 18, // Val Final
         ];
     }
 

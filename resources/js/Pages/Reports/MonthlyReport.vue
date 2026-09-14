@@ -67,7 +67,8 @@ const filteredItems = computed(() => {
     const query = searchQuery.value.toLowerCase();
     return currentReportData.value.items.filter(item =>
         item.code.toLowerCase().includes(query) ||
-        item.description.toLowerCase().includes(query)
+        item.description.toLowerCase().includes(query) ||
+        (item.containers_str && item.containers_str.toLowerCase().includes(query))
     );
 });
 
@@ -232,10 +233,10 @@ const goBack = () => {
                     <div class="p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div>
                             <h3 class="font-bold text-lg text-gray-800 dark:text-white">
-                                Detalle Mensual de Inventario Agrupado por Modelo
+                                Detalle Mensual de Inventario Agrupado por Tipo y Modelo
                             </h3>
                             <p class="text-xs text-gray-500 dark:text-gray-400">
-                                Movimientos de {{ currentReportData?.monthName }} {{ currentReportData?.year }}
+                                Movimientos de {{ currentReportData?.monthName }} {{ currentReportData?.year }} con trazabilidad por Contenedores de Origen
                             </p>
                         </div>
 
@@ -244,7 +245,7 @@ const goBack = () => {
                             <input 
                                 v-model="searchQuery" 
                                 type="text" 
-                                placeholder="Buscar por modelo..."
+                                placeholder="Buscar por modelo o contenedor..."
                                 class="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white text-xs rounded-xl border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none"
                             >
                         </div>
@@ -263,7 +264,8 @@ const goBack = () => {
                                 <!-- Top Headers Row -->
                                 <tr class="bg-gray-100 dark:bg-gray-900/80 text-gray-700 dark:text-gray-300 font-bold uppercase tracking-wider text-[11px] border-b border-gray-200 dark:border-gray-700">
                                     <th class="py-3 px-3 border-r border-gray-200 dark:border-gray-700">Marca / Modelo</th>
-                                    <th class="py-3 px-4 border-r border-gray-200 dark:border-gray-700 min-w-[200px]">Producto / Descripción</th>
+                                    <th class="py-3 px-4 border-r border-gray-200 dark:border-gray-700 min-w-[180px]">Producto / Descripción</th>
+                                    <th class="py-3 px-3 border-r border-gray-200 dark:border-gray-700 min-w-[150px]">Lotes (Contenedores)</th>
                                     <th colspan="6" class="py-3 px-3 text-center bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border-r border-gray-200 dark:border-gray-700">Unidades (Físicas)</th>
                                     <th colspan="6" class="py-3 px-3 text-center bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">Valores en Bolívares (Bs.)</th>
                                 </tr>
@@ -272,28 +274,30 @@ const goBack = () => {
                                 <tr class="bg-gray-50 dark:bg-gray-800 text-[10px] uppercase font-bold text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
                                     <th class="py-2.5 px-3 border-r border-gray-200 dark:border-gray-700"></th>
                                     <th class="py-2.5 px-4 border-r border-gray-200 dark:border-gray-700"></th>
+                                    <th class="py-2.5 px-3 border-r border-gray-200 dark:border-gray-700"></th>
 
                                     <!-- Unidades Subheaders -->
-                                    <th class="py-2.5 px-2 text-right bg-sky-50/50 dark:bg-sky-950/20 text-sky-800 dark:text-sky-300">Exist. Inicial</th>
+                                    <th class="py-2.5 px-2 text-right bg-sky-50/50 dark:bg-sky-950/20 text-sky-800 dark:text-sky-300">Inicial</th>
                                     <th class="py-2.5 px-2 text-right bg-sky-50/50 dark:bg-sky-950/20 text-sky-800 dark:text-sky-300">Entradas</th>
                                     <th class="py-2.5 px-2 text-right bg-sky-50/50 dark:bg-sky-950/20 text-sky-800 dark:text-sky-300">Salidas</th>
                                     <th class="py-2.5 px-2 text-right bg-sky-50/50 dark:bg-sky-950/20 text-sky-800 dark:text-sky-300">Retiros</th>
                                     <th class="py-2.5 px-2 text-right bg-sky-50/50 dark:bg-sky-950/20 text-sky-800 dark:text-sky-300">Autocons.</th>
-                                    <th class="py-2.5 px-2 text-right bg-sky-100/70 dark:bg-sky-900/50 text-sky-900 dark:text-sky-200 font-black border-r border-gray-200 dark:border-gray-700">Exist. Final</th>
+                                    <th class="py-2.5 px-2 text-right bg-sky-100/70 dark:bg-sky-900/50 text-sky-900 dark:text-sky-200 font-black border-r border-gray-200 dark:border-gray-700">Final</th>
 
                                     <!-- Valores Subheaders -->
-                                    <th class="py-2.5 px-2 text-right bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300">Exist. Inicial</th>
+                                    <th class="py-2.5 px-2 text-right bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300">Inicial</th>
                                     <th class="py-2.5 px-2 text-right bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300">Entradas</th>
                                     <th class="py-2.5 px-2 text-right bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300">Salidas</th>
                                     <th class="py-2.5 px-2 text-right bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300">Retiros</th>
                                     <th class="py-2.5 px-2 text-right bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300">Autocons.</th>
-                                    <th class="py-2.5 px-2 text-right bg-emerald-100/70 dark:bg-emerald-900/50 text-emerald-900 dark:text-emerald-200 font-black">Exist. Final</th>
+                                    <th class="py-2.5 px-2 text-right bg-emerald-100/70 dark:bg-emerald-900/50 text-emerald-900 dark:text-emerald-200 font-black">Final</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
                                 <tr v-for="(item, idx) in filteredItems" :key="idx" class="hover:bg-gray-50/80 dark:hover:bg-gray-700/50 transition-colors">
                                     <td class="py-3 px-3 font-mono font-bold text-gray-900 dark:text-white border-r border-gray-100 dark:border-gray-700">{{ item.code }}</td>
                                     <td class="py-3 px-4 font-medium text-gray-800 dark:text-gray-200 border-r border-gray-100 dark:border-gray-700">{{ item.description }}</td>
+                                    <td class="py-3 px-3 text-gray-500 dark:text-gray-400 font-mono text-[11px] border-r border-gray-100 dark:border-gray-700">{{ item.containers_str }}</td>
 
                                     <!-- Unidades -->
                                     <td class="py-3 px-2 text-right font-mono text-gray-600 dark:text-gray-300">{{ formatNum(item.unidades_inicial) }}</td>
@@ -313,7 +317,7 @@ const goBack = () => {
                                 </tr>
 
                                 <tr v-if="filteredItems.length === 0">
-                                    <td colspan="14" class="p-8 text-center text-gray-400 dark:text-gray-500">
+                                    <td colspan="15" class="p-8 text-center text-gray-400 dark:text-gray-500">
                                         No se encontraron ítems para la búsqueda o el período seleccionado.
                                     </td>
                                 </tr>
@@ -322,7 +326,7 @@ const goBack = () => {
                             <!-- Totals Footer Row -->
                             <tfoot>
                                 <tr class="bg-gray-100 dark:bg-gray-900 font-bold text-gray-900 dark:text-white text-xs border-t-2 border-gray-300 dark:border-gray-600">
-                                    <td colspan="2" class="py-4 px-4 text-center font-black uppercase border-r border-gray-200 dark:border-gray-700">Totales Generales</td>
+                                    <td colspan="3" class="py-4 px-4 text-center font-black uppercase border-r border-gray-200 dark:border-gray-700">Totales Generales</td>
                                     
                                     <td class="py-4 px-2 text-right font-mono">{{ formatNum(currentReportData?.totales?.unidades_inicial) }}</td>
                                     <td class="py-4 px-2 text-right font-mono text-blue-600 dark:text-blue-400">{{ formatNum(currentReportData?.totales?.unidades_entradas) }}</td>

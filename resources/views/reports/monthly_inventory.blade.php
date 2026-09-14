@@ -6,20 +6,20 @@
     <style>
         @page {
             size: letter landscape;
-            margin: 15mm 10mm 15mm 10mm;
+            margin: 12mm 8mm 12mm 8mm;
         }
         body {
             font-family: Arial, Helvetica, sans-serif;
-            font-size: 8pt;
+            font-size: 7.5pt;
             color: #1a1a1a;
             margin: 0;
             padding: 0;
         }
         .header-container {
             width: 100%;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             border-bottom: 2px solid #1e293b;
-            padding-bottom: 8px;
+            padding-bottom: 6px;
         }
         .header-table {
             width: 100%;
@@ -29,22 +29,22 @@
             vertical-align: top;
         }
         .title-main {
-            font-size: 14pt;
+            font-size: 13pt;
             font-weight: bold;
             text-transform: uppercase;
             color: #0f172a;
             letter-spacing: 0.5px;
         }
         .subtitle {
-            font-size: 10pt;
+            font-size: 9.5pt;
             font-weight: bold;
             color: #475569;
             margin-top: 2px;
         }
         .info-box {
             text-align: right;
-            font-size: 8.5pt;
-            line-height: 1.4;
+            font-size: 8pt;
+            line-height: 1.3;
         }
         .info-box strong {
             color: #0f172a;
@@ -58,8 +58,8 @@
         }
         .report-table th, .report-table td {
             border: 1px solid #cbd5e1;
-            padding: 4px 5px;
-            font-size: 7.5pt;
+            padding: 4px 4px;
+            font-size: 7pt;
         }
         .report-table th {
             background-color: #f1f5f9;
@@ -70,7 +70,7 @@
         }
         .report-table th.sub-header {
             background-color: #f8fafc;
-            font-size: 7pt;
+            font-size: 6.5pt;
         }
         .report-table th.header-unidades {
             background-color: #e0f2fe;
@@ -90,16 +90,20 @@
         .report-table td.center {
             text-align: center;
         }
+        .report-table td.container-tag {
+            font-size: 6.5pt;
+            color: #475569;
+        }
         .report-table tr.row-total td {
             background-color: #e2e8f0;
             font-weight: bold;
             border-top: 2px solid #475569;
-            font-size: 8pt;
+            font-size: 7.5pt;
         }
 
         /* Footer Signatures */
         .footer-signatures {
-            margin-top: 35px;
+            margin-top: 30px;
             width: 100%;
         }
         .signature-table {
@@ -110,14 +114,14 @@
             width: 50%;
             text-align: center;
             vertical-align: bottom;
-            padding-top: 40px;
+            padding-top: 35px;
         }
         .signature-line {
             width: 60%;
             margin: 0 auto;
             border-top: 1px solid #334155;
-            padding-top: 5px;
-            font-size: 8pt;
+            padding-top: 4px;
+            font-size: 7.5pt;
             font-weight: bold;
             color: #334155;
         }
@@ -131,7 +135,7 @@
             <tr>
                 <td>
                     <div class="title-main">{{ $companyName ?? 'INTERNAL MAIKEL CARS, C.A.' }}</div>
-                    <div class="subtitle">REPORTE MENSUAL DE INVENTARIO (LIBRO DE CONTROL)</div>
+                    <div class="subtitle">REPORTE MENSUAL DE INVENTARIO (LIBRO DE CONTROL FISCAL)</div>
                 </td>
                 <td class="info-box">
                     <strong>RIF:</strong> {{ $companyRif ?? 'J-50000000-0' }}<br>
@@ -146,27 +150,28 @@
     <table class="report-table">
         <thead>
             <tr>
-                <th rowspan="2" style="width: 8%;">CÓDIGO</th>
-                <th rowspan="2" style="width: 22%;">PRODUCTO / DESCRIPCIÓN</th>
+                <th rowspan="2" style="width: 12%;">MARCA / MODELO</th>
+                <th rowspan="2" style="width: 18%;">PRODUCTO / DESCRIPCIÓN</th>
+                <th rowspan="2" style="width: 12%;">LOTES (CONTENEDORES)</th>
                 <th colspan="6" class="header-unidades">UNIDADES (FÍSICAS)</th>
                 <th colspan="6" class="header-valores">VALORES (BOLÍVARES - Bs.)</th>
             </tr>
             <tr>
                 <!-- Unidades Subheaders -->
-                <th class="sub-header" style="width: 5%;">EXIST. INICIAL</th>
-                <th class="sub-header" style="width: 5%;">ENTRADAS</th>
-                <th class="sub-header" style="width: 5%;">SALIDAS</th>
-                <th class="sub-header" style="width: 5%;">RETIROS</th>
-                <th class="sub-header" style="width: 5%;">AUTOCONS.</th>
-                <th class="sub-header" style="width: 5%;">EXIST. FINAL</th>
+                <th class="sub-header" style="width: 4%;">INICIAL</th>
+                <th class="sub-header" style="width: 4%;">ENTRADAS</th>
+                <th class="sub-header" style="width: 4%;">SALIDAS</th>
+                <th class="sub-header" style="width: 4%;">RETIROS</th>
+                <th class="sub-header" style="width: 4%;">AUTOCONS.</th>
+                <th class="sub-header" style="width: 4.5%;">FINAL</th>
 
                 <!-- Valores Subheaders -->
-                <th class="sub-header" style="width: 7%;">EXIST. INICIAL</th>
-                <th class="sub-header" style="width: 7%;">ENTRADAS</th>
-                <th class="sub-header" style="width: 7%;">SALIDAS</th>
-                <th class="sub-header" style="width: 7%;">RETIROS</th>
-                <th class="sub-header" style="width: 7%;">AUTOCONS.</th>
-                <th class="sub-header" style="width: 8%;">EXIST. FINAL</th>
+                <th class="sub-header" style="width: 6.5%;">INICIAL</th>
+                <th class="sub-header" style="width: 6.5%;">ENTRADAS</th>
+                <th class="sub-header" style="width: 6.5%;">SALIDAS</th>
+                <th class="sub-header" style="width: 6.5%;">RETIROS</th>
+                <th class="sub-header" style="width: 6.5%;">AUTOCONS.</th>
+                <th class="sub-header" style="width: 7%;">FINAL</th>
             </tr>
         </thead>
         <tbody>
@@ -174,6 +179,7 @@
                 <tr>
                     <td class="center"><strong>{{ $item['code'] }}</strong></td>
                     <td>{{ $item['description'] }}</td>
+                    <td class="container-tag">{{ $item['containers_str'] }}</td>
 
                     <!-- Unidades -->
                     <td class="num">{{ number_format($item['unidades_inicial'], 0, ',', '.') }}</td>
@@ -193,7 +199,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="14" class="center" style="padding: 15px; color: #64748b;">
+                    <td colspan="15" class="center" style="padding: 15px; color: #64748b;">
                         No se encontraron registros de inventario ni movimientos para el mes de {{ $monthName }} del {{ $year }}.
                     </td>
                 </tr>
@@ -201,7 +207,7 @@
 
             <!-- Row Totales -->
             <tr class="row-total">
-                <td colspan="2" class="center">TOTALES GENERALES</td>
+                <td colspan="3" class="center">TOTALES GENERALES</td>
 
                 <!-- Totales Unidades -->
                 <td class="num">{{ number_format($totales['unidades_inicial'] ?? 0, 0, ',', '.') }}</td>
@@ -229,13 +235,13 @@
                 <td>
                     <div class="signature-line">
                         ELABORADO POR / CONTADOR<br>
-                        <span style="font-weight: normal; font-size: 7pt; color: #64748b;">Firma y C.I.</span>
+                        <span style="font-weight: normal; font-size: 6.5pt; color: #64748b;">Firma y C.I.</span>
                     </div>
                 </td>
                 <td>
                     <div class="signature-line">
                         REPRESENTANTE LEGAL / SELLO<br>
-                        <span style="font-weight: normal; font-size: 7pt; color: #64748b;">Firma y Sello de la Empresa</span>
+                        <span style="font-weight: normal; font-size: 6.5pt; color: #64748b;">Firma y Sello de la Empresa</span>
                     </div>
                 </td>
             </tr>
