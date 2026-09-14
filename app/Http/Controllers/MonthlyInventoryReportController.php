@@ -96,7 +96,7 @@ class MonthlyInventoryReportController extends Controller
     }
 
     /**
-     * Calcula los datos del reporte agrupados por producto/ítem para el mes y año solicitados.
+     * Calcula los datos del reporte AGRUPADOS POR MODELO / PRODUCTO para el mes y año solicitados.
      */
     private function calculateMonthlyData(int $month, int $year): array
     {
@@ -114,17 +114,31 @@ class MonthlyInventoryReportController extends Controller
         // Obtener todos los inventarios con sus relaciones de facturación y mantenimientos
         $inventarios = Inventario::with(['container', 'bill', 'maintenances'])->get();
 
-        // Agrupar items por Código / Tipo / Producto o procesar individualmente
+        // Agrupar items por Modelo / Tipo / Marca
         $groupedItems = [];
 
         foreach ($inventarios as $item) {
-            $code = $item->getFormattedCodAttribute() ?? ($item->codInv ?? "INV-{$item->id}");
-            $description = trim("{$item->tipo} {$item->marca} {$item->modelo} {$item->serial}");
-            if (empty($description)) {
-                $description = $item->item ?? $item->categorie ?? 'PRODUCTO';
+            // Construir clave de agrupación por Modelo / Tipo / Marca (Ej: MOTOR CHEVROLET 5.3)
+            $tipo = trim($item->tipo ?? '');
+            $marca = trim($item->marca ?? '');
+            $modelo = trim($item->modelo ?? '');
+
+            $parts = array_filter([$tipo, $marca, $modelo]);
+            if (!empty($parts)) {
+                $description = mb_strtoupper(implode(' ', $parts));
+            } else {
+                $description = mb_strtoupper($item->item ?? $item->categorie ?? 'PRODUCTO GENERAL');
             }
 
-            // Determinar costo / valor base en USD
+            // Código representativo para la tabla (Marca y Modelo o Tipo)
+            $codeParts = array_filter([$marca, $modelo]);
+            if (!empty($codeParts)) {
+                $code = mb_strtoupper(implode(' ', $codeParts));
+            } else {
+                $code = mb_strtoupper($tipo ?: ($item->codInv ?? 'INV'));
+            }
+
+            // Determinar costo / valor base en USD por unidad
             $costUsd = (float) ($item->costo ?? $item->price ?? 0);
             if ($costUsd <= 0 && $item->costo_importacion_unitario) {
                 $costUsd = (float) $item->costo_importacion_unitario;
@@ -143,7 +157,7 @@ class MonthlyInventoryReportController extends Controller
                 $soldAt = Carbon::parse($item->updated_at);
             }
 
-            // Evaluar movimientos
+            // Evaluar movimientos del mes
             $isCreatedBeforeMonth = $createdAt->lt($startOfMonth);
             $isCreatedInMonth = $createdAt->gte($startOfMonth) && $createdAt->lte($endOfMonth);
 
@@ -158,34 +172,26 @@ class MonthlyInventoryReportController extends Controller
                 && Carbon::parse($item->updated_at)->gte($startOfMonth)
                 && Carbon::parse($item->updated_at)->lte($endOfMonth);
 
-            // Existencia Inicial (Estaba creado antes del mes y NO había sido vendido ni retirado antes del mes)
+            // Existencia Inicial (Creado antes del mes y NO vendido ni retirado antes del mes)
             $existenciaInicial = ($isCreatedBeforeMonth && !$isSoldBeforeMonth) ? 1 : 0;
-
-            // Entradas en el mes
             $entradas = $isCreatedInMonth ? 1 : 0;
-
-            // Salidas en el mes (Ventas)
             $salidas = $isSoldInMonth ? 1 : 0;
-
-            // Retiros en el mes (Garantías / Desincorporaciones)
             $retiros = $isRetiroInMonth ? 1 : 0;
-
-            // Autoconsumos en el mes (Uso interno / Taller)
             $autoconsumos = $isAutoconsumoInMonth ? 1 : 0;
 
-            // Existencia Final = Inicial + Entradas - Salidas - Retiros - Autoconsumos
+            // Existencia Final por unidad
             $existenciaFinal = $existenciaInicial + $entradas - $salidas - $retiros - $autoconsumos;
             if ($existenciaFinal < 0) {
                 $existenciaFinal = 0;
             }
 
-            // Si el ítem no tuvo ningún movimiento ni existencia en este mes, omitir
+            // Si esta unidad específica no tuvo ningún movimiento ni stock en el mes, omitir
             if ($existenciaInicial == 0 && $entradas == 0 && $salidas == 0 && $retiros == 0 && $autoconsumos == 0 && $existenciaFinal == 0) {
                 continue;
             }
 
-            // Clave de agrupación (Código de item / producto)
-            $groupKey = $code . ' - ' . $description;
+            // Agrupación en la fila del modelo correspondiente
+            $groupKey = $description;
 
             if (!isset($groupedItems[$groupKey])) {
                 $groupedItems[$groupKey] = [
@@ -206,6 +212,7 @@ class MonthlyInventoryReportController extends Controller
                 ];
             }
 
+            // Valores monetarios en Bolívares
             $valInicial = $existenciaInicial * $costUsd * $exchangeRate;
             $valEntradas = $entradas * $costUsd * $exchangeRate;
             $valSalidas = $salidas * $costUsd * $exchangeRate;
@@ -213,6 +220,7 @@ class MonthlyInventoryReportController extends Controller
             $valAutoconsumo = $autoconsumos * $costUsd * $exchangeRate;
             $valFinal = $existenciaFinal * $costUsd * $exchangeRate;
 
+            // Acumular cantidades por modelo
             $groupedItems[$groupKey]['unidades_inicial'] += $existenciaInicial;
             $groupedItems[$groupKey]['unidades_entradas'] += $entradas;
             $groupedItems[$groupKey]['unidades_salidas'] += $salidas;
@@ -220,6 +228,7 @@ class MonthlyInventoryReportController extends Controller
             $groupedItems[$groupKey]['unidades_autoconsumo'] += $autoconsumos;
             $groupedItems[$groupKey]['unidades_final'] += $existenciaFinal;
 
+            // Acumular valores en Bs. por modelo
             $groupedItems[$groupKey]['valores_inicial'] += $valInicial;
             $groupedItems[$groupKey]['valores_entradas'] += $valEntradas;
             $groupedItems[$groupKey]['valores_salidas'] += $valSalidas;
@@ -227,6 +236,9 @@ class MonthlyInventoryReportController extends Controller
             $groupedItems[$groupKey]['valores_autoconsumo'] += $valAutoconsumo;
             $groupedItems[$groupKey]['valores_final'] += $valFinal;
         }
+
+        // Ordenar alfabéticamente por la clave del modelo
+        ksort($groupedItems);
 
         $itemsList = array_values($groupedItems);
 
