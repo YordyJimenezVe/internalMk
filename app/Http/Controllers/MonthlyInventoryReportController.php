@@ -155,14 +155,14 @@ class MonthlyInventoryReportController extends Controller
     }
 
     /**
-     * Calcula los saldos de inventario del mes seleccionado con montos directos en Bolívares.
+     * Calcula los saldos de inventario del mes seleccionado convirtiendo la base en USD a Bolívares (Bs.) usando la Tasa BCV del día/período.
      */
     private function calculateMonthlyData(int $month, int $year, string $groupingMode = 'base'): array
     {
         $startOfMonth = Carbon::createFromDate($year, $month, 1)->startOfMonth();
         $endOfMonth = Carbon::createFromDate($year, $month, 1)->endOfMonth();
 
-        // Tasa de Cambio BCV actual o la más reciente
+        // Tasa de Cambio BCV del día / período
         $exchangeRateObj = ExchangeRate::where('source', 'BCV')->latest()->first();
         $exchangeRate = $exchangeRateObj ? (float) $exchangeRateObj->rate : 1.0;
 
@@ -189,14 +189,19 @@ class MonthlyInventoryReportController extends Controller
             // Código del Contenedor de origen
             $containerCode = $item->container ? ($item->container->cod ?: ($item->container->expediente ?? 'CONTAINER')) : 'S/C';
 
-            // Determinar valor / costo en Bolívares (Bs.) de la base de datos (ya almacenado en Bs.)
-            $unitValueBs = 0.0;
+            // Determinar costo / valor base en USD por unidad
+            // Si el valor viene en Bs., convertirlo a USD usando la tasa de registro o la tasa base de referencia
+            $costUsd = 0.0;
             if ($item->costo_importacion_unitario && (float) $item->costo_importacion_unitario > 0) {
-                $unitValueBs = (float) $item->costo_importacion_unitario;
+                $rawVal = (float) $item->costo_importacion_unitario;
+                // Si el valor es mayor a 5000, es monto directo en Bs; dividir entre tasa para obtener base USD
+                $costUsd = ($rawVal > 5000 && $exchangeRate > 0) ? ($rawVal / $exchangeRate) : $rawVal;
             } elseif ($item->costo && (float) $item->costo > 0) {
-                $unitValueBs = (float) $item->costo;
+                $rawVal = (float) $item->costo;
+                $costUsd = ($rawVal > 5000 && $exchangeRate > 0) ? ($rawVal / $exchangeRate) : $rawVal;
             } elseif ($item->price && (float) $item->price > 0) {
-                $unitValueBs = (float) $item->price;
+                $rawVal = (float) $item->price;
+                $costUsd = ($rawVal > 5000 && $exchangeRate > 0) ? ($rawVal / $exchangeRate) : $rawVal;
             }
 
             $createdAt = Carbon::parse($item->created_at);
@@ -275,13 +280,13 @@ class MonthlyInventoryReportController extends Controller
             }
             $groupedItems[$groupKey]['containers_map'][$containerCode]++;
 
-            // Valores monetarios directamente en Bolívares (Bs.)
-            $valInicial = $existenciaInicial * $unitValueBs;
-            $valEntradas = $entradas * $unitValueBs;
-            $valSalidas = $salidas * $unitValueBs;
-            $valRetiros = $retiros * $unitValueBs;
-            $valAutoconsumo = $autoconsumos * $unitValueBs;
-            $valFinal = $existenciaFinal * $unitValueBs;
+            // Valores en Bolívares (Bs.) calculados con la Tasa BCV del día
+            $valInicial = $existenciaInicial * $costUsd * $exchangeRate;
+            $valEntradas = $entradas * $costUsd * $exchangeRate;
+            $valSalidas = $salidas * $costUsd * $exchangeRate;
+            $valRetiros = $retiros * $costUsd * $exchangeRate;
+            $valAutoconsumo = $autoconsumos * $costUsd * $exchangeRate;
+            $valFinal = $existenciaFinal * $costUsd * $exchangeRate;
 
             // Acumular cantidades por tipo + modelo
             $groupedItems[$groupKey]['unidades_inicial'] += $existenciaInicial;
@@ -291,7 +296,7 @@ class MonthlyInventoryReportController extends Controller
             $groupedItems[$groupKey]['unidades_autoconsumo'] += $autoconsumos;
             $groupedItems[$groupKey]['unidades_final'] += $existenciaFinal;
 
-            // Acumular valores en Bs. del mes actual
+            // Acumular valores en Bs. calculados a la Tasa del día
             $groupedItems[$groupKey]['valores_inicial'] += $valInicial;
             $groupedItems[$groupKey]['valores_entradas'] += $valEntradas;
             $groupedItems[$groupKey]['valores_salidas'] += $valSalidas;
