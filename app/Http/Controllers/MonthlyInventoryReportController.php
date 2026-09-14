@@ -101,7 +101,8 @@ class MonthlyInventoryReportController extends Controller
     }
 
     /**
-     * Normaliza y extrae el modelo base (ej: CHEVROLET 5.3L) consolidando variantes como L83, IV GEN, NEW GEN.
+     * Normaliza el Tipo de producto y el Modelo para agrupar por Tipo + Marca + Modelo Base.
+     * (Ej: Todos los 'MOTOR 7/8 CHEVROLET 5.3' se consolidan juntos, y si hay 'MOTOR COMPLETO CHEVROLET 5.3' van en su propia fila).
      */
     private function normalizeModelInfo(string $tipo, string $marca, string $modelo, bool $useBaseModel = true): array
     {
@@ -109,21 +110,37 @@ class MonthlyInventoryReportController extends Controller
         $marcaClean = mb_strtoupper(trim($marca));
         $modeloClean = mb_strtoupper(trim($modelo));
 
+        // Standardize Tipo (MOTOR 7/8, MOTOR 3/4, MOTOR COMPLETO, CAJA, CÁMARA, AUTOPARTE)
+        if (strpos($tipoClean, '7/8') !== false) {
+            $tipoClean = 'MOTOR 7/8';
+        } elseif (strpos($tipoClean, '3/4') !== false) {
+            $tipoClean = 'MOTOR 3/4';
+        } elseif (strpos($tipoClean, 'COMPLETO') !== false || strpos($tipoClean, '4/4') !== false) {
+            $tipoClean = 'MOTOR COMPLETO';
+        } elseif (strpos($tipoClean, 'CAJA') !== false) {
+            $tipoClean = 'CAJA';
+        } elseif (strpos($tipoClean, 'CÁMARA') !== false || strpos($tipoClean, 'CAMARA') !== false) {
+            $tipoClean = 'CÁMARA';
+        }
+
         if ($useBaseModel && !empty($modeloClean)) {
-            // Extraer cilindraje numérico principal (ej: 5.3, 4.5, 3.5, 2.0, 2.4, etc.)
+            // Extraer cilindraje si está presente (ej: 5.3, 4.5, 3.5, 2.0, 2.4, etc.)
             if (preg_match('/\b(\d+\.\d+)\s*L?\b/i', $modeloClean, $matches)) {
                 $displacement = $matches[1] . 'L';
 
-                // Mantener variantes principales si aplican (ej: 1FZ, VORTEC, HEMI, TRITON)
-                $variant = '';
-                if (preg_match('/\b(1FZ|2TR|1GR|VORTEC|HEMI|TRITON|CUMMINS|POWERSTROKE)\b/i', $modeloClean, $vMatches)) {
-                    $variant = ' ' . strtoupper($vMatches[1]);
-                }
+                // Limpiar etiquetas secundarias de variantes (L83, L86, IV GEN, NEW GEN, TA, TP, V8, LS4, etc.)
+                $baseName = preg_replace('/\b(\d+\.\d+)\s*L?\b/i', '', $modeloClean);
+                $baseName = preg_replace('/\b(L83|L86|IV GEN|NEW GEN|OLD GEN|GEN 4|GEN 5|GEN III|III GEN|TA|TP|V8|LS4|V6|LS)\b/i', '', $baseName);
+                $baseName = trim(preg_replace('/\s+/', ' ', $baseName));
 
-                $modeloClean = $displacement . $variant;
+                if (!empty($baseName)) {
+                    $modeloClean = $baseName . ' ' . $displacement;
+                } else {
+                    $modeloClean = $displacement;
+                }
             } else {
-                // Eliminar sufijos secundarios como IV GEN, NEW GEN, L83, L86 si no hay cilindraje
-                $modeloClean = preg_replace('/\b(L83|L86|IV GEN|NEW GEN|OLD GEN|GEN 4|GEN 5)\b/i', '', $modeloClean);
+                // Eliminar sufijos secundarios si no hay cilindraje explícito
+                $modeloClean = preg_replace('/\b(L83|L86|IV GEN|NEW GEN|OLD GEN|GEN 4|GEN 5|GEN III|III GEN|TA|TP|V8|LS4|V6|LS)\b/i', '', $modeloClean);
                 $modeloClean = trim(preg_replace('/\s+/', ' ', $modeloClean));
             }
         }
@@ -141,7 +158,7 @@ class MonthlyInventoryReportController extends Controller
     }
 
     /**
-     * Calcula los datos del reporte AGRUPADOS POR MODELO para el mes y año solicitados.
+     * Calcula los datos del reporte AGRUPADOS POR TIPO + MODELO para el mes y año solicitados.
      */
     private function calculateMonthlyData(int $month, int $year, string $groupingMode = 'base'): array
     {
@@ -159,7 +176,7 @@ class MonthlyInventoryReportController extends Controller
         // Obtener todos los inventarios con sus relaciones de facturación y mantenimientos
         $inventarios = Inventario::with(['container', 'bill', 'maintenances'])->get();
 
-        // Agrupar items por Modelo
+        // Agrupar items por Tipo + Marca + Modelo
         $groupedItems = [];
         $useBaseModel = ($groupingMode === 'base');
 
@@ -168,7 +185,7 @@ class MonthlyInventoryReportController extends Controller
             $marca = trim($item->marca ?? '');
             $modelo = trim($item->modelo ?? '');
 
-            // Normalizar y obtener código y descripción del modelo
+            // Normalizar y obtener código y descripción del tipo/modelo
             $modelInfo = $this->normalizeModelInfo($tipo, $marca, $modelo, $useBaseModel);
             $code = $modelInfo['code'];
             $description = $modelInfo['description'];
@@ -225,7 +242,7 @@ class MonthlyInventoryReportController extends Controller
                 continue;
             }
 
-            // Clave única de agrupación por Modelo
+            // Clave única de agrupación por Tipo + Modelo
             $groupKey = $description;
 
             if (!isset($groupedItems[$groupKey])) {
@@ -255,7 +272,7 @@ class MonthlyInventoryReportController extends Controller
             $valAutoconsumo = $autoconsumos * $costUsd * $exchangeRate;
             $valFinal = $existenciaFinal * $costUsd * $exchangeRate;
 
-            // Acumular cantidades por modelo
+            // Acumular cantidades por tipo + modelo
             $groupedItems[$groupKey]['unidades_inicial'] += $existenciaInicial;
             $groupedItems[$groupKey]['unidades_entradas'] += $entradas;
             $groupedItems[$groupKey]['unidades_salidas'] += $salidas;
@@ -263,7 +280,7 @@ class MonthlyInventoryReportController extends Controller
             $groupedItems[$groupKey]['unidades_autoconsumo'] += $autoconsumos;
             $groupedItems[$groupKey]['unidades_final'] += $existenciaFinal;
 
-            // Acumular valores en Bs. por modelo
+            // Acumular valores en Bs. por tipo + modelo
             $groupedItems[$groupKey]['valores_inicial'] += $valInicial;
             $groupedItems[$groupKey]['valores_entradas'] += $valEntradas;
             $groupedItems[$groupKey]['valores_salidas'] += $valSalidas;
@@ -272,7 +289,7 @@ class MonthlyInventoryReportController extends Controller
             $groupedItems[$groupKey]['valores_final'] += $valFinal;
         }
 
-        // Ordenar alfabéticamente por modelo
+        // Ordenar alfabéticamente por tipo + modelo
         ksort($groupedItems);
 
         $itemsList = array_values($groupedItems);
