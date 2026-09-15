@@ -144,16 +144,7 @@ class MonthlyInventoryExport implements FromView, WithEvents, WithColumnWidths, 
                         ->setVertical(Alignment::VERTICAL_TOP)
                         ->setWrapText(true);
 
-                    // Filas alternadas de datos (Zebra striping)
-                    for ($r = 7; $r < $highestRow; $r++) {
-                        if ($r % 2 === 0) {
-                            $sheet->getStyle("A{$r}:{$highestColumn}{$r}")->getFill()
-                                ->setFillType(Fill::FILL_SOLID)
-                                ->getStartColor()->setARGB('F8FAFC');
-                        }
-                    }
-
-                    // Formato numérico en Excel
+                    // Formato numérico general en Excel
                     $sheet->getStyle("D7:I{$highestRow}")
                         ->getNumberFormat()
                         ->setFormatCode('#,##0');
@@ -161,6 +152,43 @@ class MonthlyInventoryExport implements FromView, WithEvents, WithColumnWidths, 
                     $sheet->getStyle("J7:O{$highestRow}")
                         ->getNumberFormat()
                         ->setFormatCode('#,##0.00');
+
+                    // Recorrer filas para estilizar Secciones de Marca y Subtotales
+                    for ($r = 7; $r < $highestRow; $r++) {
+                        $cellVal = (string) $sheet->getCell("A{$r}")->getValue();
+
+                        if (str_starts_with(trim($cellVal), 'MARCA:')) {
+                            $sheet->mergeCells("A{$r}:{$highestColumn}{$r}");
+                            $sheet->getStyle("A{$r}:{$highestColumn}{$r}")->getFill()
+                                ->setFillType(Fill::FILL_SOLID)
+                                ->getStartColor()->setARGB('1E293B');
+                            $sheet->getStyle("A{$r}:{$highestColumn}{$r}")->getFont()
+                                ->setColor(new Color('FFFFFF'))
+                                ->setBold(true)
+                                ->setSize(11);
+                            $sheet->getStyle("A{$r}:{$highestColumn}{$r}")->getAlignment()
+                                ->setHorizontal(Alignment::HORIZONTAL_LEFT)
+                                ->setVertical(Alignment::VERTICAL_CENTER);
+                            $sheet->getRowDimension($r)->setRowHeight(24);
+                        } elseif (str_starts_with(trim($cellVal), 'SUBTOTAL')) {
+                            $sheet->mergeCells("A{$r}:C{$r}");
+                            $sheet->getStyle("A{$r}:{$highestColumn}{$r}")->getFill()
+                                ->setFillType(Fill::FILL_SOLID)
+                                ->getStartColor()->setARGB('E2E8F0');
+                            $sheet->getStyle("A{$r}:{$highestColumn}{$r}")->getFont()
+                                ->setColor(new Color('0F172A'))
+                                ->setBold(true);
+                            $sheet->getStyle("A{$r}:C{$r}")->getAlignment()
+                                ->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                            $sheet->getRowDimension($r)->setRowHeight(20);
+                        } else {
+                            if ($r % 2 === 0) {
+                                $sheet->getStyle("A{$r}:{$highestColumn}{$r}")->getFill()
+                                    ->setFillType(Fill::FILL_SOLID)
+                                    ->getStartColor()->setARGB('F8FAFC');
+                            }
+                        }
+                    }
 
                     // Bordes delgados para la cuadrícula
                     $sheet->getStyle("A5:{$highestColumn}{$highestRow}")

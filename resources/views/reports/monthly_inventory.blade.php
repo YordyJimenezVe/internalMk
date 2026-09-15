@@ -201,37 +201,91 @@
             </tr>
         </thead>
         <tbody>
-            @forelse($items as $item)
-                <tr>
-                    <td class="center"><strong>{{ $item['code'] }}</strong></td>
-                    <td>{{ $item['description'] }}</td>
-                    <td class="container-tag">{!! nl2br(e($item['containers_str'])) !!}</td>
+            @if(isset($brands) && count($brands) > 0)
+                @foreach($brands as $brandGroup)
+                    <!-- Encabezado de Sección por Marca -->
+                    <tr class="row-brand-header">
+                        <td colspan="15" style="background-color: #334155; color: #ffffff; font-weight: bold; font-size: 8pt; padding: 5px 8px; text-transform: uppercase;">
+                            MARCA: {{ $brandGroup['brand'] }}
+                        </td>
+                    </tr>
 
-                    <!-- Unidades -->
-                    <td class="num">{{ isset($isExcel) && $isExcel ? $item['unidades_inicial'] : number_format($item['unidades_inicial'], 0, ',', '.') }}</td>
-                    <td class="num">{{ isset($isExcel) && $isExcel ? $item['unidades_entradas'] : number_format($item['unidades_entradas'], 0, ',', '.') }}</td>
-                    <td class="num">{{ isset($isExcel) && $isExcel ? $item['unidades_salidas'] : number_format($item['unidades_salidas'], 0, ',', '.') }}</td>
-                    <td class="num">{{ isset($isExcel) && $isExcel ? $item['unidades_retiros'] : number_format($item['unidades_retiros'], 0, ',', '.') }}</td>
-                    <td class="num">{{ isset($isExcel) && $isExcel ? $item['unidades_autoconsumo'] : number_format($item['unidades_autoconsumo'], 0, ',', '.') }}</td>
-                    <td class="num"><strong>{{ isset($isExcel) && $isExcel ? $item['unidades_final'] : number_format($item['unidades_final'], 0, ',', '.') }}</strong></td>
+                    @foreach($brandGroup['items'] as $item)
+                        <tr>
+                            <td class="center"><strong>{{ $item['code'] }}</strong></td>
+                            <td>{{ $item['description'] }}</td>
+                            <td class="container-tag">{!! nl2br(e($item['containers_str'])) !!}</td>
 
-                    <!-- Valores (Bs.) -->
-                    <td class="num">{{ isset($isExcel) && $isExcel ? $item['valores_inicial'] : number_format($item['valores_inicial'], 2, ',', '.') }}</td>
-                    <td class="num">{{ isset($isExcel) && $isExcel ? $item['valores_entradas'] : number_format($item['valores_entradas'], 2, ',', '.') }}</td>
-                    <td class="num">{{ isset($isExcel) && $isExcel ? $item['valores_salidas'] : number_format($item['valores_salidas'], 2, ',', '.') }}</td>
-                    <td class="num">{{ isset($isExcel) && $isExcel ? $item['valores_retiros'] : number_format($item['valores_retiros'], 2, ',', '.') }}</td>
-                    <td class="num">{{ isset($isExcel) && $isExcel ? $item['valores_autoconsumo'] : number_format($item['valores_autoconsumo'], 2, ',', '.') }}</td>
-                    <td class="num"><strong>{{ isset($isExcel) && $isExcel ? $item['valores_final'] : number_format($item['valores_final'], 2, ',', '.') }}</strong></td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="15" class="center" style="padding: 15px; color: #64748b;">
-                        No se encontraron registros de inventario ni movimientos para el mes de {{ $monthName }} del {{ $year }}.
-                    </td>
-                </tr>
-            @endforelse
+                            <!-- Unidades -->
+                            <td class="num">{{ isset($isExcel) && $isExcel ? $item['unidades_inicial'] : number_format($item['unidades_inicial'], 0, ',', '.') }}</td>
+                            <td class="num">{{ isset($isExcel) && $isExcel ? $item['unidades_entradas'] : number_format($item['unidades_entradas'], 0, ',', '.') }}</td>
+                            <td class="num">{{ isset($isExcel) && $isExcel ? $item['unidades_salidas'] : number_format($item['unidades_salidas'], 0, ',', '.') }}</td>
+                            <td class="num">{{ isset($isExcel) && $isExcel ? $item['unidades_retiros'] : number_format($item['unidades_retiros'], 0, ',', '.') }}</td>
+                            <td class="num">{{ isset($isExcel) && $isExcel ? $item['unidades_autoconsumo'] : number_format($item['unidades_autoconsumo'], 0, ',', '.') }}</td>
+                            <td class="num"><strong>{{ isset($isExcel) && $isExcel ? $item['unidades_final'] : number_format($item['unidades_final'], 0, ',', '.') }}</strong></td>
 
-            <!-- Row Totales -->
+                            <!-- Valores (Bs.) -->
+                            <td class="num">{{ isset($isExcel) && $isExcel ? $item['valores_inicial'] : number_format($item['valores_inicial'], 2, ',', '.') }}</td>
+                            <td class="num">{{ isset($isExcel) && $isExcel ? $item['valores_entradas'] : number_format($item['valores_entradas'], 2, ',', '.') }}</td>
+                            <td class="num">{{ isset($isExcel) && $isExcel ? $item['valores_salidas'] : number_format($item['valores_salidas'], 2, ',', '.') }}</td>
+                            <td class="num">{{ isset($isExcel) && $isExcel ? $item['valores_retiros'] : number_format($item['valores_retiros'], 2, ',', '.') }}</td>
+                            <td class="num">{{ isset($isExcel) && $isExcel ? $item['valores_autoconsumo'] : number_format($item['valores_autoconsumo'], 2, ',', '.') }}</td>
+                            <td class="num"><strong>{{ isset($isExcel) && $isExcel ? $item['valores_final'] : number_format($item['valores_final'], 2, ',', '.') }}</strong></td>
+                        </tr>
+                    @endforeach
+
+                    <!-- Fila de Subtotal por Marca -->
+                    <tr class="row-subtotal-brand">
+                        <td colspan="3" style="background-color: #f1f5f9; color: #1e293b; font-weight: bold; text-align: right; padding-right: 10px;">SUBTOTAL {{ $brandGroup['brand'] }}</td>
+
+                        <td class="num">{{ isset($isExcel) && $isExcel ? $brandGroup['totales']['unidades_inicial'] : number_format($brandGroup['totales']['unidades_inicial'], 0, ',', '.') }}</td>
+                        <td class="num">{{ isset($isExcel) && $isExcel ? $brandGroup['totales']['unidades_entradas'] : number_format($brandGroup['totales']['unidades_entradas'], 0, ',', '.') }}</td>
+                        <td class="num">{{ isset($isExcel) && $isExcel ? $brandGroup['totales']['unidades_salidas'] : number_format($brandGroup['totales']['unidades_salidas'], 0, ',', '.') }}</td>
+                        <td class="num">{{ isset($isExcel) && $isExcel ? $brandGroup['totales']['unidades_retiros'] : number_format($brandGroup['totales']['unidades_retiros'], 0, ',', '.') }}</td>
+                        <td class="num">{{ isset($isExcel) && $isExcel ? $brandGroup['totales']['unidades_autoconsumo'] : number_format($brandGroup['totales']['unidades_autoconsumo'], 0, ',', '.') }}</td>
+                        <td class="num"><strong>{{ isset($isExcel) && $isExcel ? $brandGroup['totales']['unidades_final'] : number_format($brandGroup['totales']['unidades_final'], 0, ',', '.') }}</strong></td>
+
+                        <td class="num">{{ isset($isExcel) && $isExcel ? $brandGroup['totales']['valores_inicial'] : number_format($brandGroup['totales']['valores_inicial'], 2, ',', '.') }}</td>
+                        <td class="num">{{ isset($isExcel) && $isExcel ? $brandGroup['totales']['valores_entradas'] : number_format($brandGroup['totales']['valores_entradas'], 2, ',', '.') }}</td>
+                        <td class="num">{{ isset($isExcel) && $isExcel ? $brandGroup['totales']['valores_salidas'] : number_format($brandGroup['totales']['valores_salidas'], 2, ',', '.') }}</td>
+                        <td class="num">{{ isset($isExcel) && $isExcel ? $brandGroup['totales']['valores_retiros'] : number_format($brandGroup['totales']['valores_retiros'], 2, ',', '.') }}</td>
+                        <td class="num">{{ isset($isExcel) && $isExcel ? $brandGroup['totales']['valores_autoconsumo'] : number_format($brandGroup['totales']['valores_autoconsumo'], 2, ',', '.') }}</td>
+                        <td class="num"><strong>{{ isset($isExcel) && $isExcel ? $brandGroup['totales']['valores_final'] : number_format($brandGroup['totales']['valores_final'], 2, ',', '.') }}</strong></td>
+                    </tr>
+                @endforeach
+            @else
+                @forelse($items as $item)
+                    <tr>
+                        <td class="center"><strong>{{ $item['code'] }}</strong></td>
+                        <td>{{ $item['description'] }}</td>
+                        <td class="container-tag">{!! nl2br(e($item['containers_str'])) !!}</td>
+
+                        <!-- Unidades -->
+                        <td class="num">{{ isset($isExcel) && $isExcel ? $item['unidades_inicial'] : number_format($item['unidades_inicial'], 0, ',', '.') }}</td>
+                        <td class="num">{{ isset($isExcel) && $isExcel ? $item['unidades_entradas'] : number_format($item['unidades_entradas'], 0, ',', '.') }}</td>
+                        <td class="num">{{ isset($isExcel) && $isExcel ? $item['unidades_salidas'] : number_format($item['unidades_salidas'], 0, ',', '.') }}</td>
+                        <td class="num">{{ isset($isExcel) && $isExcel ? $item['unidades_retiros'] : number_format($item['unidades_retiros'], 0, ',', '.') }}</td>
+                        <td class="num">{{ isset($isExcel) && $isExcel ? $item['unidades_autoconsumo'] : number_format($item['unidades_autoconsumo'], 0, ',', '.') }}</td>
+                        <td class="num"><strong>{{ isset($isExcel) && $isExcel ? $item['unidades_final'] : number_format($item['unidades_final'], 0, ',', '.') }}</strong></td>
+
+                        <!-- Valores (Bs.) -->
+                        <td class="num">{{ isset($isExcel) && $isExcel ? $item['valores_inicial'] : number_format($item['valores_inicial'], 2, ',', '.') }}</td>
+                        <td class="num">{{ isset($isExcel) && $isExcel ? $item['valores_entradas'] : number_format($item['valores_entradas'], 2, ',', '.') }}</td>
+                        <td class="num">{{ isset($isExcel) && $isExcel ? $item['valores_salidas'] : number_format($item['valores_salidas'], 2, ',', '.') }}</td>
+                        <td class="num">{{ isset($isExcel) && $isExcel ? $item['valores_retiros'] : number_format($item['valores_retiros'], 2, ',', '.') }}</td>
+                        <td class="num">{{ isset($isExcel) && $isExcel ? $item['valores_autoconsumo'] : number_format($item['valores_autoconsumo'], 2, ',', '.') }}</td>
+                        <td class="num"><strong>{{ isset($isExcel) && $isExcel ? $item['valores_final'] : number_format($item['valores_final'], 2, ',', '.') }}</strong></td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="15" class="center" style="padding: 15px; color: #64748b;">
+                            No se encontraron registros de inventario ni movimientos para el mes de {{ $monthName }} del {{ $year }}.
+                        </td>
+                    </tr>
+                @endforelse
+            @endif
+
+            <!-- Row Totales Generales -->
             <tr class="row-total">
                 <td colspan="3" class="center">TOTALES GENERALES</td>
 

@@ -155,6 +155,40 @@ class MonthlyInventoryReportController extends Controller
     }
 
     /**
+     * Determina la prioridad de ordenamiento según el tipo de motor / producto:
+     * 1: MOTOR COMPLETO
+     * 2: MOTOR 7/8
+     * 3: MOTOR 5/8
+     * 4: MOTOR 3/4
+     * 5: CAJA
+     * 6: CÁMARA
+     * 7: AUTOPARTE / OTROS
+     */
+    private function getTypePriority(string $tipo): int
+    {
+        $tipoClean = mb_strtoupper(trim($tipo));
+        if (strpos($tipoClean, 'COMPLETO') !== false || strpos($tipoClean, '4/4') !== false) {
+            return 1;
+        }
+        if (strpos($tipoClean, '7/8') !== false) {
+            return 2;
+        }
+        if (strpos($tipoClean, '5/8') !== false) {
+            return 3;
+        }
+        if (strpos($tipoClean, '3/4') !== false) {
+            return 4;
+        }
+        if (strpos($tipoClean, 'CAJA') !== false) {
+            return 5;
+        }
+        if (strpos($tipoClean, 'CÁMARA') !== false || strpos($tipoClean, 'CAMARA') !== false) {
+            return 6;
+        }
+        return 7;
+    }
+
+    /**
      * Calcula los saldos de inventario del mes seleccionado convirtiendo la base en USD a Bolívares (Bs.) usando la Tasa BCV del día/período.
      */
     private function calculateMonthlyData(int $month, int $year, string $groupingMode = 'base'): array
@@ -178,7 +212,10 @@ class MonthlyInventoryReportController extends Controller
 
         foreach ($inventarios as $item) {
             $tipo = trim($item->tipo ?? '');
-            $marca = trim($item->marca ?? '');
+            $marca = mb_strtoupper(trim($item->marca ?? 'OTRAS MARCAS'));
+            if (empty($marca)) {
+                $marca = 'OTRAS MARCAS';
+            }
             $modelo = trim($item->modelo ?? '');
 
             // Normalizar Tipo + Modelo
@@ -190,11 +227,9 @@ class MonthlyInventoryReportController extends Controller
             $containerCode = $item->container ? ($item->container->cod ?: ($item->container->expediente ?? 'CONTAINER')) : 'S/C';
 
             // Determinar costo / valor base en USD por unidad
-            // Si el valor viene en Bs., convertirlo a USD usando la tasa de registro o la tasa base de referencia
             $costUsd = 0.0;
             if ($item->costo_importacion_unitario && (float) $item->costo_importacion_unitario > 0) {
                 $rawVal = (float) $item->costo_importacion_unitario;
-                // Si el valor es mayor a 5000, es monto directo en Bs; dividir entre tasa para obtener base USD
                 $costUsd = ($rawVal > 5000 && $exchangeRate > 0) ? ($rawVal / $exchangeRate) : $rawVal;
             } elseif ($item->costo && (float) $item->costo > 0) {
                 $rawVal = (float) $item->costo;
@@ -215,6 +250,7 @@ class MonthlyInventoryReportController extends Controller
             } else {
                 $entryDate = Carbon::parse($item->created_at);
             }
+            $entryTimestamp = $entryDate ? $entryDate->timestamp : 0;
 
             // Fechas de salida/venta
             $soldAt = null;
@@ -260,13 +296,16 @@ class MonthlyInventoryReportController extends Controller
                 continue;
             }
 
-            // Clave única de agrupación por Tipo + Modelo
-            $groupKey = $description;
+            // Clave única de agrupación por Marca + Descripción
+            $groupKey = $marca . '||' . $description;
 
             if (!isset($groupedItems[$groupKey])) {
                 $groupedItems[$groupKey] = [
+                    'marca' => $marca,
                     'code' => $code,
                     'description' => $description,
+                    'type_priority' => $this->getTypePriority($tipo),
+                    'newest_container_timestamp' => $entryTimestamp,
                     'containers_map' => [],
                     'containers_str' => '',
                     'unidades_inicial' => 0,
@@ -282,6 +321,10 @@ class MonthlyInventoryReportController extends Controller
                     'valores_autoconsumo' => 0.0,
                     'valores_final' => 0.0,
                 ];
+            } else {
+                if ($entryTimestamp > $groupedItems[$groupKey]['newest_container_timestamp']) {
+                    $groupedItems[$groupKey]['newest_container_timestamp'] = $entryTimestamp;
+                }
             }
 
             // Registrar desglose de contenedores
@@ -315,7 +358,7 @@ class MonthlyInventoryReportController extends Controller
             $groupedItems[$groupKey]['valores_final'] += $valFinal;
         }
 
-        // Construir string de contenedores de origen para cada fila (ej: MK-2025-01 (7), MK-2025-02 (3))
+        // Construir string de contenedores de origen para cada fila
         foreach ($groupedItems as $key => &$gItem) {
             $cList = [];
             foreach ($gItem['containers_map'] as $cCode => $cnt) {
@@ -325,25 +368,93 @@ class MonthlyInventoryReportController extends Controller
             unset($gItem['containers_map']);
         }
 
-        // Ordenar alfabéticamente por tipo + modelo
-        ksort($groupedItems);
+        // Agrupar por Marca
+        $byBrand = [];
+        foreach ($groupedItems as $gItem) {
+            $b = $gItem['marca'] ?: 'OTRAS MARCAS';
+            if (!isset($byBrand[$b])) {
+                $byBrand[$b] = [];
+            }
+            $byBrand[$b][] = $gItem;
+        }
 
-        $itemsList = array_values($groupedItems);
+        // Ordenar los ítems de cada marca por: 1) Contenedor más nuevo DESC, 2) Prioridad tipo ASC, 3) Descripción ASC
+        foreach ($byBrand as $bName => &$bItems) {
+            usort($bItems, function ($a, $b) {
+                if ($a['newest_container_timestamp'] !== $b['newest_container_timestamp']) {
+                    return $b['newest_container_timestamp'] <=> $a['newest_container_timestamp'];
+                }
+                if ($a['type_priority'] !== $b['type_priority']) {
+                    return $a['type_priority'] <=> $b['type_priority'];
+                }
+                return strcmp($a['description'], $b['description']);
+            });
+        }
+
+        // Ordenar Marcas (Marcas principales primero, luego resto alfabético, 'OTRAS MARCAS' al final)
+        $popularBrandsOrder = ['CHEVROLET', 'FORD', 'TOYOTA', 'JEEP', 'HYUNDAI', 'NISSAN', 'MITSUBISHI', 'DODGE', 'RAM', 'CHRYSLER', 'HONDA', 'MAZDA', 'ISUZU', 'CHERY', 'VOLKSWAGEN', 'CUMMINS', 'MACK', 'INTERNATIONAL', 'DAEWOO'];
+
+        uksort($byBrand, function ($a, $b) use ($popularBrandsOrder) {
+            if ($a === 'OTRAS MARCAS') return 1;
+            if ($b === 'OTRAS MARCAS') return -1;
+
+            $posA = array_search($a, $popularBrandsOrder);
+            $posB = array_search($b, $popularBrandsOrder);
+
+            if ($posA !== false && $posB !== false) {
+                return $posA <=> $posB;
+            }
+            if ($posA !== false) return -1;
+            if ($posB !== false) return 1;
+
+            return strcmp($a, $b);
+        });
+
+        // Estructurar array final por marcas con subtotales
+        $brandsData = [];
+        $flatItemsList = [];
+
+        foreach ($byBrand as $brandName => $bItems) {
+            $brandTotales = [
+                'unidades_inicial' => array_sum(array_column($bItems, 'unidades_inicial')),
+                'unidades_entradas' => array_sum(array_column($bItems, 'unidades_entradas')),
+                'unidades_salidas' => array_sum(array_column($bItems, 'unidades_salidas')),
+                'unidades_retiros' => array_sum(array_column($bItems, 'unidades_retiros')),
+                'unidades_autoconsumo' => array_sum(array_column($bItems, 'unidades_autoconsumo')),
+                'unidades_final' => array_sum(array_column($bItems, 'unidades_final')),
+                'valores_inicial' => array_sum(array_column($bItems, 'valores_inicial')),
+                'valores_entradas' => array_sum(array_column($bItems, 'valores_entradas')),
+                'valores_salidas' => array_sum(array_column($bItems, 'valores_salidas')),
+                'valores_retiros' => array_sum(array_column($bItems, 'valores_retiros')),
+                'valores_autoconsumo' => array_sum(array_column($bItems, 'valores_autoconsumo')),
+                'valores_final' => array_sum(array_column($bItems, 'valores_final')),
+            ];
+
+            $brandsData[] = [
+                'brand' => $brandName,
+                'items' => $bItems,
+                'totales' => $brandTotales,
+            ];
+
+            foreach ($bItems as $it) {
+                $flatItemsList[] = $it;
+            }
+        }
 
         // Calcular Totales Generales
         $totales = [
-            'unidades_inicial' => array_sum(array_column($itemsList, 'unidades_inicial')),
-            'unidades_entradas' => array_sum(array_column($itemsList, 'unidades_entradas')),
-            'unidades_salidas' => array_sum(array_column($itemsList, 'unidades_salidas')),
-            'unidades_retiros' => array_sum(array_column($itemsList, 'unidades_retiros')),
-            'unidades_autoconsumo' => array_sum(array_column($itemsList, 'unidades_autoconsumo')),
-            'unidades_final' => array_sum(array_column($itemsList, 'unidades_final')),
-            'valores_inicial' => array_sum(array_column($itemsList, 'valores_inicial')),
-            'valores_entradas' => array_sum(array_column($itemsList, 'valores_entradas')),
-            'valores_salidas' => array_sum(array_column($itemsList, 'valores_salidas')),
-            'valores_retiros' => array_sum(array_column($itemsList, 'valores_retiros')),
-            'valores_autoconsumo' => array_sum(array_column($itemsList, 'valores_autoconsumo')),
-            'valores_final' => array_sum(array_column($itemsList, 'valores_final')),
+            'unidades_inicial' => array_sum(array_column($flatItemsList, 'unidades_inicial')),
+            'unidades_entradas' => array_sum(array_column($flatItemsList, 'unidades_entradas')),
+            'unidades_salidas' => array_sum(array_column($flatItemsList, 'unidades_salidas')),
+            'unidades_retiros' => array_sum(array_column($flatItemsList, 'unidades_retiros')),
+            'unidades_autoconsumo' => array_sum(array_column($flatItemsList, 'unidades_autoconsumo')),
+            'unidades_final' => array_sum(array_column($flatItemsList, 'unidades_final')),
+            'valores_inicial' => array_sum(array_column($flatItemsList, 'valores_inicial')),
+            'valores_entradas' => array_sum(array_column($flatItemsList, 'valores_entradas')),
+            'valores_salidas' => array_sum(array_column($flatItemsList, 'valores_salidas')),
+            'valores_retiros' => array_sum(array_column($flatItemsList, 'valores_retiros')),
+            'valores_autoconsumo' => array_sum(array_column($flatItemsList, 'valores_autoconsumo')),
+            'valores_final' => array_sum(array_column($flatItemsList, 'valores_final')),
         ];
 
         return [
@@ -354,7 +465,8 @@ class MonthlyInventoryReportController extends Controller
             'year' => $year,
             'groupingMode' => $groupingMode,
             'exchangeRate' => $exchangeRate,
-            'items' => $itemsList,
+            'brands' => $brandsData,
+            'items' => $flatItemsList,
             'totales' => $totales,
         ];
     }

@@ -60,17 +60,85 @@ const fetchReportData = async () => {
     }
 };
 
-const filteredItems = computed(() => {
-    if (!currentReportData.value || !currentReportData.value.items) return [];
-    if (!searchQuery.value.trim()) return currentReportData.value.items;
+const filteredBrands = computed(() => {
+    if (!currentReportData.value) return [];
+    
+    const brandsList = currentReportData.value.brands || [];
+    if (brandsList.length === 0 && currentReportData.value.items) {
+        // Fallback for flat items list
+        return [{
+            brand: 'GENERAL',
+            items: currentReportData.value.items,
+            totales: currentReportData.value.totales || {}
+        }];
+    }
+
+    if (!searchQuery.value.trim()) {
+        return brandsList;
+    }
 
     const query = searchQuery.value.toLowerCase();
-    return currentReportData.value.items.filter(item =>
-        item.code.toLowerCase().includes(query) ||
-        item.description.toLowerCase().includes(query) ||
-        (item.containers_str && item.containers_str.toLowerCase().includes(query))
-    );
+
+    return brandsList.map(bGroup => {
+        const matchingItems = (bGroup.items || []).filter(item =>
+            item.code.toLowerCase().includes(query) ||
+            item.description.toLowerCase().includes(query) ||
+            (item.containers_str && item.containers_str.toLowerCase().includes(query)) ||
+            (bGroup.brand && bGroup.brand.toLowerCase().includes(query))
+        );
+
+        if (matchingItems.length === 0) return null;
+
+        return {
+            ...bGroup,
+            items: matchingItems,
+            totales: {
+                unidades_inicial: matchingItems.reduce((acc, i) => acc + (i.unidades_inicial || 0), 0),
+                unidades_entradas: matchingItems.reduce((acc, i) => acc + (i.unidades_entradas || 0), 0),
+                unidades_salidas: matchingItems.reduce((acc, i) => acc + (i.unidades_salidas || 0), 0),
+                unidades_retiros: matchingItems.reduce((acc, i) => acc + (i.unidades_retiros || 0), 0),
+                unidades_autoconsumo: matchingItems.reduce((acc, i) => acc + (i.unidades_autoconsumo || 0), 0),
+                unidades_final: matchingItems.reduce((acc, i) => acc + (i.unidades_final || 0), 0),
+                valores_inicial: matchingItems.reduce((acc, i) => acc + (i.valores_inicial || 0), 0),
+                valores_entradas: matchingItems.reduce((acc, i) => acc + (i.valores_entradas || 0), 0),
+                valores_salidas: matchingItems.reduce((acc, i) => acc + (i.valores_salidas || 0), 0),
+                valores_retiros: matchingItems.reduce((acc, i) => acc + (i.valores_retiros || 0), 0),
+                valores_autoconsumo: matchingItems.reduce((acc, i) => acc + (i.valores_autoconsumo || 0), 0),
+                valores_final: matchingItems.reduce((acc, i) => acc + (i.valores_final || 0), 0),
+            }
+        };
+    }).filter(Boolean);
 });
+
+const getBrandBadge = (brandName) => {
+    const b = (brandName || '').toUpperCase();
+    if (b.includes('CHEVROLET')) {
+        return { color: 'bg-amber-500 text-white border-amber-400', icon: 'fa-solid fa-car', logoText: 'CHEVROLET' };
+    } else if (b.includes('FORD')) {
+        return { color: 'bg-blue-600 text-white border-blue-500', icon: 'fa-solid fa-truck-pickup', logoText: 'FORD' };
+    } else if (b.includes('TOYOTA')) {
+        return { color: 'bg-red-600 text-white border-red-500', icon: 'fa-solid fa-car-side', logoText: 'TOYOTA' };
+    } else if (b.includes('JEEP')) {
+        return { color: 'bg-emerald-700 text-white border-emerald-600', icon: 'fa-solid fa-truck-monster', logoText: 'JEEP' };
+    } else if (b.includes('HYUNDAI')) {
+        return { color: 'bg-sky-600 text-white border-sky-500', icon: 'fa-solid fa-car-rear', logoText: 'HYUNDAI' };
+    } else if (b.includes('NISSAN')) {
+        return { color: 'bg-gray-700 text-white border-gray-600', icon: 'fa-solid fa-car', logoText: 'NISSAN' };
+    } else if (b.includes('MITSUBISHI')) {
+        return { color: 'bg-rose-700 text-white border-rose-600', icon: 'fa-solid fa-gem', logoText: 'MITSUBISHI' };
+    } else if (b.includes('DODGE') || b.includes('RAM')) {
+        return { color: 'bg-red-700 text-white border-red-600', icon: 'fa-solid fa-shield-halved', logoText: 'DODGE / RAM' };
+    } else if (b.includes('HONDA')) {
+        return { color: 'bg-red-800 text-white border-red-700', icon: 'fa-solid fa-h', logoText: 'HONDA' };
+    } else if (b.includes('MAZDA')) {
+        return { color: 'bg-indigo-700 text-white border-indigo-600', icon: 'fa-solid fa-car', logoText: 'MAZDA' };
+    } else if (b.includes('ISUZU')) {
+        return { color: 'bg-red-600 text-white border-red-500', icon: 'fa-solid fa-truck', logoText: 'ISUZU' };
+    } else if (b.includes('CUMMINS')) {
+        return { color: 'bg-black text-red-500 border-red-600', icon: 'fa-solid fa-gears', logoText: 'CUMMINS' };
+    }
+    return { color: 'bg-slate-700 text-white border-slate-600', icon: 'fa-solid fa-tag', logoText: b || 'MARCA' };
+};
 
 const formatBs = (val) => {
     return new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val || 0);
@@ -229,32 +297,47 @@ const goBack = () => {
                 <!-- Table Card -->
                 <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
                     
-                    <!-- Search Bar Header -->
-                    <div class="p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div>
-                            <h3 class="font-bold text-lg text-gray-800 dark:text-white">
-                                Detalle Mensual de Inventario Agrupado por Tipo y Modelo
-                            </h3>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">
-                                Movimientos de {{ currentReportData?.monthName }} {{ currentReportData?.year }} con trazabilidad por Contenedores de Origen
-                            </p>
+                    <!-- Search Bar & Brand Quick Bar Header -->
+                    <div class="p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col gap-4">
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <div>
+                                <h3 class="font-bold text-lg text-gray-800 dark:text-white">
+                                    Detalle Mensual de Inventario Agrupado por Marcas
+                                </h3>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">
+                                    Movimientos de {{ currentReportData?.monthName }} {{ currentReportData?.year }} (Contenedores recientes primero | Motores Completos &rarr; 7/8 &rarr; 3/4)
+                                </p>
+                            </div>
+
+                            <div class="w-full sm:w-72 relative">
+                                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-gray-400"></i>
+                                <input 
+                                    v-model="searchQuery" 
+                                    type="text" 
+                                    placeholder="Buscar por marca, modelo o contenedor..."
+                                    class="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white text-xs rounded-xl border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                >
+                            </div>
                         </div>
 
-                        <div class="w-full sm:w-72 relative">
-                            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-gray-400"></i>
-                            <input 
-                                v-model="searchQuery" 
-                                type="text" 
-                                placeholder="Buscar por modelo o contenedor..."
-                                class="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white text-xs rounded-xl border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none"
+                        <!-- Brand Pills Quick Bar -->
+                        <div v-if="filteredBrands.length > 0" class="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-100 dark:border-gray-700/60">
+                            <span class="text-[10px] uppercase font-bold text-gray-400 mr-1">Marcas disponibles:</span>
+                            <span 
+                                v-for="(bGrp, bIdx) in filteredBrands" 
+                                :key="bIdx"
+                                :class="[getBrandBadge(bGrp.brand).color, 'px-2.5 py-0.5 rounded-lg text-[10px] font-bold inline-flex items-center gap-1 shadow-sm border opacity-90 hover:opacity-100 transition-all']"
                             >
+                                <i :class="getBrandBadge(bGrp.brand).icon"></i>
+                                {{ bGrp.brand }} ({{ bGrp.items.length }})
+                            </span>
                         </div>
                     </div>
 
                     <!-- Loading State -->
                     <div v-if="isLoading" class="p-12 text-center text-gray-500">
                         <i class="fa-solid fa-circle-notch fa-spin text-3xl text-indigo-600 mb-3"></i>
-                        <p class="text-sm font-semibold">Procesando y agrupando movimientos del inventario...</p>
+                        <p class="text-sm font-semibold">Procesando y agrupando movimientos del inventario por marcas...</p>
                     </div>
 
                     <!-- Main Data Table -->
@@ -294,31 +377,76 @@ const goBack = () => {
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                                <tr v-for="(item, idx) in filteredItems" :key="idx" class="hover:bg-gray-50/80 dark:hover:bg-gray-700/50 transition-colors align-top">
-                                    <td class="py-3 px-3 font-mono font-bold text-gray-900 dark:text-white border-r border-gray-100 dark:border-gray-700">{{ item.code }}</td>
-                                    <td class="py-3 px-4 font-medium text-gray-800 dark:text-gray-200 border-r border-gray-100 dark:border-gray-700">{{ item.description }}</td>
-                                    <td class="py-3 px-3 text-gray-500 dark:text-gray-400 font-mono text-[11px] border-r border-gray-100 dark:border-gray-700 whitespace-pre-line leading-relaxed">{{ item.containers_str }}</td>
+                                <template v-for="(bGroup, bIdx) in filteredBrands" :key="bIdx">
+                                    <!-- Brand Section Header Row -->
+                                    <tr class="bg-slate-800 dark:bg-slate-950 text-white font-black text-xs tracking-wider uppercase border-t-2 border-slate-700">
+                                        <td colspan="15" class="py-3 px-4">
+                                            <div class="flex items-center justify-between">
+                                                <div class="flex items-center gap-3">
+                                                    <!-- Brand Badge -->
+                                                    <span :class="[getBrandBadge(bGroup.brand).color, 'px-3 py-1 rounded-lg text-xs font-black flex items-center gap-2 shadow-sm border']">
+                                                        <i :class="getBrandBadge(bGroup.brand).icon"></i>
+                                                        {{ bGroup.brand }}
+                                                    </span>
+                                                    <span class="text-slate-300 text-xs font-semibold">
+                                                        ({{ bGroup.items.length }} {{ bGroup.items.length === 1 ? 'modelo' : 'modelos' }})
+                                                    </span>
+                                                </div>
+                                                <div class="flex items-center gap-4 text-[11px] font-semibold text-slate-300">
+                                                    <span>Final Unid: <strong class="text-sky-300 font-mono">{{ formatNum(bGroup.totales.unidades_final) }}</strong></span>
+                                                    <span>Total Bs: <strong class="text-emerald-300 font-mono">Bs. {{ formatBs(bGroup.totales.valores_final) }}</strong></span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
 
-                                    <!-- Unidades -->
-                                    <td class="py-3 px-2 text-right font-mono text-gray-600 dark:text-gray-300">{{ formatNum(item.unidades_inicial) }}</td>
-                                    <td class="py-3 px-2 text-right font-mono text-blue-600 dark:text-blue-400 font-semibold">{{ formatNum(item.unidades_entradas) }}</td>
-                                    <td class="py-3 px-2 text-right font-mono text-amber-600 dark:text-amber-400 font-semibold">{{ formatNum(item.unidades_salidas) }}</td>
-                                    <td class="py-3 px-2 text-right font-mono text-rose-600 dark:text-rose-400">{{ formatNum(item.unidades_retiros) }}</td>
-                                    <td class="py-3 px-2 text-right font-mono text-purple-600 dark:text-purple-400">{{ formatNum(item.unidades_autoconsumo) }}</td>
-                                    <td class="py-3 px-2 text-right font-mono font-black text-gray-900 dark:text-white bg-sky-50/40 dark:bg-sky-950/20 border-r border-gray-100 dark:border-gray-700">{{ formatNum(item.unidades_final) }}</td>
+                                    <!-- Brand Items -->
+                                    <tr v-for="(item, idx) in bGroup.items" :key="idx" class="hover:bg-gray-50/80 dark:hover:bg-gray-700/50 transition-colors align-top">
+                                        <td class="py-3 px-3 font-mono font-bold text-gray-900 dark:text-white border-r border-gray-100 dark:border-gray-700">{{ item.code }}</td>
+                                        <td class="py-3 px-4 font-medium text-gray-800 dark:text-gray-200 border-r border-gray-100 dark:border-gray-700">{{ item.description }}</td>
+                                        <td class="py-3 px-3 text-gray-500 dark:text-gray-400 font-mono text-[11px] border-r border-gray-100 dark:border-gray-700 whitespace-pre-line leading-relaxed">{{ item.containers_str }}</td>
 
-                                    <!-- Valores Bs -->
-                                    <td class="py-3 px-2 text-right font-mono text-gray-600 dark:text-gray-300">{{ formatBs(item.valores_inicial) }}</td>
-                                    <td class="py-3 px-2 text-right font-mono text-blue-600 dark:text-blue-400">{{ formatBs(item.valores_entradas) }}</td>
-                                    <td class="py-3 px-2 text-right font-mono text-amber-600 dark:text-amber-400">{{ formatBs(item.valores_salidas) }}</td>
-                                    <td class="py-3 px-2 text-right font-mono text-rose-600 dark:text-rose-400">{{ formatBs(item.valores_retiros) }}</td>
-                                    <td class="py-3 px-2 text-right font-mono text-purple-600 dark:text-purple-400">{{ formatBs(item.valores_autoconsumo) }}</td>
-                                    <td class="py-3 px-2 text-right font-mono font-black text-emerald-700 dark:text-emerald-400 bg-emerald-50/40 dark:bg-emerald-950/20">{{ formatBs(item.valores_final) }}</td>
-                                </tr>
+                                        <!-- Unidades -->
+                                        <td class="py-3 px-2 text-right font-mono text-gray-600 dark:text-gray-300">{{ formatNum(item.unidades_inicial) }}</td>
+                                        <td class="py-3 px-2 text-right font-mono text-blue-600 dark:text-blue-400 font-semibold">{{ formatNum(item.unidades_entradas) }}</td>
+                                        <td class="py-3 px-2 text-right font-mono text-amber-600 dark:text-amber-400 font-semibold">{{ formatNum(item.unidades_salidas) }}</td>
+                                        <td class="py-3 px-2 text-right font-mono text-rose-600 dark:text-rose-400">{{ formatNum(item.unidades_retiros) }}</td>
+                                        <td class="py-3 px-2 text-right font-mono text-purple-600 dark:text-purple-400">{{ formatNum(item.unidades_autoconsumo) }}</td>
+                                        <td class="py-3 px-2 text-right font-mono font-black text-gray-900 dark:text-white bg-sky-50/40 dark:bg-sky-950/20 border-r border-gray-100 dark:border-gray-700">{{ formatNum(item.unidades_final) }}</td>
 
-                                <tr v-if="filteredItems.length === 0">
+                                        <!-- Valores Bs -->
+                                        <td class="py-3 px-2 text-right font-mono text-gray-600 dark:text-gray-300">{{ formatBs(item.valores_inicial) }}</td>
+                                        <td class="py-3 px-2 text-right font-mono text-blue-600 dark:text-blue-400">{{ formatBs(item.valores_entradas) }}</td>
+                                        <td class="py-3 px-2 text-right font-mono text-amber-600 dark:text-amber-400">{{ formatBs(item.valores_salidas) }}</td>
+                                        <td class="py-3 px-2 text-right font-mono text-rose-600 dark:text-rose-400">{{ formatBs(item.valores_retiros) }}</td>
+                                        <td class="py-3 px-2 text-right font-mono text-purple-600 dark:text-purple-400">{{ formatBs(item.valores_autoconsumo) }}</td>
+                                        <td class="py-3 px-2 text-right font-mono font-black text-emerald-700 dark:text-emerald-400 bg-emerald-50/40 dark:bg-emerald-950/20">{{ formatBs(item.valores_final) }}</td>
+                                    </tr>
+
+                                    <!-- Brand Subtotal Row -->
+                                    <tr class="bg-gray-100/90 dark:bg-gray-800/90 font-bold text-gray-900 dark:text-white text-xs border-b border-gray-200 dark:border-gray-700">
+                                        <td colspan="3" class="py-3 px-4 text-right font-black uppercase border-r border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300">
+                                            Subtotal {{ bGroup.brand }}
+                                        </td>
+                                        <td class="py-3 px-2 text-right font-mono">{{ formatNum(bGroup.totales.unidades_inicial) }}</td>
+                                        <td class="py-3 px-2 text-right font-mono text-blue-600 dark:text-blue-400">{{ formatNum(bGroup.totales.unidades_entradas) }}</td>
+                                        <td class="py-3 px-2 text-right font-mono text-amber-600 dark:text-amber-400">{{ formatNum(bGroup.totales.unidades_salidas) }}</td>
+                                        <td class="py-3 px-2 text-right font-mono text-rose-600 dark:text-rose-400">{{ formatNum(bGroup.totales.unidades_retiros) }}</td>
+                                        <td class="py-3 px-2 text-right font-mono text-purple-600 dark:text-purple-400">{{ formatNum(bGroup.totales.unidades_autoconsumo) }}</td>
+                                        <td class="py-3 px-2 text-right font-mono font-black border-r border-gray-200 dark:border-gray-700 bg-sky-100/40 dark:bg-sky-900/30">{{ formatNum(bGroup.totales.unidades_final) }}</td>
+
+                                        <td class="py-3 px-2 text-right font-mono">{{ formatBs(bGroup.totales.valores_inicial) }}</td>
+                                        <td class="py-3 px-2 text-right font-mono text-blue-600 dark:text-blue-400">{{ formatBs(bGroup.totales.valores_entradas) }}</td>
+                                        <td class="py-3 px-2 text-right font-mono text-amber-600 dark:text-amber-400">{{ formatBs(bGroup.totales.valores_salidas) }}</td>
+                                        <td class="py-3 px-2 text-right font-mono text-rose-600 dark:text-rose-400">{{ formatBs(bGroup.totales.valores_retiros) }}</td>
+                                        <td class="py-3 px-2 text-right font-mono text-purple-600 dark:text-purple-400">{{ formatBs(bGroup.totales.valores_autoconsumo) }}</td>
+                                        <td class="py-3 px-2 text-right font-mono font-black text-emerald-600 dark:text-emerald-400 bg-emerald-100/40 dark:bg-emerald-900/30">{{ formatBs(bGroup.totales.valores_final) }}</td>
+                                    </tr>
+                                </template>
+
+                                <tr v-if="filteredBrands.length === 0">
                                     <td colspan="15" class="p-8 text-center text-gray-400 dark:text-gray-500">
-                                        No se encontraron ítems para la búsqueda o el período seleccionado.
+                                        No se encontraron marcas ni ítems para la búsqueda o el período seleccionado.
                                     </td>
                                 </tr>
                             </tbody>
