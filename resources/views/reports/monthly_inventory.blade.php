@@ -199,28 +199,28 @@
     <table class="report-table">
         <thead>
             <tr>
-                <th rowspan="2" style="width: 10%;">MARCA</th>
-                <th rowspan="2" style="width: 21%;">TIPO DE PRODUCTO</th>
-                <th rowspan="2" style="width: 11%;">MODELO</th>
+                <th rowspan="2" style="width: 9%;">MARCA</th>
+                <th rowspan="2" style="width: 13%;">TIPO DE PRODUCTO</th>
+                <th rowspan="2" style="width: 14%;">MODELO</th>
                 <th colspan="6" class="header-unidades">UNIDADES (FÍSICAS)</th>
                 <th colspan="6" class="header-valores">VALORES (BOLÍVARES - Bs.)</th>
             </tr>
             <tr>
                 <!-- Unidades Subheaders -->
-                <th class="sub-header" style="width: 3.5%;">INICIAL</th>
-                <th class="sub-header" style="width: 3.5%;">ENTRADAS</th>
-                <th class="sub-header" style="width: 3.5%;">SALIDAS</th>
-                <th class="sub-header" style="width: 3.5%;">RETIROS</th>
-                <th class="sub-header" style="width: 3.5%;">AUTOCONS.</th>
-                <th class="sub-header" style="width: 4.5%;">FINAL</th>
+                <th class="sub-header" style="width: 4.5%;">INICIAL</th>
+                <th class="sub-header" style="width: 5.0%;">ENTRADAS</th>
+                <th class="sub-header" style="width: 4.5%;">SALIDAS</th>
+                <th class="sub-header" style="width: 4.5%;">RETIROS</th>
+                <th class="sub-header" style="width: 5.2%;">AUTOCONS.</th>
+                <th class="sub-header" style="width: 4.3%;">FINAL</th>
 
                 <!-- Valores Subheaders -->
-                <th class="sub-header" style="width: 6.5%;">INICIAL</th>
-                <th class="sub-header" style="width: 6.5%;">ENTRADAS</th>
-                <th class="sub-header" style="width: 6.5%;">SALIDAS</th>
-                <th class="sub-header" style="width: 6.5%;">RETIROS</th>
-                <th class="sub-header" style="width: 6.5%;">AUTOCONS.</th>
-                <th class="sub-header" style="width: 8%;">FINAL</th>
+                <th class="sub-header" style="width: 5.5%;">INICIAL</th>
+                <th class="sub-header" style="width: 5.8%;">ENTRADAS</th>
+                <th class="sub-header" style="width: 5.5%;">SALIDAS</th>
+                <th class="sub-header" style="width: 5.5%;">RETIROS</th>
+                <th class="sub-header" style="width: 5.7%;">AUTOCONS.</th>
+                <th class="sub-header" style="width: 8.0%;">FINAL</th>
             </tr>
         </thead>
         <tbody>

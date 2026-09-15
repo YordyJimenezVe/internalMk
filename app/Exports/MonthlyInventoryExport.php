@@ -41,21 +41,21 @@ class MonthlyInventoryExport implements FromView, WithEvents, WithColumnWidths, 
     public function columnWidths(): array
     {
         return [
-            'A' => 16, // Marca
-            'B' => 25, // Tipo de Producto
-            'C' => 22, // Modelo
-            'D' => 12, // Unid Inicial
+            'A' => 14, // Marca
+            'B' => 18, // Tipo de Producto
+            'C' => 20, // Modelo
+            'D' => 11, // Unid Inicial
             'E' => 12, // Unid Entradas
-            'F' => 12, // Unid Salidas
-            'G' => 12, // Unid Retiros
-            'H' => 14, // Unid Autoconsumo
-            'I' => 14, // Unid Final
-            'J' => 18, // Val Inicial
-            'K' => 16, // Val Entradas
-            'L' => 16, // Val Salidas
-            'M' => 16, // Val Retiros
-            'N' => 18, // Val Autoconsumo
-            'O' => 20, // Val Final
+            'F' => 11, // Unid Salidas
+            'G' => 11, // Unid Retiros
+            'H' => 13, // Unid Autoconsumo
+            'I' => 11, // Unid Final
+            'J' => 15, // Val Inicial
+            'K' => 15, // Val Entradas
+            'L' => 15, // Val Salidas
+            'M' => 15, // Val Retiros
+            'N' => 16, // Val Autoconsumo
+            'O' => 18, // Val Final
         ];
     }
 
