@@ -129,9 +129,8 @@
         .signature-line {
             width: 55%;
             margin: 0 auto;
-            border-top: 1px solid #334155;
             padding-top: 3px;
-            font-size: 7.5pt;
+            font-size: 8pt;
             font-weight: bold;
             color: #334155;
             text-transform: uppercase;
@@ -139,6 +138,26 @@
     </style>
 </head>
 <body>
+
+@if(!isset($isExcel) || !$isExcel)
+    <!-- Signatures Fija en cada hoja para PDF (debe estar al inicio del body para que afecte desde la Pág 1) -->
+    <div class="footer-signatures">
+        <table class="signature-table">
+            <tr>
+                <td>
+                    <div class="signature-line">
+                        FIRMA
+                    </div>
+                </td>
+                <td>
+                    <div class="signature-line">
+                        SELLO
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+@endif
 
 @if(isset($isExcel) && $isExcel)
     <!-- Header Rows para Excel con Colspans para que el título respire a lo ancho -->
@@ -318,29 +337,11 @@
         <tr><td colspan="15"></td></tr>
         <tr><td colspan="15"></td></tr>
         <tr>
-            <td colspan="7" style="text-align: center; font-weight: bold; border-top: 1px solid #334155; font-size: 10pt;">FIRMA</td>
+            <td colspan="7" style="text-align: center; font-weight: bold; font-size: 10pt;">FIRMA</td>
             <td colspan="1"></td>
-            <td colspan="7" style="text-align: center; font-weight: bold; border-top: 1px solid #334155; font-size: 10pt;">SELLO</td>
+            <td colspan="7" style="text-align: center; font-weight: bold; font-size: 10pt;">SELLO</td>
         </tr>
     </table>
-@else
-    <!-- Signatures Fija en cada hoja para PDF -->
-    <div class="footer-signatures">
-        <table class="signature-table">
-            <tr>
-                <td>
-                    <div class="signature-line">
-                        FIRMA
-                    </div>
-                </td>
-                <td>
-                    <div class="signature-line">
-                        SELLO
-                    </div>
-                </td>
-            </tr>
-        </table>
-    </div>
 @endif
 
 </body>
