@@ -236,11 +236,11 @@ const getBrandBadge = (brandName) => {
 };
 
 const formatBs = (val) => {
-    return "";
+    return new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val || 0);
 };
 
 const formatNum = (val) => {
-    return "";
+    return new Intl.NumberFormat('es-VE').format(val || 0);
 };
 
 const exportPdf = () => {
@@ -370,21 +370,21 @@ const goBack = () => {
                     <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
                         <div class="text-xs uppercase tracking-wider font-bold text-gray-400 mb-1">Existencia Final (Valores Bs.)</div>
                         <div class="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-                            {{ formatBs(currentReportData?.totales?.valores_final) }}
+                            Bs. {{ formatBs(currentReportData?.totales?.valores_final) }}
                         </div>
                     </div>
 
                     <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
                         <div class="text-xs uppercase tracking-wider font-bold text-gray-400 mb-1">Entradas del Mes (Unid.)</div>
                         <div class="text-2xl font-black text-blue-600 dark:text-blue-400">
-                            {{ formatNum(currentReportData?.totales?.unidades_entradas) }}
+                            +{{ formatNum(currentReportData?.totales?.unidades_entradas) }}
                         </div>
                     </div>
 
                     <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
                         <div class="text-xs uppercase tracking-wider font-bold text-gray-400 mb-1">Salidas del Mes (Ventas Unid.)</div>
                         <div class="text-2xl font-black text-amber-600 dark:text-amber-400">
-                            {{ formatNum(currentReportData?.totales?.unidades_salidas) }}
+                            -{{ formatNum(currentReportData?.totales?.unidades_salidas) }}
                         </div>
                     </div>
                 </div>
