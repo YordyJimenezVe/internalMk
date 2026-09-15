@@ -145,8 +145,7 @@ class MonthlyInventoryReportController extends Controller
         $codeParts = array_filter([$marcaClean, $modeloClean]);
         $code = !empty($codeParts) ? implode(' ', $codeParts) : ($tipoClean ?: 'PRODUCTO');
 
-        $descParts = array_filter([$tipoClean, $modeloClean]);
-        $description = !empty($descParts) ? implode(' ', $descParts) : 'PRODUCTO GENERAL';
+        $description = $tipoClean ?: 'PRODUCTO GENERAL';
 
         return [
             'marca' => $marcaClean ?: 'OTRAS MARCAS',
@@ -299,8 +298,8 @@ class MonthlyInventoryReportController extends Controller
                 continue;
             }
 
-            // Clave única de agrupación por Marca + Descripción
-            $groupKey = $marca . '||' . $description;
+            // Clave única de agrupación por Marca + Tipo (Descripción) + Modelo
+            $groupKey = $marca . '||' . $description . '||' . $modeloClean;
 
             if (!isset($groupedItems[$groupKey])) {
                 $groupedItems[$groupKey] = [

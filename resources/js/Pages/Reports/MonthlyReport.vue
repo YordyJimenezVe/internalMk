@@ -429,8 +429,8 @@ const goBack = () => {
                                 <!-- Top Headers Row -->
                                 <tr class="bg-gray-100 dark:bg-gray-900/80 text-gray-700 dark:text-gray-300 font-bold uppercase tracking-wider text-[11px] border-b border-gray-200 dark:border-gray-700">
                                     <th class="py-3 px-3 border-r border-gray-200 dark:border-gray-700 min-w-[110px]">Marca</th>
+                                    <th class="py-3 px-4 border-r border-gray-200 dark:border-gray-700 min-w-[160px]">Tipo de Producto</th>
                                     <th class="py-3 px-3 border-r border-gray-200 dark:border-gray-700 min-w-[120px]">Modelo</th>
-                                    <th class="py-3 px-4 border-r border-gray-200 dark:border-gray-700 min-w-[180px]">Producto / Descripción</th>
                                     <th colspan="6" class="py-3 px-3 text-center bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border-r border-gray-200 dark:border-gray-700">Unidades (Físicas)</th>
                                     <th colspan="6" class="py-3 px-3 text-center bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300">Valores en Bolívares (Bs.)</th>
                                 </tr>
@@ -438,8 +438,8 @@ const goBack = () => {
                                 <!-- Sub-Headers Row -->
                                 <tr class="bg-gray-50 dark:bg-gray-800 text-[10px] uppercase font-bold text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
                                     <th class="py-2.5 px-3 border-r border-gray-200 dark:border-gray-700"></th>
-                                    <th class="py-2.5 px-3 border-r border-gray-200 dark:border-gray-700"></th>
                                     <th class="py-2.5 px-4 border-r border-gray-200 dark:border-gray-700"></th>
+                                    <th class="py-2.5 px-3 border-r border-gray-200 dark:border-gray-700"></th>
 
                                     <!-- Unidades Subheaders -->
                                     <th class="py-2.5 px-2 text-right bg-sky-50/50 dark:bg-sky-950/20 text-sky-800 dark:text-sky-300">Inicial</th>
@@ -492,8 +492,8 @@ const goBack = () => {
                                     <!-- Brand Items -->
                                     <tr v-for="(item, idx) in bGroup.items" :key="idx" class="hover:bg-gray-50/80 dark:hover:bg-gray-700/50 transition-colors align-top">
                                         <td class="py-3 px-3 font-semibold text-gray-900 dark:text-white border-r border-gray-100 dark:border-gray-700 text-center">{{ item.marca }}</td>
-                                        <td class="py-3 px-3 font-mono font-bold text-gray-900 dark:text-white border-r border-gray-100 dark:border-gray-700 text-center">{{ item.modelo }}</td>
                                         <td class="py-3 px-4 font-medium text-gray-800 dark:text-gray-200 border-r border-gray-100 dark:border-gray-700">{{ item.description }}</td>
+                                        <td class="py-3 px-3 font-mono font-bold text-gray-900 dark:text-white border-r border-gray-100 dark:border-gray-700 text-center">{{ item.modelo }}</td>
 
                                         <!-- Unidades -->
                                         <td class="py-3 px-2 text-right font-mono text-gray-600 dark:text-gray-300">{{ formatNum(item.unidades_inicial) }}</td>

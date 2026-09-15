@@ -42,8 +42,8 @@ class MonthlyInventoryExport implements FromView, WithEvents, WithColumnWidths, 
     {
         return [
             'A' => 16, // Marca
-            'B' => 18, // Modelo
-            'C' => 35, // Producto / Descripción
+            'B' => 25, // Tipo de Producto
+            'C' => 22, // Modelo
             'D' => 12, // Unid Inicial
             'E' => 12, // Unid Entradas
             'F' => 12, // Unid Salidas

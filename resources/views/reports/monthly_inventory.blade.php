@@ -177,8 +177,8 @@
         <thead>
             <tr>
                 <th rowspan="2" style="width: 10%;">MARCA</th>
+                <th rowspan="2" style="width: 21%;">TIPO DE PRODUCTO</th>
                 <th rowspan="2" style="width: 11%;">MODELO</th>
-                <th rowspan="2" style="width: 21%;">PRODUCTO / DESCRIPCIÓN</th>
                 <th colspan="6" class="header-unidades">UNIDADES (FÍSICAS)</th>
                 <th colspan="6" class="header-valores">VALORES (BOLÍVARES - Bs.)</th>
             </tr>
@@ -213,8 +213,8 @@
                     @foreach($brandGroup['items'] as $item)
                         <tr>
                             <td class="center"><strong>{{ $item['marca'] }}</strong></td>
-                            <td class="center"><strong>{{ $item['modelo'] }}</strong></td>
                             <td>{{ $item['description'] }}</td>
+                            <td class="center"><strong>{{ $item['modelo'] }}</strong></td>
 
                             <!-- Unidades -->
                             <td class="num">{{ isset($isExcel) && $isExcel ? $item['unidades_inicial'] : number_format($item['unidades_inicial'], 0, ',', '.') }}</td>
@@ -257,8 +257,8 @@
                 @forelse($items as $item)
                     <tr>
                         <td class="center"><strong>{{ $item['marca'] }}</strong></td>
-                        <td class="center"><strong>{{ $item['modelo'] }}</strong></td>
                         <td>{{ $item['description'] }}</td>
+                        <td class="center"><strong>{{ $item['modelo'] }}</strong></td>
 
                         <!-- Unidades -->
                         <td class="num">{{ isset($isExcel) && $isExcel ? $item['unidades_inicial'] : number_format($item['unidades_inicial'], 0, ',', '.') }}</td>
