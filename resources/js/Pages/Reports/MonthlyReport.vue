@@ -112,6 +112,75 @@ const filteredBrands = computed(() => {
     }).filter(Boolean);
 });
 
+const failedLogos = ref({});
+
+const getBrandSlug = (brandName) => {
+    if (!brandName) return null;
+    const b = brandName.toLowerCase();
+    
+    const slugMap = {
+        'chevrolet': 'chevrolet',
+        'chevy': 'chevrolet',
+        'ford': 'ford',
+        'toyota': 'toyota',
+        'totota': 'toyota',
+        'jeep': 'jeep',
+        'hyundai': 'hyundai',
+        'kia': 'kia',
+        'nissan': 'nissan',
+        'mitsubishi': 'mitsubishi',
+        'dodge': 'dodge',
+        'ram': 'ram',
+        'chrysler': 'chrysler',
+        'honda': 'honda',
+        'mazda': 'mazda',
+        'isuzu': 'isuzu',
+        'volkswagen': 'volkswagen',
+        'vw': 'volkswagen',
+        'cummins': 'cummins',
+        'mack': 'mack',
+        'international': 'international',
+        'daewoo': 'daewoo',
+        'caterpillar': 'caterpillar',
+        'cat': 'caterpillar',
+        'fiat': 'fiat',
+        'mercedes': 'mercedes',
+        'mini': 'mini',
+        'suzuki': 'suzuki',
+        'bmw': 'bmw',
+        'audi': 'audi',
+        'volvo': 'volvo',
+        'peugeot': 'peugeot',
+        'renault': 'renault',
+        'caribe': 'isuzu',
+    };
+
+    for (const key in slugMap) {
+        if (b.includes(key)) return slugMap[key];
+    }
+    return null;
+};
+
+const getBrandLogoUrl = (brandName) => {
+    const slug = getBrandSlug(brandName);
+    if (!slug || failedLogos.value[brandName]) return null;
+
+    if (slug === 'cummins') return '/cummins-logo.svg';
+    if (slug === 'international') return '/international-logo.svg';
+    if (slug === 'mack') return '/mack-logo.svg';
+    if (slug === 'daewoo') return '/daewoo-logo.svg';
+
+    if (slug === 'caterpillar') {
+        return `https://cdn.simpleicons.org/${slug}/000000`;
+    }
+
+    return `https://cdn.simpleicons.org/${slug}/ffffff`;
+};
+
+const handleLogoError = (brandName) => {
+    failedLogos.value[brandName] = true;
+};
+
 const getBrandBadge = (brandName) => {
     const b = (brandName || '').toUpperCase();
     if (b.includes('CHEVROLET')) {
@@ -398,10 +467,17 @@ const goBack = () => {
                                         <td colspan="16" class="py-3 px-4">
                                             <div class="flex items-center justify-between">
                                                 <div class="flex items-center gap-3">
-                                                    <!-- Brand Badge -->
-                                                    <span :class="[getBrandBadge(bGroup.brand).color, 'px-3 py-1 rounded-lg text-xs font-black flex items-center gap-2 shadow-sm border']">
-                                                        <i :class="getBrandBadge(bGroup.brand).icon"></i>
-                                                        {{ bGroup.brand }}
+                                                    <!-- Brand Badge with Official SVG Logo -->
+                                                    <span :class="[getBrandBadge(bGroup.brand).color, 'px-3 py-1.5 rounded-lg text-xs font-black flex items-center gap-2 shadow-sm border']">
+                                                        <img 
+                                                            v-if="getBrandLogoUrl(bGroup.brand)" 
+                                                            :src="getBrandLogoUrl(bGroup.brand)" 
+                                                            :alt="bGroup.brand"
+                                                            class="w-4 h-4 object-contain inline-block filter drop-shadow-sm" 
+                                                            @error="handleLogoError(bGroup.brand)"
+                                                        />
+                                                        <i v-else :class="getBrandBadge(bGroup.brand).icon"></i>
+                                                        <span>{{ bGroup.brand }}</span>
                                                     </span>
                                                     <span class="text-slate-300 text-xs font-semibold">
                                                         ({{ bGroup.items.length }} {{ bGroup.items.length === 1 ? 'modelo' : 'modelos' }})
