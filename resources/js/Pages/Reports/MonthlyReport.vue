@@ -5,17 +5,15 @@ import { router } from '@inertiajs/vue3';
 import axios from 'axios';
 
 const props = defineProps({
-    initialPeriodType: String,
-    initialMonth: Number,
-    initialBimonth: Number,
+    initialStartMonth: Number,
+    initialEndMonth: Number,
     initialYear: Number,
     initialGroupingMode: String,
     reportData: Object,
 });
 
-const selectedPeriodType = ref(props.initialPeriodType || 'monthly');
-const selectedMonth = ref(props.initialMonth || new Date().getMonth() + 1);
-const selectedBimonth = ref(props.initialBimonth || Math.ceil((new Date().getMonth() + 1) / 2));
+const selectedStartMonth = ref(props.initialStartMonth || new Date().getMonth() + 1);
+const selectedEndMonth = ref(props.initialEndMonth || selectedStartMonth.value);
 const selectedYear = ref(props.initialYear || new Date().getFullYear());
 const selectedGroupingMode = ref(props.initialGroupingMode || 'base');
 const searchQuery = ref('');
@@ -37,15 +35,6 @@ const months = [
     { value: 12, label: 'Diciembre' },
 ];
 
-const bimonths = [
-    { value: 1, label: '1er Bimestre (Enero - Febrero)' },
-    { value: 2, label: '2do Bimestre (Marzo - Abril)' },
-    { value: 3, label: '3er Bimestre (Mayo - Junio)' },
-    { value: 4, label: '4to Bimestre (Julio - Agosto)' },
-    { value: 5, label: '5to Bimestre (Septiembre - Octubre)' },
-    { value: 6, label: '6to Bimestre (Noviembre - Diciembre)' },
-];
-
 const availableYears = computed(() => {
     const currentYr = new Date().getFullYear();
     const years = [];
@@ -55,14 +44,45 @@ const availableYears = computed(() => {
     return years;
 });
 
+const handleStartMonthChange = () => {
+    if (selectedEndMonth.value < selectedStartMonth.value) {
+        selectedEndMonth.value = selectedStartMonth.value;
+    }
+    fetchReportData();
+};
+
+const handleEndMonthChange = () => {
+    if (selectedEndMonth.value < selectedStartMonth.value) {
+        selectedStartMonth.value = selectedEndMonth.value;
+    }
+    fetchReportData();
+};
+
+const setPresetRange = (preset) => {
+    const curMonth = new Date().getMonth() + 1;
+    if (preset === 'single') {
+        selectedStartMonth.value = curMonth;
+        selectedEndMonth.value = curMonth;
+    } else if (preset === 'bimonthly_mobile') {
+        selectedStartMonth.value = Math.max(1, curMonth - 1);
+        selectedEndMonth.value = curMonth;
+    } else if (preset === 'bimonthly_aug_sep') {
+        selectedStartMonth.value = 8; // Agosto
+        selectedEndMonth.value = 9;   // Septiembre
+    } else if (preset === 'quarterly') {
+        selectedStartMonth.value = Math.max(1, curMonth - 2);
+        selectedEndMonth.value = curMonth;
+    }
+    fetchReportData();
+};
+
 const fetchReportData = async () => {
     isLoading.value = true;
     try {
         const response = await axios.get(route('reports.monthly.data'), {
             params: {
-                period_type: selectedPeriodType.value,
-                month: selectedMonth.value,
-                bimonth: selectedBimonth.value,
+                start_month: selectedStartMonth.value,
+                end_month: selectedEndMonth.value,
                 year: selectedYear.value,
                 grouping_mode: selectedGroupingMode.value,
             }
@@ -259,9 +279,8 @@ const formatNum = (val) => {
 
 const exportPdf = () => {
     const url = route('reports.monthly.pdf', {
-        period_type: selectedPeriodType.value,
-        month: selectedMonth.value,
-        bimonth: selectedBimonth.value,
+        start_month: selectedStartMonth.value,
+        end_month: selectedEndMonth.value,
         year: selectedYear.value,
         grouping_mode: selectedGroupingMode.value,
     });
@@ -270,9 +289,8 @@ const exportPdf = () => {
 
 const exportExcel = () => {
     const url = route('reports.monthly.excel', {
-        period_type: selectedPeriodType.value,
-        month: selectedMonth.value,
-        bimonth: selectedBimonth.value,
+        start_month: selectedStartMonth.value,
+        end_month: selectedEndMonth.value,
         year: selectedYear.value,
         grouping_mode: selectedGroupingMode.value,
     });
@@ -285,13 +303,18 @@ const goBack = () => {
 </script>
 
 <template>
-    <AppLayout title="Reporte Mensual / Bimensual de Inventario">
+    <AppLayout title="Reporte de Inventario por Período">
         <template #header>
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <h2 class="font-bold text-2xl text-gray-800 dark:text-white leading-tight flex items-center">
-                    <i class="fa-solid fa-book-bookmark mr-3 text-indigo-600 dark:text-indigo-400"></i>
-                    Reporte {{ selectedPeriodType === 'bimonthly' ? 'Bimensual' : 'Mensual' }} de Inventario (Libro SENIAT)
-                </h2>
+                <div>
+                    <h2 class="font-bold text-2xl text-gray-800 dark:text-white leading-tight flex items-center">
+                        <i class="fa-solid fa-book-bookmark mr-3 text-indigo-600 dark:text-indigo-400"></i>
+                        Reporte de Inventario {{ selectedStartMonth === selectedEndMonth ? 'Mensual' : 'por Período' }} (Libro SENIAT)
+                    </h2>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 font-semibold">
+                        Selecciona libremente cualquier mes o rango de meses (ej: Agosto - Septiembre)
+                    </p>
+                </div>
                 <button 
                     @click="goBack" 
                     class="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-semibold py-2 px-4 rounded-xl text-sm transition-all flex items-center gap-2"
@@ -305,52 +328,37 @@ const goBack = () => {
             <div class="w-full px-4 sm:px-6 lg:px-8 space-y-6">
 
                 <!-- Control Panel / Selectors -->
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
+                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 space-y-4">
                     <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                         
-                        <!-- Period Type, Month/Bimonth, Year & Grouping Mode Selectors -->
+                        <!-- Month Range, Year & Grouping Mode Selectors -->
                         <div class="flex flex-wrap items-center gap-4 w-full lg:w-auto">
                             
-                            <!-- Frecuencia / Tipo de Período -->
+                            <!-- Selector Mes Desde -->
                             <div>
                                 <label class="block text-xs uppercase font-bold text-gray-500 dark:text-gray-400 mb-1">
-                                    <i class="fa-solid fa-clock mr-1 text-indigo-500"></i>Frecuencia
+                                    <i class="fa-solid fa-calendar-days mr-1 text-indigo-500"></i>Mes Desde
                                 </label>
                                 <select 
-                                    v-model="selectedPeriodType" 
-                                    @change="fetchReportData"
+                                    v-model="selectedStartMonth" 
+                                    @change="handleStartMonthChange"
                                     class="bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-semibold text-sm rounded-xl border border-gray-200 dark:border-gray-600 py-2.5 px-4 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                                 >
-                                    <option value="monthly">Mensual</option>
-                                    <option value="bimonthly">Bimensual</option>
+                                    <option v-for="m in months" :key="'start-' + m.value" :value="m.value">{{ m.label }}</option>
                                 </select>
                             </div>
 
-                            <!-- Selector de Mes (si la frecuencia es Mensual) -->
-                            <div v-if="selectedPeriodType === 'monthly'">
+                            <!-- Selector Mes Hasta -->
+                            <div>
                                 <label class="block text-xs uppercase font-bold text-gray-500 dark:text-gray-400 mb-1">
-                                    <i class="fa-solid fa-calendar-days mr-1 text-indigo-500"></i>Mes
+                                    <i class="fa-solid fa-calendar-week mr-1 text-indigo-500"></i>Mes Hasta
                                 </label>
                                 <select 
-                                    v-model="selectedMonth" 
-                                    @change="fetchReportData"
+                                    v-model="selectedEndMonth" 
+                                    @change="handleEndMonthChange"
                                     class="bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-semibold text-sm rounded-xl border border-gray-200 dark:border-gray-600 py-2.5 px-4 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
                                 >
-                                    <option v-for="m in months" :key="m.value" :value="m.value">{{ m.label }}</option>
-                                </select>
-                            </div>
-
-                            <!-- Selector de Bimestre (si la frecuencia es Bimensual) -->
-                            <div v-if="selectedPeriodType === 'bimonthly'">
-                                <label class="block text-xs uppercase font-bold text-gray-500 dark:text-gray-400 mb-1">
-                                    <i class="fa-solid fa-calendar-week mr-1 text-indigo-500"></i>Bimestre
-                                </label>
-                                <select 
-                                    v-model="selectedBimonth" 
-                                    @change="fetchReportData"
-                                    class="bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-semibold text-sm rounded-xl border border-gray-200 dark:border-gray-600 py-2.5 px-4 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                                >
-                                    <option v-for="bm in bimonths" :key="bm.value" :value="bm.value">{{ bm.label }}</option>
+                                    <option v-for="m in months" :key="'end-' + m.value" :value="m.value">{{ m.label }}</option>
                                 </select>
                             </div>
 
@@ -400,6 +408,23 @@ const goBack = () => {
                                 <i class="fa-solid fa-file-excel"></i> Excel (.xlsx)
                             </button>
                         </div>
+                    </div>
+
+                    <!-- Preset Period Range Shortcuts -->
+                    <div class="flex items-center gap-2 pt-2 border-t border-gray-100 dark:border-gray-700/60 overflow-x-auto">
+                        <span class="text-[10px] font-black uppercase text-gray-400 dark:text-gray-500 tracking-wider mr-1">Rápido:</span>
+                        <button @click="setPresetRange('single')" class="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-[11px] font-bold hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-900/40 dark:hover:text-indigo-400 transition-all">
+                            Mes Único
+                        </button>
+                        <button @click="setPresetRange('bimonthly_aug_sep')" class="px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-300 text-[11px] font-bold hover:bg-indigo-100 transition-all">
+                            Agosto - Septiembre
+                        </button>
+                        <button @click="setPresetRange('bimonthly_mobile')" class="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-[11px] font-bold hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-900/40 dark:hover:text-indigo-400 transition-all">
+                            Últimos 2 Meses
+                        </button>
+                        <button @click="setPresetRange('quarterly')" class="px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-[11px] font-bold hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-900/40 dark:hover:text-indigo-400 transition-all">
+                            Últimos 3 Meses
+                        </button>
                     </div>
                 </div>
 

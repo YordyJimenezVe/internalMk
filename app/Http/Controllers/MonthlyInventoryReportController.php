@@ -16,22 +16,24 @@ use App\Exports\MonthlyInventoryExport;
 class MonthlyInventoryReportController extends Controller
 {
     /**
-     * Muestra la vista del reporte mensual / bimensual de inventario.
+     * Muestra la vista del reporte de inventario por rango de meses / período.
      */
     public function index(Request $request)
     {
-        $periodType = $request->input('period_type', 'monthly');
-        $month = (int) $request->input('month', date('n'));
-        $bimonth = (int) $request->input('bimonth', (int) ceil(date('n') / 2));
+        $startMonth = (int) $request->input('start_month', $request->input('month', date('n')));
+        $endMonth = (int) $request->input('end_month', $request->input('bimonth' ? ($request->input('bimonth') * 2) : $startMonth));
+        if ($endMonth < $startMonth) {
+            $endMonth = $startMonth;
+        }
+
         $year = (int) $request->input('year', date('Y'));
         $groupingMode = $request->input('grouping_mode', 'base');
 
-        $reportData = $this->calculateReportData($periodType, $month, $bimonth, $year, $groupingMode);
+        $reportData = $this->calculateReportData($startMonth, $endMonth, $year, $groupingMode);
 
         return inertia('Reports/MonthlyReport', [
-            'initialPeriodType' => $periodType,
-            'initialMonth' => $month,
-            'initialBimonth' => $bimonth,
+            'initialStartMonth' => $startMonth,
+            'initialEndMonth' => $endMonth,
             'initialYear' => $year,
             'initialGroupingMode' => $groupingMode,
             'reportData' => $reportData,
@@ -43,13 +45,16 @@ class MonthlyInventoryReportController extends Controller
      */
     public function data(Request $request)
     {
-        $periodType = $request->input('period_type', 'monthly');
-        $month = (int) $request->input('month', date('n'));
-        $bimonth = (int) $request->input('bimonth', (int) ceil(date('n') / 2));
+        $startMonth = (int) $request->input('start_month', $request->input('month', date('n')));
+        $endMonth = (int) $request->input('end_month', $startMonth);
+        if ($endMonth < $startMonth) {
+            $endMonth = $startMonth;
+        }
+
         $year = (int) $request->input('year', date('Y'));
         $groupingMode = $request->input('grouping_mode', 'base');
 
-        $reportData = $this->calculateReportData($periodType, $month, $bimonth, $year, $groupingMode);
+        $reportData = $this->calculateReportData($startMonth, $endMonth, $year, $groupingMode);
 
         return response()->json($reportData);
     }
@@ -62,13 +67,16 @@ class MonthlyInventoryReportController extends Controller
         ini_set('memory_limit', '512M');
         set_time_limit(120);
 
-        $periodType = $request->input('period_type', 'monthly');
-        $month = (int) $request->input('month', date('n'));
-        $bimonth = (int) $request->input('bimonth', (int) ceil(date('n') / 2));
+        $startMonth = (int) $request->input('start_month', $request->input('month', date('n')));
+        $endMonth = (int) $request->input('end_month', $startMonth);
+        if ($endMonth < $startMonth) {
+            $endMonth = $startMonth;
+        }
+
         $year = (int) $request->input('year', date('Y'));
         $groupingMode = $request->input('grouping_mode', 'base');
 
-        $reportData = $this->calculateReportData($periodType, $month, $bimonth, $year, $groupingMode);
+        $reportData = $this->calculateReportData($startMonth, $endMonth, $year, $groupingMode);
 
         $pdf = Pdf::loadView('reports.monthly_inventory', $reportData)
             ->setPaper('letter', 'landscape')
@@ -79,7 +87,7 @@ class MonthlyInventoryReportController extends Controller
             ]);
 
         $periodSlug = str_replace(' ', '_', $reportData['periodName']);
-        $prefix = ($periodType === 'bimonthly') ? 'Reporte_Inventario_Bimensual' : 'Reporte_Inventario_Mensual';
+        $prefix = ($startMonth === $endMonth) ? 'Reporte_Inventario_Mensual' : 'Reporte_Inventario_Periodo';
         $fileName = "{$prefix}_{$periodSlug}_{$year}.pdf";
 
         return response($pdf->output(), 200, [
@@ -96,15 +104,18 @@ class MonthlyInventoryReportController extends Controller
         ini_set('memory_limit', '512M');
         set_time_limit(120);
 
-        $periodType = $request->input('period_type', 'monthly');
-        $month = (int) $request->input('month', date('n'));
-        $bimonth = (int) $request->input('bimonth', (int) ceil(date('n') / 2));
+        $startMonth = (int) $request->input('start_month', $request->input('month', date('n')));
+        $endMonth = (int) $request->input('end_month', $startMonth);
+        if ($endMonth < $startMonth) {
+            $endMonth = $startMonth;
+        }
+
         $year = (int) $request->input('year', date('Y'));
         $groupingMode = $request->input('grouping_mode', 'base');
 
-        $reportData = $this->calculateReportData($periodType, $month, $bimonth, $year, $groupingMode);
+        $reportData = $this->calculateReportData($startMonth, $endMonth, $year, $groupingMode);
         $periodSlug = str_replace(' ', '_', $reportData['periodName']);
-        $prefix = ($periodType === 'bimonthly') ? 'Reporte_Inventario_Bimensual' : 'Reporte_Inventario_Mensual';
+        $prefix = ($startMonth === $endMonth) ? 'Reporte_Inventario_Mensual' : 'Reporte_Inventario_Periodo';
 
         return Excel::download(
             new MonthlyInventoryExport($reportData),
@@ -195,20 +206,16 @@ class MonthlyInventoryReportController extends Controller
     }
 
     /**
-     * Calcula los saldos de inventario del mes o bimestre seleccionado.
+     * Calcula los saldos de inventario para cualquier rango de meses (Desde - Hasta).
      */
-    private function calculateReportData(string $periodType, int $month, int $bimonth, int $year, string $groupingMode = 'base'): array
+    private function calculateReportData(int $startMonth, int $endMonth, int $year, string $groupingMode = 'base'): array
     {
-        if ($periodType === 'bimonthly') {
-            $startMonth = ($bimonth - 1) * 2 + 1;
-            $endMonth = $bimonth * 2;
-            $periodName = $this->getBimonthName($bimonth);
-            $reportTitle = 'REPORTE BIMENSUAL DE INVENTARIO (LIBRO DE CONTROL FISCAL)';
-        } else {
-            $startMonth = $month;
-            $endMonth = $month;
-            $periodName = $this->getMonthName($month);
+        if ($startMonth === $endMonth) {
+            $periodName = $this->getMonthName($startMonth);
             $reportTitle = 'REPORTE MENSUAL DE INVENTARIO (LIBRO DE CONTROL FISCAL)';
+        } else {
+            $periodName = $this->getMonthName($startMonth) . ' - ' . $this->getMonthName($endMonth);
+            $reportTitle = 'REPORTE DE INVENTARIO POR PERÍODO (LIBRO DE CONTROL FISCAL)';
         }
 
         $startOfPeriod = Carbon::createFromDate($year, $startMonth, 1)->startOfMonth();
@@ -282,7 +289,7 @@ class MonthlyInventoryReportController extends Controller
                 $soldAt = Carbon::parse($item->updated_at);
             }
 
-            // Evaluar movimientos con respecto al período (mes o bimestre)
+            // Evaluar movimientos con respecto al período (Desde - Hasta)
             $isCreatedBeforePeriod = $entryDate->lt($startOfPeriod);
             $isCreatedInPeriod = $entryDate->gte($startOfPeriod) && $entryDate->lte($endOfPeriod);
 
@@ -481,9 +488,8 @@ class MonthlyInventoryReportController extends Controller
         return [
             'companyName' => $companyName,
             'companyRif' => $companyRif,
-            'periodType' => $periodType,
-            'month' => $month,
-            'bimonth' => $bimonth,
+            'startMonth' => $startMonth,
+            'endMonth' => $endMonth,
             'monthName' => strtoupper($periodName),
             'periodName' => strtoupper($periodName),
             'reportTitle' => $reportTitle,
@@ -504,18 +510,5 @@ class MonthlyInventoryReportController extends Controller
             9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'
         ];
         return $months[$month] ?? 'Enero';
-    }
-
-    private function getBimonthName(int $bimonth): string
-    {
-        $bimonths = [
-            1 => 'Enero - Febrero',
-            2 => 'Marzo - Abril',
-            3 => 'Mayo - Junio',
-            4 => 'Julio - Agosto',
-            5 => 'Septiembre - Octubre',
-            6 => 'Noviembre - Diciembre',
-        ];
-        return $bimonths[$bimonth] ?? 'Enero - Febrero';
     }
 }
