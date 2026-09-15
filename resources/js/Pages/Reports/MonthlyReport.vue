@@ -400,7 +400,7 @@ const goBack = () => {
                                     Detalle Mensual de Inventario Agrupado por Marcas
                                 </h3>
                                 <p class="text-xs text-gray-500 dark:text-gray-400">
-                                    Movimientos de {{ currentReportData?.monthName }} {{ currentReportData?.year }} (Marca &rarr; Modelo &rarr; Tipo &rarr; Alfabético)
+                                    Movimientos de {{ currentReportData?.monthName }} {{ currentReportData?.year }} (Marca &rarr; Tipo &rarr; Modelo &rarr; Alfabético)
                                 </p>
                             </div>
 
