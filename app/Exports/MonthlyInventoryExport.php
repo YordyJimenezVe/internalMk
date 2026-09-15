@@ -65,9 +65,11 @@ class MonthlyInventoryExport implements FromView, WithEvents, WithColumnWidths, 
             AfterSheet::class => function(AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
                 
-                // Configuración de página horizontal
+                // Configuración de página horizontal y pie de página impreso (Firma y Sello en cada página)
                 $sheet->getPageSetup()->setOrientation(PageSetup::ORIENTATION_LANDSCAPE);
                 $sheet->getPageSetup()->setPaperSize(PageSetup::PAPERSIZE_LETTER);
+                $sheet->getHeaderFooter()->setOddFooter('&L&"Arial,Bold" FIRMA &R&"Arial,Bold" SELLO');
+                $sheet->getHeaderFooter()->setEvenFooter('&L&"Arial,Bold" FIRMA &R&"Arial,Bold" SELLO');
 
                 $highestRow = $sheet->getHighestRow();
                 $highestColumn = 'O';

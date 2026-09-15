@@ -6,7 +6,7 @@
     <style>
         @page {
             size: letter landscape;
-            margin: 8mm 5mm 8mm 5mm;
+            margin: 8mm 5mm 22mm 5mm;
         }
         body {
             font-family: Arial, Helvetica, sans-serif;
@@ -108,10 +108,14 @@
             font-size: 7pt;
         }
 
-        /* Footer Signatures */
+        /* Footer Signatures (Fija en cada hoja para PDF) */
         .footer-signatures {
-            margin-top: 25px;
+            position: fixed;
+            bottom: -18mm;
+            left: 0;
+            right: 0;
             width: 100%;
+            height: 16mm;
         }
         .signature-table {
             width: 100%;
@@ -121,16 +125,16 @@
             width: 50%;
             text-align: center;
             vertical-align: bottom;
-            padding-top: 30px;
         }
         .signature-line {
-            width: 60%;
+            width: 55%;
             margin: 0 auto;
             border-top: 1px solid #334155;
-            padding-top: 4px;
-            font-size: 7pt;
+            padding-top: 3px;
+            font-size: 7.5pt;
             font-weight: bold;
             color: #334155;
+            text-transform: uppercase;
         }
     </style>
 </head>
@@ -308,25 +312,36 @@
         </tbody>
     </table>
 
-    <!-- Signatures -->
+@if(isset($isExcel) && $isExcel)
+    <!-- Signatures para la cuadrícula de Excel -->
+    <table>
+        <tr><td colspan="15"></td></tr>
+        <tr><td colspan="15"></td></tr>
+        <tr>
+            <td colspan="7" style="text-align: center; font-weight: bold; border-top: 1px solid #334155; font-size: 10pt;">FIRMA</td>
+            <td colspan="1"></td>
+            <td colspan="7" style="text-align: center; font-weight: bold; border-top: 1px solid #334155; font-size: 10pt;">SELLO</td>
+        </tr>
+    </table>
+@else
+    <!-- Signatures Fija en cada hoja para PDF -->
     <div class="footer-signatures">
         <table class="signature-table">
             <tr>
                 <td>
                     <div class="signature-line">
-                        ELABORADO POR / CONTADOR<br>
-                        <span style="font-weight: normal; font-size: 6.5pt; color: #64748b;">Firma y C.I.</span>
+                        FIRMA
                     </div>
                 </td>
                 <td>
                     <div class="signature-line">
-                        REPRESENTANTE LEGAL / SELLO<br>
-                        <span style="font-weight: normal; font-size: 6.5pt; color: #64748b;">Firma y Sello de la Empresa</span>
+                        SELLO
                     </div>
                 </td>
             </tr>
         </table>
     </div>
+@endif
 
 </body>
 </html>
