@@ -236,7 +236,7 @@ const getBrandBadge = (brandName) => {
 };
 
 const formatBs = (val) => {
-    return new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val || 0);
+    return "";
 };
 
 const formatNum = (val) => {
@@ -330,12 +330,6 @@ const goBack = () => {
                                     <option value="base">Por Modelo General (Ej: CHEVROLET 5.3L)</option>
                                     <option value="exact">Por Modelo Exacto (Con variantes L83, IV GEN)</option>
                                 </select>
-                            </div>
-
-                            <div class="mt-5 sm:mt-0 pt-5 lg:pt-0">
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 font-bold text-xs">
-                                    <i class="fa-solid fa-money-bill-transfer"></i> Tasa BCV: {{ formatBs(currentReportData?.exchangeRate) }} Bs.
-                                </span>
                             </div>
                         </div>
 
