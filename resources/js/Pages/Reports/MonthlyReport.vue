@@ -270,7 +270,10 @@ const getBrandBadge = (brandName) => {
 };
 
 const formatBs = (val) => {
-    return "";
+    return new Intl.NumberFormat('es-VE', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(val || 0);
 };
 
 const formatNum = (val) => {
