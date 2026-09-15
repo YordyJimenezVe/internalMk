@@ -176,10 +176,9 @@
     <table class="report-table">
         <thead>
             <tr>
-                <th rowspan="2" style="width: 8%;">MARCA</th>
-                <th rowspan="2" style="width: 9%;">MODELO</th>
-                <th rowspan="2" style="width: 14%;">PRODUCTO / DESCRIPCIÓN</th>
-                <th rowspan="2" style="width: 11%;">LOTES (CONTENEDORES)</th>
+                <th rowspan="2" style="width: 10%;">MARCA</th>
+                <th rowspan="2" style="width: 11%;">MODELO</th>
+                <th rowspan="2" style="width: 21%;">PRODUCTO / DESCRIPCIÓN</th>
                 <th colspan="6" class="header-unidades">UNIDADES (FÍSICAS)</th>
                 <th colspan="6" class="header-valores">VALORES (BOLÍVARES - Bs.)</th>
             </tr>
@@ -190,7 +189,7 @@
                 <th class="sub-header" style="width: 3.5%;">SALIDAS</th>
                 <th class="sub-header" style="width: 3.5%;">RETIROS</th>
                 <th class="sub-header" style="width: 3.5%;">AUTOCONS.</th>
-                <th class="sub-header" style="width: 4%;">FINAL</th>
+                <th class="sub-header" style="width: 4.5%;">FINAL</th>
 
                 <!-- Valores Subheaders -->
                 <th class="sub-header" style="width: 6.5%;">INICIAL</th>
@@ -198,7 +197,7 @@
                 <th class="sub-header" style="width: 6.5%;">SALIDAS</th>
                 <th class="sub-header" style="width: 6.5%;">RETIROS</th>
                 <th class="sub-header" style="width: 6.5%;">AUTOCONS.</th>
-                <th class="sub-header" style="width: 7%;">FINAL</th>
+                <th class="sub-header" style="width: 8%;">FINAL</th>
             </tr>
         </thead>
         <tbody>
@@ -206,7 +205,7 @@
                 @foreach($brands as $brandGroup)
                     <!-- Encabezado de Sección por Marca -->
                     <tr class="row-brand-header">
-                        <td colspan="16" style="background-color: #334155; color: #ffffff; font-weight: bold; font-size: 8pt; padding: 5px 8px; text-transform: uppercase;">
+                        <td colspan="15" style="background-color: #334155; color: #ffffff; font-weight: bold; font-size: 8pt; padding: 5px 8px; text-transform: uppercase;">
                             MARCA: {{ $brandGroup['brand'] }}
                         </td>
                     </tr>
@@ -216,7 +215,6 @@
                             <td class="center"><strong>{{ $item['marca'] }}</strong></td>
                             <td class="center"><strong>{{ $item['modelo'] }}</strong></td>
                             <td>{{ $item['description'] }}</td>
-                            <td class="container-tag">{!! nl2br(e($item['containers_str'])) !!}</td>
 
                             <!-- Unidades -->
                             <td class="num">{{ isset($isExcel) && $isExcel ? $item['unidades_inicial'] : number_format($item['unidades_inicial'], 0, ',', '.') }}</td>
@@ -238,7 +236,7 @@
 
                     <!-- Fila de Subtotal por Marca -->
                     <tr class="row-subtotal-brand">
-                        <td colspan="4" style="background-color: #f1f5f9; color: #1e293b; font-weight: bold; text-align: right; padding-right: 10px;">SUBTOTAL {{ $brandGroup['brand'] }}</td>
+                        <td colspan="3" style="background-color: #f1f5f9; color: #1e293b; font-weight: bold; text-align: right; padding-right: 10px;">SUBTOTAL {{ $brandGroup['brand'] }}</td>
 
                         <td class="num">{{ isset($isExcel) && $isExcel ? $brandGroup['totales']['unidades_inicial'] : number_format($brandGroup['totales']['unidades_inicial'], 0, ',', '.') }}</td>
                         <td class="num">{{ isset($isExcel) && $isExcel ? $brandGroup['totales']['unidades_entradas'] : number_format($brandGroup['totales']['unidades_entradas'], 0, ',', '.') }}</td>
@@ -261,7 +259,6 @@
                         <td class="center"><strong>{{ $item['marca'] }}</strong></td>
                         <td class="center"><strong>{{ $item['modelo'] }}</strong></td>
                         <td>{{ $item['description'] }}</td>
-                        <td class="container-tag">{!! nl2br(e($item['containers_str'])) !!}</td>
 
                         <!-- Unidades -->
                         <td class="num">{{ isset($isExcel) && $isExcel ? $item['unidades_inicial'] : number_format($item['unidades_inicial'], 0, ',', '.') }}</td>
@@ -281,7 +278,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="16" class="center" style="padding: 15px; color: #64748b;">
+                        <td colspan="15" class="center" style="padding: 15px; color: #64748b;">
                             No se encontraron registros de inventario ni movimientos para el mes de {{ $monthName }} del {{ $year }}.
                         </td>
                     </tr>
@@ -290,7 +287,7 @@
 
             <!-- Row Totales Generales -->
             <tr class="row-total">
-                <td colspan="4" class="center">TOTALES GENERALES</td>
+                <td colspan="3" class="center">TOTALES GENERALES</td>
 
                 <!-- Totales Unidades -->
                 <td class="num">{{ isset($isExcel) && $isExcel ? ($totales['unidades_inicial'] ?? 0) : number_format($totales['unidades_inicial'] ?? 0, 0, ',', '.') }}</td>

@@ -34,6 +34,11 @@ class Inventario extends Model
         });
     }
 
+    protected $appends = [
+        'formatted_cod',
+        'costo_taller',
+    ];
+
     protected $fillable = [
         'tipo',
         'marca',

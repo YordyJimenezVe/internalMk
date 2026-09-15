@@ -9,6 +9,7 @@ const props = defineProps({
     containers: Object,
     tipos: Object,
     tasa_bcv: Number,
+    utility_percentage: Number,
 });
 
 const page = usePage();
@@ -127,6 +128,17 @@ const parseLocaleFloat = (val) => {
     return isNaN(parsed) ? NaN : parsed;
 };
 
+const updateCalculatedPrice = () => {
+    let bsVal = parseLocaleFloat(form.costo_importacion_unitario);
+    if (isNaN(bsVal)) {
+        bsVal = 0;
+    }
+    const costoTaller = parseFloat(props.inventario?.costo_taller || 0) || 0;
+    const utilidad = parseFloat(props.utility_percentage ?? 30);
+    const calcPrice = (bsVal + costoTaller) * (1 + utilidad / 100);
+    form.price = calcPrice.toFixed(2);
+};
+
 const initCostoUsd = () => {
     const bsVal = parseLocaleFloat(form.costo_importacion_unitario);
     if (!isNaN(bsVal) && bsVal > 0 && props.tasa_bcv > 0) {
@@ -134,6 +146,7 @@ const initCostoUsd = () => {
     } else {
         costoUsd.value = '';
     }
+    updateCalculatedPrice();
 };
 
 const onUsdChange = () => {
@@ -143,6 +156,7 @@ const onUsdChange = () => {
     } else {
         form.costo_importacion_unitario = '';
     }
+    updateCalculatedPrice();
 };
 
 const onBsChange = () => {
@@ -152,6 +166,7 @@ const onBsChange = () => {
     } else {
         costoUsd.value = '';
     }
+    updateCalculatedPrice();
 };
 
 const formatNumberEs = (val) => {
@@ -455,6 +470,9 @@ onMounted(() => {
                                                 $ {{ (parseFloat(form.price || 0) / props.tasa_bcv).toFixed(2) }}
                                             </span>
                                         </div>
+                                    </div>
+                                    <div v-if="props.inventario?.costo_taller > 0" class="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold mt-1">
+                                        <i class="fa-solid fa-file-invoice mr-1"></i>Incluye Bs. {{ formatNumberEs(props.inventario.costo_taller) }} en facturas declaradas de taller
                                     </div>
                                     <InputError :message="form.errors.price" class="mt-2" />
                                 </div>

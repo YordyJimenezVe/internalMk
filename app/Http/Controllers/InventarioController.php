@@ -358,12 +358,14 @@ class InventarioController extends Controller
         $tipos = ['MOTOR 3/4', 'MOTOR 5/8', 'MOTOR 7/8', 'MOTOR COMPLETO', 'CAJA AUTOMÁTICA', 'CAJA SINCRÓNICA', 'CÁMARA', 'AUTOPARTE'];
         $latestRate = \App\Models\ExchangeRate::where('source', 'BCV')->latest()->first();
         $tasaBCV = $latestRate ? (float) $latestRate->rate : 0;
+        $utilityPercentage = (float) \App\Models\Setting::get('utility_percentage', 30);
 
         return inertia('Inventario/Edit', [
             'inventario' => $data,
             'containers' => $containers,
             'tipos' => $tipos,
             'tasa_bcv' => $tasaBCV,
+            'utility_percentage' => $utilityPercentage,
         ]);
     }
 
