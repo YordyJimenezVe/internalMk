@@ -121,23 +121,47 @@ const getBrandBadge = (brandName) => {
     } else if (b.includes('TOYOTA')) {
         return { color: 'bg-red-600 text-white border-red-500', icon: 'fa-solid fa-car-side', logoText: 'TOYOTA' };
     } else if (b.includes('JEEP')) {
-        return { color: 'bg-emerald-700 text-white border-emerald-600', icon: 'fa-solid fa-truck-monster', logoText: 'JEEP' };
+        return { color: 'bg-emerald-600 text-white border-emerald-500', icon: 'fa-solid fa-truck-monster', logoText: 'JEEP' };
+    } else if (b.includes('HYUNDAI/KIA')) {
+        return { color: 'bg-sky-600 text-white border-sky-500', icon: 'fa-solid fa-car-side', logoText: 'HYUNDAI/KIA' };
     } else if (b.includes('HYUNDAI')) {
-        return { color: 'bg-sky-600 text-white border-sky-500', icon: 'fa-solid fa-car-rear', logoText: 'HYUNDAI' };
+        return { color: 'bg-sky-500 text-white border-sky-400', icon: 'fa-solid fa-car-rear', logoText: 'HYUNDAI' };
+    } else if (b.includes('KIA')) {
+        return { color: 'bg-rose-700 text-white border-rose-600', icon: 'fa-solid fa-car', logoText: 'KIA' };
     } else if (b.includes('NISSAN')) {
-        return { color: 'bg-gray-700 text-white border-gray-600', icon: 'fa-solid fa-car', logoText: 'NISSAN' };
+        return { color: 'bg-slate-600 text-white border-slate-500', icon: 'fa-solid fa-car', logoText: 'NISSAN' };
     } else if (b.includes('MITSUBISHI')) {
-        return { color: 'bg-rose-700 text-white border-rose-600', icon: 'fa-solid fa-gem', logoText: 'MITSUBISHI' };
+        return { color: 'bg-rose-600 text-white border-rose-500', icon: 'fa-solid fa-gem', logoText: 'MITSUBISHI' };
     } else if (b.includes('DODGE') || b.includes('RAM')) {
-        return { color: 'bg-red-700 text-white border-red-600', icon: 'fa-solid fa-shield-halved', logoText: 'DODGE / RAM' };
+        return { color: 'bg-red-700 text-white border-red-600', icon: 'fa-solid fa-shield-halved', logoText: 'DODGE' };
+    } else if (b.includes('CHRYSLER')) {
+        return { color: 'bg-slate-700 text-white border-slate-600', icon: 'fa-solid fa-car', logoText: 'CHRYSLER' };
     } else if (b.includes('HONDA')) {
         return { color: 'bg-red-800 text-white border-red-700', icon: 'fa-solid fa-h', logoText: 'HONDA' };
     } else if (b.includes('MAZDA')) {
-        return { color: 'bg-indigo-700 text-white border-indigo-600', icon: 'fa-solid fa-car', logoText: 'MAZDA' };
+        return { color: 'bg-indigo-600 text-white border-indigo-500', icon: 'fa-solid fa-car', logoText: 'MAZDA' };
     } else if (b.includes('ISUZU')) {
         return { color: 'bg-red-600 text-white border-red-500', icon: 'fa-solid fa-truck', logoText: 'ISUZU' };
+    } else if (b.includes('VOLKSWAGEN') || b.includes('VW')) {
+        return { color: 'bg-cyan-700 text-white border-cyan-600', icon: 'fa-solid fa-car', logoText: 'VOLKSWAGEN' };
     } else if (b.includes('CUMMINS')) {
-        return { color: 'bg-black text-red-500 border-red-600', icon: 'fa-solid fa-gears', logoText: 'CUMMINS' };
+        return { color: 'bg-black text-red-500 border border-red-600', icon: 'fa-solid fa-gears', logoText: 'CUMMINS' };
+    } else if (b.includes('MACK')) {
+        return { color: 'bg-slate-800 text-amber-400 border border-amber-500', icon: 'fa-solid fa-truck-front', logoText: 'MACK' };
+    } else if (b.includes('INTERNATIONAL')) {
+        return { color: 'bg-orange-700 text-white border-orange-600', icon: 'fa-solid fa-truck-moving', logoText: 'INTERNATIONAL' };
+    } else if (b.includes('DAEWOO')) {
+        return { color: 'bg-blue-800 text-white border-blue-700', icon: 'fa-solid fa-car', logoText: 'DAEWOO' };
+    } else if (b.includes('CARIBE')) {
+        return { color: 'bg-amber-700 text-white border-amber-600', icon: 'fa-solid fa-truck-pickup', logoText: 'CARIBE' };
+    } else if (b.includes('CATERPILLAR') || b.includes('CAT')) {
+        return { color: 'bg-yellow-500 text-black font-bold border-black', icon: 'fa-solid fa-tractor', logoText: 'CATERPILLAR' };
+    } else if (b.includes('FIAT')) {
+        return { color: 'bg-red-600 text-white border-red-500', icon: 'fa-solid fa-car', logoText: 'FIAT' };
+    } else if (b.includes('MERCEDES')) {
+        return { color: 'bg-zinc-700 text-white border-zinc-600', icon: 'fa-solid fa-star', logoText: 'MERCEDES-BENZ' };
+    } else if (b.includes('MINI')) {
+        return { color: 'bg-zinc-800 text-white border-zinc-700', icon: 'fa-solid fa-car', logoText: 'MINI' };
     }
     return { color: 'bg-slate-700 text-white border-slate-600', icon: 'fa-solid fa-tag', logoText: b || 'MARCA' };
 };
@@ -190,8 +214,8 @@ const goBack = () => {
             </div>
         </template>
 
-        <div class="py-8">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+        <div class="py-6">
+            <div class="w-full px-4 sm:px-6 lg:px-8 space-y-6">
 
                 <!-- Control Panel / Selectors -->
                 <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
@@ -299,8 +323,8 @@ const goBack = () => {
                 <!-- Table Card -->
                 <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
                     
-                    <!-- Search Bar & Brand Quick Bar Header -->
-                    <div class="p-6 border-b border-gray-100 dark:border-gray-700 flex flex-col gap-4">
+                    <!-- Search Bar Header -->
+                    <div class="p-6 border-b border-gray-100 dark:border-gray-700">
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                             <div>
                                 <h3 class="font-bold text-lg text-gray-800 dark:text-white">
@@ -311,7 +335,7 @@ const goBack = () => {
                                 </p>
                             </div>
 
-                            <div class="w-full sm:w-72 relative">
+                            <div class="w-full sm:w-80 relative">
                                 <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-gray-400"></i>
                                 <input 
                                     v-model="searchQuery" 
@@ -320,19 +344,6 @@ const goBack = () => {
                                     class="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white text-xs rounded-xl border border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-indigo-500 outline-none"
                                 >
                             </div>
-                        </div>
-
-                        <!-- Brand Pills Quick Bar -->
-                        <div v-if="filteredBrands.length > 0" class="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-100 dark:border-gray-700/60">
-                            <span class="text-[10px] uppercase font-bold text-gray-400 mr-1">Marcas disponibles:</span>
-                            <span 
-                                v-for="(bGrp, bIdx) in filteredBrands" 
-                                :key="bIdx"
-                                :class="[getBrandBadge(bGrp.brand).color, 'px-2.5 py-0.5 rounded-lg text-[10px] font-bold inline-flex items-center gap-1 shadow-sm border opacity-90 hover:opacity-100 transition-all']"
-                            >
-                                <i :class="getBrandBadge(bGrp.brand).icon"></i>
-                                {{ bGrp.brand }} ({{ bGrp.items.length }})
-                            </span>
                         </div>
                     </div>
 
