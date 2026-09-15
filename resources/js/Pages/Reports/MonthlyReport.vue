@@ -5,13 +5,17 @@ import { router } from '@inertiajs/vue3';
 import axios from 'axios';
 
 const props = defineProps({
+    initialPeriodType: String,
     initialMonth: Number,
+    initialBimonth: Number,
     initialYear: Number,
     initialGroupingMode: String,
     reportData: Object,
 });
 
+const selectedPeriodType = ref(props.initialPeriodType || 'monthly');
 const selectedMonth = ref(props.initialMonth || new Date().getMonth() + 1);
+const selectedBimonth = ref(props.initialBimonth || Math.ceil((new Date().getMonth() + 1) / 2));
 const selectedYear = ref(props.initialYear || new Date().getFullYear());
 const selectedGroupingMode = ref(props.initialGroupingMode || 'base');
 const searchQuery = ref('');
@@ -33,6 +37,15 @@ const months = [
     { value: 12, label: 'Diciembre' },
 ];
 
+const bimonths = [
+    { value: 1, label: '1er Bimestre (Enero - Febrero)' },
+    { value: 2, label: '2do Bimestre (Marzo - Abril)' },
+    { value: 3, label: '3er Bimestre (Mayo - Junio)' },
+    { value: 4, label: '4to Bimestre (Julio - Agosto)' },
+    { value: 5, label: '5to Bimestre (Septiembre - Octubre)' },
+    { value: 6, label: '6to Bimestre (Noviembre - Diciembre)' },
+];
+
 const availableYears = computed(() => {
     const currentYr = new Date().getFullYear();
     const years = [];
@@ -47,14 +60,16 @@ const fetchReportData = async () => {
     try {
         const response = await axios.get(route('reports.monthly.data'), {
             params: {
+                period_type: selectedPeriodType.value,
                 month: selectedMonth.value,
+                bimonth: selectedBimonth.value,
                 year: selectedYear.value,
                 grouping_mode: selectedGroupingMode.value,
             }
         });
         currentReportData.value = response.data;
     } catch (error) {
-        console.error('Error al cargar datos del reporte mensual:', error);
+        console.error('Error al cargar datos del reporte:', error);
     } finally {
         isLoading.value = false;
     }
@@ -65,7 +80,6 @@ const filteredBrands = computed(() => {
     
     const brandsList = currentReportData.value.brands || [];
     if (brandsList.length === 0 && currentReportData.value.items) {
-        // Fallback for flat items list
         return [{
             brand: 'GENERAL',
             items: currentReportData.value.items,
@@ -245,7 +259,9 @@ const formatNum = (val) => {
 
 const exportPdf = () => {
     const url = route('reports.monthly.pdf', {
+        period_type: selectedPeriodType.value,
         month: selectedMonth.value,
+        bimonth: selectedBimonth.value,
         year: selectedYear.value,
         grouping_mode: selectedGroupingMode.value,
     });
@@ -254,7 +270,9 @@ const exportPdf = () => {
 
 const exportExcel = () => {
     const url = route('reports.monthly.excel', {
+        period_type: selectedPeriodType.value,
         month: selectedMonth.value,
+        bimonth: selectedBimonth.value,
         year: selectedYear.value,
         grouping_mode: selectedGroupingMode.value,
     });
@@ -267,12 +285,12 @@ const goBack = () => {
 </script>
 
 <template>
-    <AppLayout title="Reporte Mensual de Inventario">
+    <AppLayout title="Reporte Mensual / Bimensual de Inventario">
         <template #header>
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <h2 class="font-bold text-2xl text-gray-800 dark:text-white leading-tight flex items-center">
                     <i class="fa-solid fa-book-bookmark mr-3 text-indigo-600 dark:text-indigo-400"></i>
-                    Reporte Mensual de Inventario (Libro SENIAT)
+                    Reporte {{ selectedPeriodType === 'bimonthly' ? 'Bimensual' : 'Mensual' }} de Inventario (Libro SENIAT)
                 </h2>
                 <button 
                     @click="goBack" 
@@ -290,9 +308,26 @@ const goBack = () => {
                 <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-6">
                     <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
                         
-                        <!-- Month, Year & Grouping Mode Selectors -->
+                        <!-- Period Type, Month/Bimonth, Year & Grouping Mode Selectors -->
                         <div class="flex flex-wrap items-center gap-4 w-full lg:w-auto">
+                            
+                            <!-- Frecuencia / Tipo de Período -->
                             <div>
+                                <label class="block text-xs uppercase font-bold text-gray-500 dark:text-gray-400 mb-1">
+                                    <i class="fa-solid fa-clock mr-1 text-indigo-500"></i>Frecuencia
+                                </label>
+                                <select 
+                                    v-model="selectedPeriodType" 
+                                    @change="fetchReportData"
+                                    class="bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-semibold text-sm rounded-xl border border-gray-200 dark:border-gray-600 py-2.5 px-4 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                                >
+                                    <option value="monthly">Mensual</option>
+                                    <option value="bimonthly">Bimensual</option>
+                                </select>
+                            </div>
+
+                            <!-- Selector de Mes (si la frecuencia es Mensual) -->
+                            <div v-if="selectedPeriodType === 'monthly'">
                                 <label class="block text-xs uppercase font-bold text-gray-500 dark:text-gray-400 mb-1">
                                     <i class="fa-solid fa-calendar-days mr-1 text-indigo-500"></i>Mes
                                 </label>
@@ -305,6 +340,21 @@ const goBack = () => {
                                 </select>
                             </div>
 
+                            <!-- Selector de Bimestre (si la frecuencia es Bimensual) -->
+                            <div v-if="selectedPeriodType === 'bimonthly'">
+                                <label class="block text-xs uppercase font-bold text-gray-500 dark:text-gray-400 mb-1">
+                                    <i class="fa-solid fa-calendar-week mr-1 text-indigo-500"></i>Bimestre
+                                </label>
+                                <select 
+                                    v-model="selectedBimonth" 
+                                    @change="fetchReportData"
+                                    class="bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-semibold text-sm rounded-xl border border-gray-200 dark:border-gray-600 py-2.5 px-4 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                                >
+                                    <option v-for="bm in bimonths" :key="bm.value" :value="bm.value">{{ bm.label }}</option>
+                                </select>
+                            </div>
+
+                            <!-- Selector de Año -->
                             <div>
                                 <label class="block text-xs uppercase font-bold text-gray-500 dark:text-gray-400 mb-1">
                                     <i class="fa-solid fa-calendar mr-1 text-indigo-500"></i>Año
@@ -318,6 +368,7 @@ const goBack = () => {
                                 </select>
                             </div>
 
+                            <!-- Selector de Agrupación -->
                             <div>
                                 <label class="block text-xs uppercase font-bold text-gray-500 dark:text-gray-400 mb-1">
                                     <i class="fa-solid fa-layer-group mr-1 text-indigo-500"></i>Agrupación
@@ -369,14 +420,14 @@ const goBack = () => {
                     </div>
 
                     <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                        <div class="text-xs uppercase tracking-wider font-bold text-gray-400 mb-1">Entradas del Mes (Unid.)</div>
+                        <div class="text-xs uppercase tracking-wider font-bold text-gray-400 mb-1">Entradas del Período (Unid.)</div>
                         <div class="text-2xl font-black text-blue-600 dark:text-blue-400">
                             +{{ formatNum(currentReportData?.totales?.unidades_entradas) }}
                         </div>
                     </div>
 
                     <div class="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
-                        <div class="text-xs uppercase tracking-wider font-bold text-gray-400 mb-1">Salidas del Mes (Ventas Unid.)</div>
+                        <div class="text-xs uppercase tracking-wider font-bold text-gray-400 mb-1">Salidas del Período (Ventas Unid.)</div>
                         <div class="text-2xl font-black text-amber-600 dark:text-amber-400">
                             -{{ formatNum(currentReportData?.totales?.unidades_salidas) }}
                         </div>
@@ -391,10 +442,10 @@ const goBack = () => {
                         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                             <div>
                                 <h3 class="font-bold text-lg text-gray-800 dark:text-white">
-                                    Detalle Mensual de Inventario Agrupado por Marcas
+                                    Detalle del Inventario Agrupado por Marcas
                                 </h3>
                                 <p class="text-xs text-gray-500 dark:text-gray-400">
-                                    Movimientos de {{ currentReportData?.monthName }} {{ currentReportData?.year }} (Marca &rarr; Tipo &rarr; Modelo &rarr; Alfabético)
+                                    Movimientos de {{ currentReportData?.periodName || currentReportData?.monthName }} {{ currentReportData?.year }} (Marca &rarr; Tipo &rarr; Modelo &rarr; Alfabético)
                                 </p>
                             </div>
 

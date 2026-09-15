@@ -167,8 +167,8 @@
             <td colspan="6" style="text-align: right; font-size: 9pt; font-weight: bold; color: #334155;">RIF: {{ $companyRif ?? 'J-50000000-0' }}</td>
         </tr>
         <tr>
-            <td colspan="10" style="font-size: 11pt; font-weight: bold; color: #475569;">REPORTE MENSUAL DE INVENTARIO (LIBRO DE CONTROL FISCAL)</td>
-            <td colspan="6" style="text-align: right; font-size: 9pt; font-weight: bold; color: #334155;">MES Y AÑO: {{ $monthName }} / {{ $year }}</td>
+            <td colspan="10" style="font-size: 11pt; font-weight: bold; color: #475569;">{{ $reportTitle ?? 'REPORTE MENSUAL DE INVENTARIO (LIBRO DE CONTROL FISCAL)' }}</td>
+            <td colspan="6" style="text-align: right; font-size: 9pt; font-weight: bold; color: #334155;">PERÍODO Y AÑO: {{ $periodName ?? $monthName }} / {{ $year }}</td>
         </tr>
         <tr><td colspan="16"></td></tr>
     </table>
@@ -179,11 +179,11 @@
             <tr>
                 <td>
                     <div class="title-main">{{ $companyName ?? 'INTERNAL MAIKEL CARS, C.A.' }}</div>
-                    <div class="subtitle">REPORTE MENSUAL DE INVENTARIO (LIBRO DE CONTROL FISCAL)</div>
+                    <div class="subtitle">{{ $reportTitle ?? 'REPORTE MENSUAL DE INVENTARIO (LIBRO DE CONTROL FISCAL)' }}</div>
                 </td>
                 <td class="info-box">
                     <strong>RIF:</strong> {{ $companyRif ?? 'J-50000000-0' }}<br>
-                    <strong>MES Y AÑO:</strong> {{ $monthName }} / {{ $year }}
+                    <strong>PERÍODO Y AÑO:</strong> {{ $periodName ?? $monthName }} / {{ $year }}
                 </td>
             </tr>
         </table>

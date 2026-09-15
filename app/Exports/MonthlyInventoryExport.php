@@ -30,7 +30,7 @@ class MonthlyInventoryExport implements FromView, WithEvents, WithColumnWidths, 
      */
     public function title(): string
     {
-        return 'Inventario Mensual';
+        return ($this->data['periodType'] ?? 'monthly') === 'bimonthly' ? 'Inventario Bimensual' : 'Inventario Mensual';
     }
 
     public function view(): View

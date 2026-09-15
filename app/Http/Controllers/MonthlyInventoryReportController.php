@@ -16,18 +16,22 @@ use App\Exports\MonthlyInventoryExport;
 class MonthlyInventoryReportController extends Controller
 {
     /**
-     * Muestra la vista del reporte mensual de inventario.
+     * Muestra la vista del reporte mensual / bimensual de inventario.
      */
     public function index(Request $request)
     {
+        $periodType = $request->input('period_type', 'monthly');
         $month = (int) $request->input('month', date('n'));
+        $bimonth = (int) $request->input('bimonth', (int) ceil(date('n') / 2));
         $year = (int) $request->input('year', date('Y'));
         $groupingMode = $request->input('grouping_mode', 'base');
 
-        $reportData = $this->calculateMonthlyData($month, $year, $groupingMode);
+        $reportData = $this->calculateReportData($periodType, $month, $bimonth, $year, $groupingMode);
 
         return inertia('Reports/MonthlyReport', [
+            'initialPeriodType' => $periodType,
             'initialMonth' => $month,
+            'initialBimonth' => $bimonth,
             'initialYear' => $year,
             'initialGroupingMode' => $groupingMode,
             'reportData' => $reportData,
@@ -39,11 +43,13 @@ class MonthlyInventoryReportController extends Controller
      */
     public function data(Request $request)
     {
+        $periodType = $request->input('period_type', 'monthly');
         $month = (int) $request->input('month', date('n'));
+        $bimonth = (int) $request->input('bimonth', (int) ceil(date('n') / 2));
         $year = (int) $request->input('year', date('Y'));
         $groupingMode = $request->input('grouping_mode', 'base');
 
-        $reportData = $this->calculateMonthlyData($month, $year, $groupingMode);
+        $reportData = $this->calculateReportData($periodType, $month, $bimonth, $year, $groupingMode);
 
         return response()->json($reportData);
     }
@@ -56,11 +62,13 @@ class MonthlyInventoryReportController extends Controller
         ini_set('memory_limit', '512M');
         set_time_limit(120);
 
+        $periodType = $request->input('period_type', 'monthly');
         $month = (int) $request->input('month', date('n'));
+        $bimonth = (int) $request->input('bimonth', (int) ceil(date('n') / 2));
         $year = (int) $request->input('year', date('Y'));
         $groupingMode = $request->input('grouping_mode', 'base');
 
-        $reportData = $this->calculateMonthlyData($month, $year, $groupingMode);
+        $reportData = $this->calculateReportData($periodType, $month, $bimonth, $year, $groupingMode);
 
         $pdf = Pdf::loadView('reports.monthly_inventory', $reportData)
             ->setPaper('letter', 'landscape')
@@ -70,8 +78,9 @@ class MonthlyInventoryReportController extends Controller
                 'defaultFont' => 'sans-serif'
             ]);
 
-        $monthName = $this->getMonthName($month);
-        $fileName = "Reporte_Inventario_{$monthName}_{$year}.pdf";
+        $periodSlug = str_replace(' ', '_', $reportData['periodName']);
+        $prefix = ($periodType === 'bimonthly') ? 'Reporte_Inventario_Bimensual' : 'Reporte_Inventario_Mensual';
+        $fileName = "{$prefix}_{$periodSlug}_{$year}.pdf";
 
         return response($pdf->output(), 200, [
             'Content-Type' => 'application/pdf',
@@ -87,16 +96,19 @@ class MonthlyInventoryReportController extends Controller
         ini_set('memory_limit', '512M');
         set_time_limit(120);
 
+        $periodType = $request->input('period_type', 'monthly');
         $month = (int) $request->input('month', date('n'));
+        $bimonth = (int) $request->input('bimonth', (int) ceil(date('n') / 2));
         $year = (int) $request->input('year', date('Y'));
         $groupingMode = $request->input('grouping_mode', 'base');
 
-        $reportData = $this->calculateMonthlyData($month, $year, $groupingMode);
-        $monthName = $this->getMonthName($month);
+        $reportData = $this->calculateReportData($periodType, $month, $bimonth, $year, $groupingMode);
+        $periodSlug = str_replace(' ', '_', $reportData['periodName']);
+        $prefix = ($periodType === 'bimonthly') ? 'Reporte_Inventario_Bimensual' : 'Reporte_Inventario_Mensual';
 
         return Excel::download(
             new MonthlyInventoryExport($reportData),
-            "Reporte_Inventario_{$monthName}_{$year}.xlsx"
+            "{$prefix}_{$periodSlug}_{$year}.xlsx"
         );
     }
 
@@ -156,14 +168,7 @@ class MonthlyInventoryReportController extends Controller
     }
 
     /**
-     * Determina la prioridad de ordenamiento según el tipo de motor / producto:
-     * 1: MOTOR COMPLETO
-     * 2: MOTOR 7/8
-     * 3: MOTOR 5/8
-     * 4: MOTOR 3/4
-     * 5: CAJA
-     * 6: CÁMARA
-     * 7: AUTOPARTE / OTROS
+     * Determina la prioridad de ordenamiento según el tipo de motor / producto.
      */
     private function getTypePriority(string $tipo): int
     {
@@ -190,12 +195,24 @@ class MonthlyInventoryReportController extends Controller
     }
 
     /**
-     * Calcula los saldos de inventario del mes seleccionado convirtiendo la base en USD a Bolívares (Bs.) usando la Tasa BCV del día/período.
+     * Calcula los saldos de inventario del mes o bimestre seleccionado.
      */
-    private function calculateMonthlyData(int $month, int $year, string $groupingMode = 'base'): array
+    private function calculateReportData(string $periodType, int $month, int $bimonth, int $year, string $groupingMode = 'base'): array
     {
-        $startOfMonth = Carbon::createFromDate($year, $month, 1)->startOfMonth();
-        $endOfMonth = Carbon::createFromDate($year, $month, 1)->endOfMonth();
+        if ($periodType === 'bimonthly') {
+            $startMonth = ($bimonth - 1) * 2 + 1;
+            $endMonth = $bimonth * 2;
+            $periodName = $this->getBimonthName($bimonth);
+            $reportTitle = 'REPORTE BIMENSUAL DE INVENTARIO (LIBRO DE CONTROL FISCAL)';
+        } else {
+            $startMonth = $month;
+            $endMonth = $month;
+            $periodName = $this->getMonthName($month);
+            $reportTitle = 'REPORTE MENSUAL DE INVENTARIO (LIBRO DE CONTROL FISCAL)';
+        }
+
+        $startOfPeriod = Carbon::createFromDate($year, $startMonth, 1)->startOfMonth();
+        $endOfPeriod = Carbon::createFromDate($year, $endMonth, 1)->endOfMonth();
 
         // Tasa de Cambio BCV del día / período
         $exchangeRateObj = ExchangeRate::where('source', 'BCV')->latest()->first();
@@ -205,7 +222,7 @@ class MonthlyInventoryReportController extends Controller
         $companyName = Setting::where('key', 'company_name')->value('value') ?? 'INTERNAL MAIKEL CARS, C.A.';
         $companyRif = Setting::where('key', 'company_rif')->value('value') ?? 'J-50000000-0';
 
-        // Obtener todos los inventarios con sus relaciones de contenedor, facturación y mantenimientos
+        // Obtener todos los inventarios con sus relaciones
         $inventarios = Inventario::with(['container', 'bill', 'maintenances'])->get();
 
         $groupedItems = [];
@@ -241,7 +258,7 @@ class MonthlyInventoryReportController extends Controller
                 $costUsd = ($rawVal > 5000 && $exchangeRate > 0) ? ($rawVal / $exchangeRate) : $rawVal;
             }
 
-            // Determinar la fecha real de ingreso / llegada de la mercancía (tomando la fecha del contenedor si existe)
+            // Determinar la fecha real de ingreso / llegada
             $entryDate = null;
             if ($item->container) {
                 if (!empty($item->container->fecha)) {
@@ -265,40 +282,40 @@ class MonthlyInventoryReportController extends Controller
                 $soldAt = Carbon::parse($item->updated_at);
             }
 
-            // Evaluar movimientos
-            $isCreatedBeforeMonth = $entryDate->lt($startOfMonth);
-            $isCreatedInMonth = $entryDate->gte($startOfMonth) && $entryDate->lte($endOfMonth);
+            // Evaluar movimientos con respecto al período (mes o bimestre)
+            $isCreatedBeforePeriod = $entryDate->lt($startOfPeriod);
+            $isCreatedInPeriod = $entryDate->gte($startOfPeriod) && $entryDate->lte($endOfPeriod);
 
-            $isSoldBeforeMonth = $soldAt && $soldAt->lt($startOfMonth);
-            $isSoldInMonth = $soldAt && $soldAt->gte($startOfMonth) && $soldAt->lte($endOfMonth);
+            $isSoldBeforePeriod = $soldAt && $soldAt->lt($startOfPeriod);
+            $isSoldInPeriod = $soldAt && $soldAt->gte($startOfPeriod) && $soldAt->lte($endOfPeriod);
 
-            $isAutoconsumoInMonth = ($item->status === 'USO INTERNO' || $item->status === 'MANTENIMIENTO') 
-                && Carbon::parse($item->updated_at)->gte($startOfMonth) 
-                && Carbon::parse($item->updated_at)->lte($endOfMonth);
+            $isAutoconsumoInPeriod = ($item->status === 'USO INTERNO' || $item->status === 'MANTENIMIENTO') 
+                && Carbon::parse($item->updated_at)->gte($startOfPeriod) 
+                && Carbon::parse($item->updated_at)->lte($endOfPeriod);
 
-            $isRetiroInMonth = in_array($item->status, ['DEVUELTO', 'GARANTIA', 'GARANTÍA', 'INOPERATIVO-DESARMADO'])
-                && Carbon::parse($item->updated_at)->gte($startOfMonth)
-                && Carbon::parse($item->updated_at)->lte($endOfMonth);
+            $isRetiroInPeriod = in_array($item->status, ['DEVUELTO', 'GARANTIA', 'GARANTÍA', 'INOPERATIVO-DESARMADO'])
+                && Carbon::parse($item->updated_at)->gte($startOfPeriod)
+                && Carbon::parse($item->updated_at)->lte($endOfPeriod);
 
-            // Existencia Inicial (Creado antes del mes y NO vendido ni retirado antes del inicio del mes)
-            $existenciaInicial = ($isCreatedBeforeMonth && !$isSoldBeforeMonth) ? 1 : 0;
-            $entradas = $isCreatedInMonth ? 1 : 0;
-            $salidas = $isSoldInMonth ? 1 : 0;
-            $retiros = $isRetiroInMonth ? 1 : 0;
-            $autoconsumos = $isAutoconsumoInMonth ? 1 : 0;
+            // Existencia Inicial
+            $existenciaInicial = ($isCreatedBeforePeriod && !$isSoldBeforePeriod) ? 1 : 0;
+            $entradas = $isCreatedInPeriod ? 1 : 0;
+            $salidas = $isSoldInPeriod ? 1 : 0;
+            $retiros = $isRetiroInPeriod ? 1 : 0;
+            $autoconsumos = $isAutoconsumoInPeriod ? 1 : 0;
 
-            // Existencia Final por unidad
+            // Existencia Final
             $existenciaFinal = $existenciaInicial + $entradas - $salidas - $retiros - $autoconsumos;
             if ($existenciaFinal < 0) {
                 $existenciaFinal = 0;
             }
 
-            // Si esta unidad específica no tuvo ningún movimiento ni stock en el mes, omitir
+            // Si esta unidad no tuvo ningún movimiento ni stock en el período, omitir
             if ($existenciaInicial == 0 && $entradas == 0 && $salidas == 0 && $retiros == 0 && $autoconsumos == 0 && $existenciaFinal == 0) {
                 continue;
             }
 
-            // Clave única de agrupación por Marca + Tipo (Descripción) + Modelo
+            // Clave única de agrupación por Marca + Tipo + Modelo
             $groupKey = $marca . '||' . $description . '||' . $modeloClean;
 
             if (!isset($groupedItems[$groupKey])) {
@@ -336,7 +353,7 @@ class MonthlyInventoryReportController extends Controller
             }
             $groupedItems[$groupKey]['containers_map'][$containerCode]++;
 
-            // Valores en Bolívares (Bs.) calculados con la Tasa BCV del día
+            // Valores en Bolívares (Bs.)
             $valInicial = $existenciaInicial * $costUsd * $exchangeRate;
             $valEntradas = $entradas * $costUsd * $exchangeRate;
             $valSalidas = $salidas * $costUsd * $exchangeRate;
@@ -344,7 +361,7 @@ class MonthlyInventoryReportController extends Controller
             $valAutoconsumo = $autoconsumos * $costUsd * $exchangeRate;
             $valFinal = $existenciaFinal * $costUsd * $exchangeRate;
 
-            // Acumular cantidades por tipo + modelo
+            // Acumular cantidades
             $groupedItems[$groupKey]['unidades_inicial'] += $existenciaInicial;
             $groupedItems[$groupKey]['unidades_entradas'] += $entradas;
             $groupedItems[$groupKey]['unidades_salidas'] += $salidas;
@@ -352,7 +369,7 @@ class MonthlyInventoryReportController extends Controller
             $groupedItems[$groupKey]['unidades_autoconsumo'] += $autoconsumos;
             $groupedItems[$groupKey]['unidades_final'] += $existenciaFinal;
 
-            // Acumular valores en Bs. calculados a la Tasa del día
+            // Acumular valores
             $groupedItems[$groupKey]['valores_inicial'] += $valInicial;
             $groupedItems[$groupKey]['valores_entradas'] += $valEntradas;
             $groupedItems[$groupKey]['valores_salidas'] += $valSalidas;
@@ -361,7 +378,7 @@ class MonthlyInventoryReportController extends Controller
             $groupedItems[$groupKey]['valores_final'] += $valFinal;
         }
 
-        // Construir string de contenedores de origen para cada fila
+        // Construir string de contenedores
         foreach ($groupedItems as $key => &$gItem) {
             $cList = [];
             foreach ($gItem['containers_map'] as $cCode => $cnt) {
@@ -381,7 +398,7 @@ class MonthlyInventoryReportController extends Controller
             $byBrand[$b][] = $gItem;
         }
 
-        // Ordenar los ítems de cada marca por: 1) Prioridad de Tipo ASC, 2) Modelo alfabético ASC, 3) Descripción alfabética ASC
+        // Ordenar los ítems de cada marca
         foreach ($byBrand as $bName => &$bItems) {
             usort($bItems, function ($a, $b) {
                 if ($a['type_priority'] !== $b['type_priority']) {
@@ -395,7 +412,7 @@ class MonthlyInventoryReportController extends Controller
             });
         }
 
-        // Ordenar Marcas (Marcas principales primero, luego resto alfabético, 'OTRAS MARCAS' al final)
+        // Ordenar Marcas
         $popularBrandsOrder = ['CHEVROLET', 'FORD', 'TOYOTA', 'JEEP', 'HYUNDAI', 'NISSAN', 'MITSUBISHI', 'DODGE', 'RAM', 'CHRYSLER', 'HONDA', 'MAZDA', 'ISUZU', 'CHERY', 'VOLKSWAGEN', 'CUMMINS', 'MACK', 'INTERNATIONAL', 'DAEWOO'];
 
         uksort($byBrand, function ($a, $b) use ($popularBrandsOrder) {
@@ -414,7 +431,7 @@ class MonthlyInventoryReportController extends Controller
             return strcmp($a, $b);
         });
 
-        // Estructurar array final por marcas con subtotales
+        // Estructurar array final por marcas
         $brandsData = [];
         $flatItemsList = [];
 
@@ -464,8 +481,12 @@ class MonthlyInventoryReportController extends Controller
         return [
             'companyName' => $companyName,
             'companyRif' => $companyRif,
+            'periodType' => $periodType,
             'month' => $month,
-            'monthName' => strtoupper($this->getMonthName($month)),
+            'bimonth' => $bimonth,
+            'monthName' => strtoupper($periodName),
+            'periodName' => strtoupper($periodName),
+            'reportTitle' => $reportTitle,
             'year' => $year,
             'groupingMode' => $groupingMode,
             'exchangeRate' => $exchangeRate,
@@ -483,5 +504,18 @@ class MonthlyInventoryReportController extends Controller
             9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'
         ];
         return $months[$month] ?? 'Enero';
+    }
+
+    private function getBimonthName(int $bimonth): string
+    {
+        $bimonths = [
+            1 => 'Enero - Febrero',
+            2 => 'Marzo - Abril',
+            3 => 'Mayo - Junio',
+            4 => 'Julio - Agosto',
+            5 => 'Septiembre - Octubre',
+            6 => 'Noviembre - Diciembre',
+        ];
+        return $bimonths[$bimonth] ?? 'Enero - Febrero';
     }
 }
