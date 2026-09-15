@@ -382,7 +382,7 @@ class MonthlyInventoryReportController extends Controller
             $byBrand[$b][] = $gItem;
         }
 
-        // Ordenar los ítems de cada marca por: 1) Contenedor más nuevo DESC, 2) Prioridad tipo ASC, 3) Descripción ASC
+        // Ordenar los ítems de cada marca por: 1) Contenedor más nuevo DESC, 2) Prioridad tipo ASC, 3) Modelo alfabético ASC, 4) Descripción ASC
         foreach ($byBrand as $bName => &$bItems) {
             usort($bItems, function ($a, $b) {
                 if ($a['newest_container_timestamp'] !== $b['newest_container_timestamp']) {
@@ -391,7 +391,11 @@ class MonthlyInventoryReportController extends Controller
                 if ($a['type_priority'] !== $b['type_priority']) {
                     return $a['type_priority'] <=> $b['type_priority'];
                 }
-                return strcmp($a['description'], $b['description']);
+                $modelCmp = strnatcasecmp($a['modelo'] ?? '', $b['modelo'] ?? '');
+                if ($modelCmp !== 0) {
+                    return $modelCmp;
+                }
+                return strnatcasecmp($a['description'] ?? '', $b['description'] ?? '');
             });
         }
 
