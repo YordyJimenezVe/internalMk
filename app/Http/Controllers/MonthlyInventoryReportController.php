@@ -145,10 +145,12 @@ class MonthlyInventoryReportController extends Controller
         $codeParts = array_filter([$marcaClean, $modeloClean]);
         $code = !empty($codeParts) ? implode(' ', $codeParts) : ($tipoClean ?: 'PRODUCTO');
 
-        $descParts = array_filter([$tipoClean, $marcaClean, $modeloClean]);
+        $descParts = array_filter([$tipoClean, $modeloClean]);
         $description = !empty($descParts) ? implode(' ', $descParts) : 'PRODUCTO GENERAL';
 
         return [
+            'marca' => $marcaClean ?: 'OTRAS MARCAS',
+            'modelo' => $modeloClean ?: 'N/A',
             'code' => $code,
             'description' => $description,
         ];
@@ -220,6 +222,7 @@ class MonthlyInventoryReportController extends Controller
 
             // Normalizar Tipo + Modelo
             $modelInfo = $this->normalizeModelInfo($tipo, $marca, $modelo, $useBaseModel);
+            $modeloClean = $modelInfo['modelo'];
             $code = $modelInfo['code'];
             $description = $modelInfo['description'];
 
@@ -302,6 +305,7 @@ class MonthlyInventoryReportController extends Controller
             if (!isset($groupedItems[$groupKey])) {
                 $groupedItems[$groupKey] = [
                     'marca' => $marca,
+                    'modelo' => $modeloClean ?: 'N/A',
                     'code' => $code,
                     'description' => $description,
                     'type_priority' => $this->getTypePriority($tipo),
