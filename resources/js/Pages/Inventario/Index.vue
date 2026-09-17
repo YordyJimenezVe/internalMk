@@ -144,8 +144,25 @@ const columns = computed(() => {
         cols.push({ key: 'año', label: 'Año', sortable: true });
     }
 
+    cols.push({ key: 'precio_factura', label: 'Factura Declarada', sortable: false });
+
     return cols;
 });
+
+const getBillingTotals = (row) => {
+    const baseCosto = parseFloat(row.costo_importacion_unitario || row.costo || 0);
+    if (!baseCosto || baseCosto <= 0) {
+        return { hasCost: false };
+    }
+    const costoTaller = parseFloat(row.costo_taller || 0) || 0;
+    const big = (baseCosto + costoTaller) * 1.30;
+    const total = big * 1.16;
+    return {
+        hasCost: true,
+        bigBs: big.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        totalBs: total.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    };
+};
 
 const statusFilter = ref(props.filters?.status || 'ALL');
 const typeFilter = ref(props.filters?.type_filter || ''); // New
@@ -302,6 +319,24 @@ const confirmDelete = () => {
 
                     <template #cell-tipo="{ row }">
                         <span class="text-xs font-bold text-indigo-500/80 dark:text-indigo-400/80 uppercase tracking-tight">{{ row.tipo }}</span>
+                    </template>
+
+                    <template #cell-precio_factura="{ row }">
+                        <div class="flex flex-col text-[11px] leading-snug">
+                            <template v-if="getBillingTotals(row).hasCost">
+                                <span class="font-bold text-gray-700 dark:text-gray-300 font-mono">
+                                    Base: Bs. {{ getBillingTotals(row).bigBs }}
+                                </span>
+                                <span class="font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                                    Total c/IVA: Bs. {{ getBillingTotals(row).totalBs }}
+                                </span>
+                            </template>
+                            <template v-else>
+                                <span class="text-amber-500 font-bold italic text-[10px] flex items-center gap-1">
+                                    <i class="fa-solid fa-hourglass-half"></i> Pendiente
+                                </span>
+                            </template>
+                        </div>
                     </template>
 
                     <!-- Actions (Premium Redesign) -->

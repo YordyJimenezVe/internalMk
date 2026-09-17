@@ -198,6 +198,28 @@ const onBsChange = (id) => {
     }
 };
 
+const formatNumberEs = (val) => {
+    const num = parseFloat(val);
+    if (isNaN(num)) return '0,00';
+    return num.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
+const getItemFinancialSummary = (id) => {
+    const f = forms.value[id];
+    if (!f) return { big: 0, iva: 0, total: 0, totalUsd: 0 };
+    const bsVal = parseLocaleFloat(f.costo_importacion_unitario) || 0;
+    const big = bsVal * 1.30;
+    const iva = big * 0.16;
+    const total = big * 1.16;
+    const tasa = props.tasa_bcv || 1;
+    return {
+        big,
+        iva,
+        total,
+        totalUsd: tasa > 0 ? total / tasa : 0,
+    };
+};
+
 const summary = computed(() => {
     if (props.totals) {
         return props.totals;
@@ -469,6 +491,22 @@ const cleanItemName = (item) => {
                                                         class="block w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl py-1.5 pl-8 pr-2 text-right font-mono font-bold text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs"
                                                         required
                                                     >
+                                                </div>
+                                            </div>
+
+                                            <!-- Live Financial Breakdown Preview -->
+                                            <div v-if="getItemFinancialSummary(item.id).total > 0" class="w-full bg-indigo-50/50 dark:bg-gray-900/60 p-2 rounded-xl border border-indigo-100 dark:border-gray-700 text-[10px] space-y-1">
+                                                <div class="flex justify-between items-center text-gray-600 dark:text-gray-400">
+                                                    <span>Base (B.I.G.):</span>
+                                                    <span class="font-mono font-bold">Bs. {{ formatNumberEs(getItemFinancialSummary(item.id).big) }}</span>
+                                                </div>
+                                                <div class="flex justify-between items-center text-rose-500">
+                                                    <span>16% IVA:</span>
+                                                    <span class="font-mono font-bold">Bs. {{ formatNumberEs(getItemFinancialSummary(item.id).iva) }}</span>
+                                                </div>
+                                                <div class="flex justify-between items-center text-emerald-600 dark:text-emerald-400 font-bold border-t border-gray-200 dark:border-gray-700 pt-1">
+                                                    <span>Total Facturable:</span>
+                                                    <span class="font-mono">Bs. {{ formatNumberEs(getItemFinancialSummary(item.id).total) }} (${{ getItemFinancialSummary(item.id).totalUsd.toFixed(2) }})</span>
                                                 </div>
                                             </div>
 

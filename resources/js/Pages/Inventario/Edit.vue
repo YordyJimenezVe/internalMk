@@ -128,13 +128,15 @@ const parseLocaleFloat = (val) => {
     return isNaN(parsed) ? NaN : parsed;
 };
 
+const utilityPercent = ref(props.utility_percentage ?? 30);
+
 const updateCalculatedPrice = () => {
     let bsVal = parseLocaleFloat(form.costo_importacion_unitario);
     if (isNaN(bsVal)) {
         bsVal = 0;
     }
     const costoTaller = parseFloat(props.inventario?.costo_taller || 0) || 0;
-    const utilidad = parseFloat(props.utility_percentage ?? 30);
+    const utilidad = parseFloat(utilityPercent.value ?? 30);
     const calcPrice = (bsVal + costoTaller) * (1 + utilidad / 100);
     form.price = calcPrice.toFixed(2);
 };
@@ -402,98 +404,138 @@ onMounted(() => {
                         </div>
 
                         <!-- Pricing/Import Cost Section -->
-                        <div class="bg-indigo-50/30 dark:bg-gray-900/30 p-8 rounded-2xl border border-indigo-100 dark:border-indigo-900/30">
-                            <div v-if="isContador" class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                                <!-- Costo de Importación Dual Input ($ y Bs) -->
-                                <div>
-                                    <label class="block uppercase tracking-wide text-indigo-700 dark:text-indigo-400 text-xs font-bold mb-2">
-                                        <i class="fa-solid fa-ship mr-1"></i>Costo de Importación ($ / Bs.)
-                                    </label>
-                                    <div class="flex flex-col gap-2">
-                                        <div class="flex items-center gap-2">
-                                            <!-- Dollar Input -->
-                                            <div class="relative rounded-xl shadow-sm flex-1">
-                                                <div class="absolute inset-y-0 left-2.5 flex items-center pointer-events-none">
-                                                    <span class="text-gray-400 dark:text-gray-500 font-bold text-xs">$</span>
+                        <div class="bg-indigo-50/30 dark:bg-gray-900/30 p-8 rounded-2xl border border-indigo-100 dark:border-indigo-900/30 space-y-6">
+                            <div v-if="isContador" class="space-y-6">
+                                <h3 class="font-bold text-indigo-800 dark:text-indigo-300 text-sm uppercase tracking-wider flex items-center gap-2">
+                                    <i class="fa-solid fa-calculator text-indigo-500"></i> Estructura de Costos y Facturación Declarada
+                                </h3>
+
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <!-- Costo de Importación Dual Input ($ y Bs) -->
+                                    <div>
+                                        <label class="block uppercase tracking-wide text-indigo-700 dark:text-indigo-400 text-xs font-bold mb-2">
+                                            <i class="fa-solid fa-ship mr-1"></i>Costo Importación (E+Prorrateo) ($ / Bs.)
+                                        </label>
+                                        <div class="flex flex-col gap-2">
+                                            <div class="flex items-center gap-2">
+                                                <!-- Dollar Input -->
+                                                <div class="relative rounded-xl shadow-sm flex-1">
+                                                    <div class="absolute inset-y-0 left-2.5 flex items-center pointer-events-none">
+                                                        <span class="text-gray-400 dark:text-gray-500 font-bold text-xs">$</span>
+                                                    </div>
+                                                    <input 
+                                                        v-model="costoUsd" 
+                                                        @input="onUsdChange"
+                                                        type="text" 
+                                                        placeholder="USD"
+                                                        class="block w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl py-2 pl-6 pr-2 text-right font-mono font-bold text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                                                    >
                                                 </div>
-                                                <input 
-                                                    v-model="costoUsd" 
-                                                    @input="onUsdChange"
-                                                    type="text" 
-                                                    placeholder="USD"
-                                                    class="block w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl py-2 pl-6 pr-2 text-right font-mono font-bold text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                                                >
+
+                                                <!-- Exchange Icon -->
+                                                <span class="text-gray-400 dark:text-gray-500 text-xs shrink-0">
+                                                    <i class="fa-solid fa-right-left"></i>
+                                                </span>
+
+                                                <!-- Bolivares Input -->
+                                                <div class="relative rounded-xl shadow-sm flex-1">
+                                                    <div class="absolute inset-y-0 left-2.5 flex items-center pointer-events-none">
+                                                        <span class="text-gray-400 dark:text-gray-500 font-bold text-xs">Bs.</span>
+                                                    </div>
+                                                    <input 
+                                                        v-model="form.costo_importacion_unitario" 
+                                                        @input="onBsChange"
+                                                        type="text" 
+                                                        placeholder="0.00"
+                                                        class="block w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl py-2 pl-8 pr-2 text-right font-mono font-bold text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                                                    >
+                                                </div>
                                             </div>
 
-                                            <!-- Exchange Icon -->
-                                            <span class="text-gray-400 dark:text-gray-500 text-xs shrink-0">
-                                                <i class="fa-solid fa-right-left"></i>
-                                            </span>
-
-                                            <!-- Bolivares Input -->
-                                            <div class="relative rounded-xl shadow-sm flex-1">
-                                                <div class="absolute inset-y-0 left-2.5 flex items-center pointer-events-none">
-                                                    <span class="text-gray-400 dark:text-gray-500 font-bold text-xs">Bs.</span>
-                                                </div>
-                                                <input 
-                                                    v-model="form.costo_importacion_unitario" 
-                                                    @input="onBsChange"
-                                                    type="text" 
-                                                    placeholder="0.00"
-                                                    class="block w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl py-2 pl-8 pr-2 text-right font-mono font-bold text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                                                >
+                                            <div class="flex items-center justify-between px-1">
+                                                <span class="text-[10px] text-gray-500 dark:text-gray-400 font-semibold">
+                                                    <i class="fa-solid fa-earth-americas mr-1 text-blue-500"></i>Tasa BCV: Bs. {{ props.tasa_bcv ? parseFloat(props.tasa_bcv).toFixed(2) : '0.00' }}
+                                                </span>
                                             </div>
                                         </div>
+                                        <InputError :message="form.errors.costo_importacion_unitario" class="mt-2" />
+                                    </div>
 
-                                        <div class="flex items-center justify-between px-1">
-                                            <span class="text-[10px] text-gray-500 dark:text-gray-400 font-semibold">
-                                                <i class="fa-solid fa-earth-americas mr-1 text-blue-500"></i>Tasa BCV: Bs. {{ props.tasa_bcv ? parseFloat(props.tasa_bcv).toFixed(2) : '0.00' }}
+                                    <!-- Utility % Selector/Input -->
+                                    <div>
+                                        <label class="block uppercase tracking-wide text-indigo-700 dark:text-indigo-400 text-xs font-bold mb-2">
+                                            <i class="fa-solid fa-percent mr-1"></i>% Utilidad (Margen Declarado)
+                                        </label>
+                                        <div class="relative rounded-xl shadow-sm">
+                                            <input 
+                                                v-model="utilityPercent"
+                                                @input="updateCalculatedPrice"
+                                                type="number"
+                                                min="0"
+                                                max="500"
+                                                step="1"
+                                                class="block w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl py-2 px-3 text-right font-mono font-bold text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                                            >
+                                        </div>
+                                        <div class="text-[10px] text-gray-500 dark:text-gray-400 font-semibold mt-1">
+                                            Margen aplicado sobre E+Prorrateo {{ props.inventario?.costo_taller > 0 ? '+ Taller' : '' }}
+                                        </div>
+                                    </div>
+
+                                    <!-- Precio de Venta (Divisas) -->
+                                    <div>
+                                        <label class="block uppercase tracking-wide text-indigo-700 dark:text-indigo-400 text-xs font-bold mb-2">
+                                            <i class="fa-solid fa-tag mr-1"></i>Precio de Venta Comercial ($)
+                                        </label>
+                                        <div class="relative rounded-xl shadow-sm">
+                                            <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                                                <span class="text-gray-400 dark:text-gray-500 font-bold text-sm">$</span>
+                                            </div>
+                                            <input 
+                                                v-model="form.price_sale" 
+                                                class="appearance-none block w-full bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 border border-gray-200 dark:border-gray-600 rounded-xl py-2 pl-7 pr-3 text-right focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-lg font-bold font-mono" 
+                                                type="text" 
+                                                placeholder="0.00"
+                                            >
+                                        </div>
+                                        <InputError :message="form.errors.price_sale" class="mt-2" />
+                                    </div>
+                                </div>
+
+                                <!-- Financial Breakdown Summary Card -->
+                                <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-indigo-100 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-3 gap-4 shadow-sm">
+                                    <!-- Base Imponible (B.I.G.) -->
+                                    <div class="p-3 bg-indigo-50/50 dark:bg-gray-900/50 rounded-xl border border-indigo-100 dark:border-gray-700/50 flex flex-col justify-between">
+                                        <span class="text-[10px] font-black text-indigo-500 uppercase tracking-wider">Base Imponible (B.I.G.)</span>
+                                        <div class="mt-1">
+                                            <span class="text-lg font-black text-gray-800 dark:text-white font-mono block">Bs. {{ formatNumberEs(form.price) }}</span>
+                                            <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400 font-mono block" v-if="props.tasa_bcv > 0">
+                                                $ {{ (parseFloat(form.price || 0) / props.tasa_bcv).toFixed(2) }} USD
                                             </span>
                                         </div>
                                     </div>
-                                    <InputError :message="form.errors.costo_importacion_unitario" class="mt-2" />
-                                </div>
 
-                                <!-- Precio / Costo Final -->
-                                <div>
-                                    <label class="block uppercase tracking-wide text-indigo-700 dark:text-indigo-400 text-xs font-bold mb-2">
-                                        <i class="fa-solid fa-money-bill-transfer mr-1"></i>Precio / Costo Final
-                                    </label>
-                                    <div class="w-full bg-gray-50 dark:bg-gray-700/50 text-indigo-600 dark:text-indigo-400 border border-gray-200 dark:border-gray-700 rounded-xl py-2 px-4 flex justify-between items-center h-[42px]">
-                                        <div class="flex flex-col">
-                                            <span class="text-[9px] text-gray-400 uppercase font-bold">Total (Bs.)</span>
-                                            <span class="text-base font-bold font-mono">Bs. {{ formatNumberEs(form.price) }}</span>
-                                        </div>
-                                        <div v-if="props.tasa_bcv > 0" class="flex flex-col items-end border-l border-gray-200 dark:border-gray-600 pl-3">
-                                            <span class="text-[9px] text-indigo-500 uppercase font-bold">USD BCV</span>
-                                            <span class="text-xs font-bold font-mono text-indigo-600 dark:text-indigo-400">
-                                                $ {{ (parseFloat(form.price || 0) / props.tasa_bcv).toFixed(2) }}
+                                    <!-- 16% IVA -->
+                                    <div class="p-3 bg-indigo-50/50 dark:bg-gray-900/50 rounded-xl border border-indigo-100 dark:border-gray-700/50 flex flex-col justify-between">
+                                        <span class="text-[10px] font-black text-rose-500 uppercase tracking-wider">16% IVA Facturable</span>
+                                        <div class="mt-1">
+                                            <span class="text-lg font-black text-rose-600 dark:text-rose-400 font-mono block">Bs. {{ formatNumberEs(parseFloat(form.price || 0) * 0.16) }}</span>
+                                            <span class="text-xs font-bold text-rose-500 font-mono block" v-if="props.tasa_bcv > 0">
+                                                $ {{ ((parseFloat(form.price || 0) * 0.16) / props.tasa_bcv).toFixed(2) }} USD
                                             </span>
                                         </div>
                                     </div>
-                                    <div v-if="props.inventario?.costo_taller > 0" class="text-[10px] text-indigo-600 dark:text-indigo-400 font-semibold mt-1">
-                                        <i class="fa-solid fa-file-invoice mr-1"></i>Incluye Bs. {{ formatNumberEs(props.inventario.costo_taller) }} en facturas declaradas de taller
-                                    </div>
-                                    <InputError :message="form.errors.price" class="mt-2" />
-                                </div>
 
-                                <!-- Precio de Venta -->
-                                <div>
-                                    <label class="block uppercase tracking-wide text-indigo-700 dark:text-indigo-400 text-xs font-bold mb-2">
-                                        <i class="fa-solid fa-tag mr-1"></i>Precio de Venta ($)
-                                    </label>
-                                    <div class="relative rounded-xl shadow-sm">
-                                        <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                                            <span class="text-gray-400 dark:text-gray-500 font-bold text-sm">$</span>
+                                    <!-- Precio Final con IVA -->
+                                    <div class="p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl border border-emerald-200 dark:border-emerald-800/50 flex flex-col justify-between">
+                                        <span class="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Precio Final Facturación (con IVA)</span>
+                                        <div class="mt-1">
+                                            <span class="text-xl font-black text-emerald-700 dark:text-emerald-300 font-mono block">Bs. {{ formatNumberEs(parseFloat(form.price || 0) * 1.16) }}</span>
+                                            <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 font-mono block" v-if="props.tasa_bcv > 0">
+                                                $ {{ ((parseFloat(form.price || 0) * 1.16) / props.tasa_bcv).toFixed(2) }} USD
+                                            </span>
                                         </div>
-                                        <input 
-                                            v-model="form.price_sale" 
-                                            class="appearance-none block w-full bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 border border-gray-200 dark:border-gray-600 rounded-xl py-2 pl-7 pr-3 text-right focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-lg font-bold font-mono" 
-                                            type="text" 
-                                            placeholder="0.00"
-                                        >
                                     </div>
-                                    <InputError :message="form.errors.price_sale" class="mt-2" />
                                 </div>
                             </div>
                             <div class="flex justify-end pt-4">
