@@ -30,6 +30,7 @@ const form = useForm({
     categorie: '', // For Autopartes name
     price: '0.00', // Venta default
     costo: '', // Costo (New)
+    fecha_tasa_bcv: '',
     condicion: 'APLICA',
     status: 'DISPONIBLE',
     observation: '',

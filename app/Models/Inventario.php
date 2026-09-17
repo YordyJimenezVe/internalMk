@@ -57,6 +57,7 @@ class Inventario extends Model
         'item',
         'costo',
         'costo_importacion_unitario',
+        'fecha_tasa_bcv',
         'origen',
         'observation',
         'serial_image_path',

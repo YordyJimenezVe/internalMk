@@ -31,6 +31,7 @@ class UpdateInventarioRequest extends FormRequest
             'modelo' => 'required|string',
             'serial' => 'nullable|string',
             'costo_importacion_unitario' => 'nullable|numeric',
+            'fecha_tasa_bcv' => 'nullable|string',
             'price_sale' => 'nullable|string',
             'observation' => 'nullable|string',
             'serial_file' => 'nullable|image|max:2048',

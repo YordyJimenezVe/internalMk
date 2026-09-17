@@ -409,6 +409,7 @@ const submitBilling = () => {
                                                     $ {{ (baseImponible / parseFloat(props.tasa_bcv)).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}
                                                 </span>
                                                 <span class="text-[8px] text-gray-400 font-medium">Tasa: Bs. {{ parseFloat(props.tasa_bcv).toFixed(2) }}</span>
+                                                <span v-if="props.inventario.fecha_tasa_bcv" class="text-[8px] text-indigo-500 font-bold">Fecha Tasa: {{ props.inventario.fecha_tasa_bcv }}</span>
                                             </div>
                                         </div>
                                     </div>

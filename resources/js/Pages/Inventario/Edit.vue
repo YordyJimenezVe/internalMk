@@ -42,6 +42,7 @@ const form = useForm({
     price: props.inventario.price || '',
     price_sale: props.inventario.price_sale || '',
     costo_importacion_unitario: props.inventario.costo_importacion_unitario || '',
+    fecha_tasa_bcv: props.inventario.fecha_tasa_bcv || '',
     condicion: props.inventario.condicion || 'APLICA',
     status: props.inventario.status || 'DISPONIBLE',
     observation: props.inventario.observation || '',
@@ -410,11 +411,11 @@ onMounted(() => {
                                     <i class="fa-solid fa-calculator text-indigo-500"></i> Estructura de Costos y Facturación Declarada
                                 </h3>
 
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                     <!-- Costo de Importación Dual Input ($ y Bs) -->
                                     <div>
                                         <label class="block uppercase tracking-wide text-indigo-700 dark:text-indigo-400 text-xs font-bold mb-2">
-                                            <i class="fa-solid fa-ship mr-1"></i>Costo Importación (E+Prorrateo) ($ / Bs.)
+                                            <i class="fa-solid fa-ship mr-1"></i>Costo Importación ($ / Bs.)
                                         </label>
                                         <div class="flex flex-col gap-2">
                                             <div class="flex items-center gap-2">
@@ -461,10 +462,29 @@ onMounted(() => {
                                         <InputError :message="form.errors.costo_importacion_unitario" class="mt-2" />
                                     </div>
 
+                                    <!-- Fecha Tasa BCV Input -->
+                                    <div>
+                                        <label class="block uppercase tracking-wide text-indigo-700 dark:text-indigo-400 text-xs font-bold mb-2">
+                                            <i class="fa-solid fa-calendar-day mr-1"></i>Fecha Tasa BCV
+                                        </label>
+                                        <div class="relative rounded-xl shadow-sm">
+                                            <input 
+                                                v-model="form.fecha_tasa_bcv"
+                                                type="text"
+                                                placeholder="Ej: 23/07/2026"
+                                                class="block w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl py-2 px-3 font-semibold text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                                            >
+                                        </div>
+                                        <div class="text-[10px] text-gray-500 dark:text-gray-400 font-semibold mt-1">
+                                            Fecha de tasa BCV tomada (ej. 23/07/2026)
+                                        </div>
+                                        <InputError :message="form.errors.fecha_tasa_bcv" class="mt-2" />
+                                    </div>
+
                                     <!-- Utility % Selector/Input -->
                                     <div>
                                         <label class="block uppercase tracking-wide text-indigo-700 dark:text-indigo-400 text-xs font-bold mb-2">
-                                            <i class="fa-solid fa-percent mr-1"></i>% Utilidad (Margen Declarado)
+                                            <i class="fa-solid fa-percent mr-1"></i>% Utilidad
                                         </label>
                                         <div class="relative rounded-xl shadow-sm">
                                             <input 
@@ -478,14 +498,14 @@ onMounted(() => {
                                             >
                                         </div>
                                         <div class="text-[10px] text-gray-500 dark:text-gray-400 font-semibold mt-1">
-                                            Margen aplicado sobre E+Prorrateo {{ props.inventario?.costo_taller > 0 ? '+ Taller' : '' }}
+                                            Margen sobre importación {{ props.inventario?.costo_taller > 0 ? '+ Taller' : '' }}
                                         </div>
                                     </div>
 
                                     <!-- Precio de Venta (Divisas) -->
                                     <div>
                                         <label class="block uppercase tracking-wide text-indigo-700 dark:text-indigo-400 text-xs font-bold mb-2">
-                                            <i class="fa-solid fa-tag mr-1"></i>Precio de Venta Comercial ($)
+                                            <i class="fa-solid fa-tag mr-1"></i>Precio Venta Comercial ($)
                                         </label>
                                         <div class="relative rounded-xl shadow-sm">
                                             <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">

@@ -912,6 +912,7 @@ class InventarioController extends Controller
 
         $request->validate([
             'costo_importacion_unitario' => 'required',
+            'fecha_tasa_bcv' => 'nullable|string',
         ]);
 
         $item = Inventario::findOrFail($id);
@@ -951,6 +952,9 @@ class InventarioController extends Controller
         }
 
         $item->costo_importacion_unitario = (float) $cleanCost;
+        if ($request->has('fecha_tasa_bcv')) {
+            $item->fecha_tasa_bcv = $request->fecha_tasa_bcv;
+        }
         
         if ($item->status === 'PRECIO PENDIENTE') {
             $item->status = 'DISPONIBLE';

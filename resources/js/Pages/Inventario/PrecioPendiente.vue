@@ -84,6 +84,7 @@ const initForms = () => {
                 costo_usd: hasValue && props.tasa_bcv > 0 
                     ? (parseFloat(item.costo_importacion_unitario) / props.tasa_bcv).toFixed(2) 
                     : '',
+                fecha_tasa_bcv: item.fecha_tasa_bcv || '',
                 utility_percent: 30,
                 processing: false,
             };
@@ -163,6 +164,7 @@ const submitCost = (id) => {
     
     router.post(route('inventario.precio_pendiente.update', id), {
         costo_importacion_unitario: parsedBsVal,
+        fecha_tasa_bcv: f.fecha_tasa_bcv,
     }, {
         preserveScroll: true,
         onStart: () => {
@@ -532,14 +534,20 @@ const cleanItemName = (item) => {
                                                 </div>
                                             </div>
 
-                                            <div class="flex items-center justify-between w-full px-2">
-                                                <span class="text-[9px] text-gray-400 dark:text-gray-500 font-medium">
-                                                    Tasa BCV: Bs. {{ props.tasa_bcv ? parseFloat(props.tasa_bcv).toFixed(2) : '0.00' }}
-                                                </span>
+                                            <div class="flex items-center justify-between w-full px-1 gap-2">
+                                                <div class="flex items-center gap-1 flex-1">
+                                                    <span class="text-[9px] text-gray-400 dark:text-gray-500 font-medium whitespace-nowrap">Fecha BCV:</span>
+                                                    <input 
+                                                        v-model="forms[item.id].fecha_tasa_bcv"
+                                                        type="text"
+                                                        placeholder="23/07/2026"
+                                                        class="w-full py-0.5 px-1.5 text-[10px] font-semibold rounded border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white"
+                                                    />
+                                                </div>
                                                 <button 
                                                     type="submit"
                                                     :disabled="forms[item.id]?.processing"
-                                                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1 px-4 rounded-xl shadow-md transition-all active:scale-95 text-xs flex items-center gap-1"
+                                                    class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1 px-3 rounded-xl shadow-md transition-all active:scale-95 text-xs flex items-center gap-1 shrink-0"
                                                 >
                                                     <i class="fa-solid fa-floppy-disk"></i> Guardar
                                                 </button>
