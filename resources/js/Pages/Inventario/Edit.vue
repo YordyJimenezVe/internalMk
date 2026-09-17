@@ -85,6 +85,7 @@ watch(() => form.container_id, (newVal) => {
 
 // Currency & Conversion Logic
 const costoUsd = ref('');
+const activeTasaBcv = ref(props.tasa_bcv || 0);
 
 const parseLocaleFloat = (val) => {
     if (val === null || val === undefined) return NaN;
@@ -142,10 +143,23 @@ const updateCalculatedPrice = () => {
     form.price = calcPrice.toFixed(2);
 };
 
+const getRate = () => {
+    const r = parseLocaleFloat(activeTasaBcv.value);
+    return (!isNaN(r) && r > 0) ? r : (props.tasa_bcv || 0);
+};
+
+const onTasaBcvChange = () => {
+    const rate = getRate();
+    if (rate > 0) {
+        onBsChange();
+    }
+};
+
 const initCostoUsd = () => {
     const bsVal = parseLocaleFloat(form.costo_importacion_unitario);
-    if (!isNaN(bsVal) && bsVal > 0 && props.tasa_bcv > 0) {
-        costoUsd.value = (bsVal / props.tasa_bcv).toFixed(2);
+    const rate = getRate();
+    if (!isNaN(bsVal) && bsVal > 0 && rate > 0) {
+        costoUsd.value = (bsVal / rate).toFixed(2);
     } else {
         costoUsd.value = '';
     }
@@ -154,8 +168,9 @@ const initCostoUsd = () => {
 
 const onUsdChange = () => {
     const usdVal = parseLocaleFloat(costoUsd.value);
-    if (!isNaN(usdVal) && props.tasa_bcv > 0) {
-        form.costo_importacion_unitario = (usdVal * props.tasa_bcv).toFixed(2);
+    const rate = getRate();
+    if (!isNaN(usdVal) && rate > 0) {
+        form.costo_importacion_unitario = (usdVal * rate).toFixed(2);
     } else {
         form.costo_importacion_unitario = '';
     }
@@ -164,8 +179,9 @@ const onUsdChange = () => {
 
 const onBsChange = () => {
     const bsVal = parseLocaleFloat(form.costo_importacion_unitario);
-    if (!isNaN(bsVal) && props.tasa_bcv > 0) {
-        costoUsd.value = (bsVal / props.tasa_bcv).toFixed(2);
+    const rate = getRate();
+    if (!isNaN(bsVal) && rate > 0) {
+        costoUsd.value = (bsVal / rate).toFixed(2);
     } else {
         costoUsd.value = '';
     }
@@ -447,10 +463,32 @@ onMounted(() => {
                                             </div>
                                         </div>
                                         <div class="flex items-center justify-between mt-2 px-1 text-[11px] text-gray-500 dark:text-gray-400 font-semibold">
-                                            <span><i class="fa-solid fa-earth-americas mr-1 text-blue-500"></i>Tasa BCV Aplicada: <strong>Bs. {{ props.tasa_bcv ? parseFloat(props.tasa_bcv).toFixed(2) : '0.00' }}</strong></span>
+                                            <span><i class="fa-solid fa-earth-americas mr-1 text-blue-500"></i>Tasa Tasa BCV Activa: <strong>Bs. {{ getRate() ? getRate().toFixed(2) : '0.00' }}</strong></span>
                                             <span class="text-[10px] text-indigo-500 font-bold">Auto-conversión activa</span>
                                         </div>
                                         <InputError :message="form.errors.costo_importacion_unitario" class="mt-2" />
+                                    </div>
+
+                                    <!-- Tasa BCV Aplicada Input -->
+                                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                                        <label class="block uppercase tracking-wide text-indigo-700 dark:text-indigo-400 text-xs font-bold mb-2">
+                                            <i class="fa-solid fa-earth-americas mr-1 text-blue-500"></i>Tasa BCV Aplicada (Bs./$)
+                                        </label>
+                                        <div class="relative rounded-xl shadow-sm">
+                                            <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                                                <span class="text-gray-400 dark:text-gray-500 font-bold text-xs">Bs.</span>
+                                            </div>
+                                            <input 
+                                                v-model="activeTasaBcv"
+                                                @input="onTasaBcvChange"
+                                                type="text"
+                                                placeholder="736.93"
+                                                class="block w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-xl py-2.5 pl-9 pr-3 text-right font-mono font-bold text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                                            >
+                                        </div>
+                                        <div class="text-[10px] text-gray-500 dark:text-gray-400 font-semibold mt-2">
+                                            Tasa para cálculo de conversiones a $
+                                        </div>
                                     </div>
 
                                     <!-- Fecha Tasa BCV Input -->
@@ -493,10 +531,10 @@ onMounted(() => {
                                         </div>
                                     </div>
 
-                                    <!-- Precio de Venta Comercial ($) - Takes 2 cols on lg -->
-                                    <div class="lg:col-span-2 bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                                    <!-- Precio de Venta Comercial ($) -->
+                                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
                                         <label class="block uppercase tracking-wide text-indigo-700 dark:text-indigo-400 text-xs font-bold mb-2">
-                                            <i class="fa-solid fa-tag mr-1"></i>Precio de Venta Comercial ($ Divisas)
+                                            <i class="fa-solid fa-tag mr-1"></i>Precio Venta Comercial ($)
                                         </label>
                                         <div class="relative rounded-xl shadow-sm">
                                             <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
@@ -520,8 +558,8 @@ onMounted(() => {
                                         <span class="text-[10px] font-black text-indigo-500 uppercase tracking-wider">Base Imponible (B.I.G.)</span>
                                         <div class="mt-1">
                                             <span class="text-lg font-black text-gray-800 dark:text-white font-mono block">Bs. {{ formatNumberEs(form.price) }}</span>
-                                            <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400 font-mono block" v-if="props.tasa_bcv > 0">
-                                                $ {{ (parseFloat(form.price || 0) / props.tasa_bcv).toFixed(2) }} USD
+                                            <span class="text-xs font-bold text-indigo-600 dark:text-indigo-400 font-mono block" v-if="getRate() > 0">
+                                                $ {{ (parseFloat(form.price || 0) / getRate()).toFixed(2) }} USD
                                             </span>
                                         </div>
                                     </div>
@@ -531,8 +569,8 @@ onMounted(() => {
                                         <span class="text-[10px] font-black text-rose-500 uppercase tracking-wider">16% IVA Facturable</span>
                                         <div class="mt-1">
                                             <span class="text-lg font-black text-rose-600 dark:text-rose-400 font-mono block">Bs. {{ formatNumberEs(parseFloat(form.price || 0) * 0.16) }}</span>
-                                            <span class="text-xs font-bold text-rose-500 font-mono block" v-if="props.tasa_bcv > 0">
-                                                $ {{ ((parseFloat(form.price || 0) * 0.16) / props.tasa_bcv).toFixed(2) }} USD
+                                            <span class="text-xs font-bold text-rose-500 font-mono block" v-if="getRate() > 0">
+                                                $ {{ ((parseFloat(form.price || 0) * 0.16) / getRate()).toFixed(2) }} USD
                                             </span>
                                         </div>
                                     </div>
@@ -542,8 +580,8 @@ onMounted(() => {
                                         <span class="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Precio Final Facturación (con IVA)</span>
                                         <div class="mt-1">
                                             <span class="text-xl font-black text-emerald-700 dark:text-emerald-300 font-mono block">Bs. {{ formatNumberEs(parseFloat(form.price || 0) * 1.16) }}</span>
-                                            <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 font-mono block" v-if="props.tasa_bcv > 0">
-                                                $ {{ ((parseFloat(form.price || 0) * 1.16) / props.tasa_bcv).toFixed(2) }} USD
+                                            <span class="text-xs font-bold text-emerald-600 dark:text-emerald-400 font-mono block" v-if="getRate() > 0">
+                                                $ {{ ((parseFloat(form.price || 0) * 1.16) / getRate()).toFixed(2) }} USD
                                             </span>
                                         </div>
                                     </div>
