@@ -155,7 +155,15 @@ const getBillingTotals = (row) => {
         return { hasCost: false };
     }
     const costoTaller = parseFloat(row.costo_taller || 0) || 0;
-    const big = (baseCosto + costoTaller) * 1.30;
+    
+    let big = parseFloat(row.price || 0);
+    if (!big || big <= 0 || (page.props.temp_settings?.utilidad !== undefined && page.props.temp_settings?.utilidad !== null)) {
+        const util = (page.props.temp_settings?.utilidad !== undefined && page.props.temp_settings?.utilidad !== null)
+            ? parseFloat(page.props.temp_settings.utilidad) 
+            : 30;
+        big = (baseCosto + costoTaller) * (1 + util / 100);
+    }
+
     const total = big * 1.16;
     return {
         hasCost: true,
