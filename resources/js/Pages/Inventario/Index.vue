@@ -196,6 +196,18 @@ const editarInventario = id => {
     else router.visit(route('editInventario', { id }));
 };
 
+const getCreateUrl = () => {
+    if (isAutopart.value) return route('createAutopart');
+    if (isCamara.value) return route('createCamara');
+    return route('createInventario');
+};
+
+const getEditUrl = (id) => {
+    if (isAutopart.value) return route('editAutopart', { id });
+    if (isCamara.value) return route('editCamara', { id });
+    return route('editInventario', { id });
+};
+
 const openDeleteModal = id => {
     deleteModal.itemId = id;
     deleteModal.isOpen = true;
@@ -232,13 +244,13 @@ const confirmDelete = () => {
             
             <!-- Primary Action Toolbar -->
             <div v-if="$page.props.auth.user.permissions?.includes('manage partida') || $page.props.auth.user.roles?.includes('Superusuario')" class="mb-6 flex justify-end">
-                <button 
-                    @click="registrarInventario()" 
+                <Link 
+                    :href="getCreateUrl()" 
                     class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-[2rem] font-black shadow-xl shadow-indigo-500/20 transition-all transform hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 group border-b-4 border-indigo-800"
                 >
                     <i class="fa-solid fa-plus text-xl group-hover:rotate-90 transition-transform duration-300"></i>
                     <span class="tracking-widest uppercase text-sm">REGISTRAR NUEVO</span>
-                </button>
+                </Link>
             </div>
             
             <!-- Advanced Toolbar -->
@@ -357,14 +369,14 @@ const confirmDelete = () => {
                     <!-- Actions (Premium Redesign) -->
                     <template #actions="{ row }">
                         <div class="flex justify-end gap-2">
-                             <button @click="router.visit(route('showInventario', row.id))"
+                             <Link :href="route('showInventario', row.id)"
                                 class="h-8 w-8 flex items-center justify-center rounded-lg bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 transition-all transform active:scale-90" title="Ver Detalles">
                                 <i class="fa-solid fa-eye text-xs"></i>
-                             </button>
-                             <button v-if="$page.props.auth.user.permissions?.includes('manage partida') || $page.props.auth.user.roles?.includes('Superusuario')" @click="editarInventario(row.id)"
+                             </Link>
+                             <Link v-if="$page.props.auth.user.permissions?.includes('manage partida') || $page.props.auth.user.roles?.includes('Superusuario')" :href="getEditUrl(row.id)"
                                 class="h-8 w-8 flex items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 transition-all transform active:scale-90" title="Editar">
                                 <i class="fa-solid fa-pen-to-square text-xs"></i>
-                             </button>
+                             </Link>
                              <button v-if="$page.props.auth.user.permissions?.includes('manage partida') || $page.props.auth.user.roles?.includes('Superusuario')" @click="openDeleteModal(row.id)"
                                 class="h-8 w-8 flex items-center justify-center rounded-lg bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 hover:bg-rose-600 hover:text-white dark:hover:bg-rose-500 transition-all transform active:scale-90" title="Eliminar">
                                 <i class="fa-solid fa-trash-can text-xs"></i>

@@ -4,7 +4,7 @@ import { defineProps, ref, computed, onMounted, watch } from 'vue';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { fas } from '@fortawesome/free-solid-svg-icons';
-import { router, usePage } from '@inertiajs/vue3';
+import { router, usePage, Link } from '@inertiajs/vue3';
 
 library.add(fas);
 
@@ -823,18 +823,18 @@ const exportPdf = () => {
                                     </td>
                                     <td class="px-6 py-6 border-l border-gray-50 dark:border-gray-700/30">
                                         <div class="flex items-center justify-end gap-2.5">
-                                            <button @click="visualizeFact(factura.id)" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-indigo-500 hover:shadow-xl hover:shadow-indigo-500/20 transition-all transform hover:scale-110 active:scale-95" title="Ver Detalle">
+                                            <a :href="route('billing.pdf', { id: factura.id })" target="_blank" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-indigo-500 hover:shadow-xl hover:shadow-indigo-500/20 transition-all transform hover:scale-110 active:scale-95" title="Ver Detalle">
                                                 <i class="fa-solid fa-eye text-sm"></i>
-                                            </button>
-                                            <button v-if="getItem(factura).tipo && String(getItem(factura).tipo).toUpperCase().includes('MOTOR')" @click="visualizeWarranty(factura.id)" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-amber-500 hover:shadow-xl hover:shadow-amber-500/20 transition-all transform hover:scale-110 active:scale-95" title="Póliza de Garantía">
+                                            </a>
+                                            <a v-if="getItem(factura).tipo && String(getItem(factura).tipo).toUpperCase().includes('MOTOR')" :href="route('billing.warranty', { id: factura.id })" target="_blank" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-amber-500 hover:shadow-xl hover:shadow-amber-500/20 transition-all transform hover:scale-110 active:scale-95" title="Póliza de Garantía">
                                                 <i class="fa-solid fa-shield-halved text-sm"></i>
-                                            </button>
-                                            <button v-if="!isReadOnly && factura.status !== 'ANULADA'" @click="editBilling(factura.id)" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-blue-500 hover:shadow-xl hover:shadow-blue-500/20 transition-all transform hover:scale-110 active:scale-95" title="Editar">
+                                            </a>
+                                            <Link v-if="!isReadOnly && factura.status !== 'ANULADA'" :href="route('editBilling', { id: factura.id })" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-blue-500 hover:shadow-xl hover:shadow-blue-500/20 transition-all transform hover:scale-110 active:scale-95" title="Editar">
                                                 <i class="fa-solid fa-pen-to-square text-sm"></i>
-                                            </button>
-                                            <button v-if="!isReadOnly && factura.status !== 'ANULADA'" @click="devolucionFactura(factura.id)" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-emerald-500 hover:shadow-xl hover:shadow-emerald-500/20 transition-all transform hover:scale-110 active:scale-95" title="Devolución">
+                                            </Link>
+                                            <Link v-if="!isReadOnly && factura.status !== 'ANULADA'" :href="route('returnBilling', { id: factura.id })" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-emerald-500 hover:shadow-xl hover:shadow-emerald-500/20 transition-all transform hover:scale-110 active:scale-95" title="Devolución">
                                                 <i class="fa-solid fa-repeat text-sm"></i>
-                                            </button>
+                                            </Link>
                                             <button v-if="!isReadOnly" @click="openDeleteModal(factura.id)" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-rose-500 hover:shadow-xl hover:shadow-rose-500/20 transition-all transform hover:scale-110 active:scale-95" title="Eliminar">
                                                 <i class="fa-solid fa-trash-can text-sm"></i>
                                             </button>
