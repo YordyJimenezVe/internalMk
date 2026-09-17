@@ -112,6 +112,26 @@ const getItem = (factura) => {
     return factura.partidas || factura.partida || factura.inventario || factura.inventarios || {};
 };
 
+// Helper to get formatted total in Bs using declared import cost + IVA if precio_total is missing/0
+const getItemTotalBs = (factura) => {
+    const raw = String(factura.precio_total || '').trim();
+    if (raw && raw !== '0' && raw !== '0,00' && raw !== '0.00') {
+        return raw;
+    }
+    const item = getItem(factura);
+    const baseCosto = parseFloat(item.costo_importacion_unitario || item.costo || 0);
+    if (baseCosto > 0) {
+        const totalBs = baseCosto * 1.16;
+        return totalBs.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    return '0,00';
+};
+
+const getNumericAmount = (factura) => {
+    const rawStr = getItemTotalBs(factura);
+    return parseFloat(rawStr.replace(/[^0-9,-]+/g, '').replace(',', '.')) || 0;
+};
+
 // Available product types list extracted from Facturas
 const availableProductTypes = computed(() => {
     const typesMap = {};
@@ -285,7 +305,7 @@ const filteredFacturas = computed(() => {
         }
 
         // 5. Amount Range Filter
-        const amount = parseFloat(String(factura.precio_total || '0').replace(/[^0-9.-]+/g, '')) || 0;
+        const amount = getNumericAmount(factura);
         if (minAmount.value !== '' && !isNaN(parseFloat(minAmount.value))) {
             if (amount < parseFloat(minAmount.value)) return false;
         }
@@ -307,12 +327,12 @@ const filteredFacturas = computed(() => {
             const dateB = parseFacturaDate(b.fecha) || new Date(0);
             return dateA - dateB || (a.id || 0) - (b.id || 0);
         } else if (sortBy.value === 'monto_desc') {
-            const amountA = parseFloat(String(a.precio_total || '0').replace(/[^0-9.-]+/g, '')) || 0;
-            const amountB = parseFloat(String(b.precio_total || '0').replace(/[^0-9.-]+/g, '')) || 0;
+            const amountA = getNumericAmount(a);
+            const amountB = getNumericAmount(b);
             return amountB - amountA;
         } else if (sortBy.value === 'monto_asc') {
-            const amountA = parseFloat(String(a.precio_total || '0').replace(/[^0-9.-]+/g, '')) || 0;
-            const amountB = parseFloat(String(b.precio_total || '0').replace(/[^0-9.-]+/g, '')) || 0;
+            const amountA = getNumericAmount(a);
+            const amountB = getNumericAmount(b);
             return amountA - amountB;
         } else if (sortBy.value === 'numero_desc') {
             return (parseInt(b.numero_factura) || 0) - (parseInt(a.numero_factura) || 0);
@@ -337,7 +357,7 @@ const filteredStats = computed(() => {
             anuladaCount++;
         } else {
             activeCount++;
-            const val = parseFloat(String(f.precio_total || '0').replace(/[^0-9.-]+/g, '')) || 0;
+            const val = getNumericAmount(f);
             totalAmount += val;
         }
     });
@@ -790,7 +810,7 @@ const exportPdf = () => {
                                     </td>
                                     <td class="px-6 py-6">
                                         <div class="text-sm font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 px-3 py-1 rounded-lg w-fit">
-                                            {{ factura.precio_total }} <span class="text-[10px] opacity-70">Bs</span>
+                                            {{ getItemTotalBs(factura) }} <span class="text-[10px] opacity-70">Bs</span>
                                         </div>
                                     </td>
                                     <td class="px-6 py-6 text-center">

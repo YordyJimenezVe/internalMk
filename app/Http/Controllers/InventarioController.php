@@ -391,6 +391,8 @@ class InventarioController extends Controller
 
         $inventario->update($data);
 
+        $this->syncZeroBillingsForPartida($inventario->id);
+
         // Auto-create maintenance ticket if status is GARANTIA/GARANTÍA and no active maintenance exists
         if ($inventario->status === 'GARANTIA' || $inventario->status === 'GARANTÍA') {
             $hasActiveMaintenance = \App\Models\Maintenance::where('partida_id', $inventario->id)
@@ -946,7 +948,50 @@ class InventarioController extends Controller
         }
         $item->save();
 
+        $this->syncZeroBillingsForPartida($item->id);
+
         return redirect()->back()->with('success', 'Costo de importación guardado con éxito.');
+    }
+
+    /**
+     * Sincroniza las facturas asociadas a una partida cuyo precio_total esté en 0 usando el costo de importación actual.
+     */
+    private function syncZeroBillingsForPartida($partidaId)
+    {
+        $billings = \App\Models\Billing::where('partida_id', $partidaId)->get();
+        foreach ($billings as $bill) {
+            $rawTotal = trim((string) ($bill->precio_total ?? ''));
+            $isZero = empty($rawTotal) || $rawTotal === '0' || $rawTotal === '0,00' || $rawTotal === '0.00';
+
+            if ($isZero) {
+                $partida = $bill->partida;
+                if (!$partida) continue;
+
+                $baseCosto = (float) ($partida->costo_importacion_unitario ?? $partida->costo ?? 0);
+                
+                $mantenimientosFacturables = 0;
+                if ($partida->maintenances) {
+                    foreach ($partida->maintenances as $maint) {
+                        $mantenimientosFacturables += (float) $maint->items()
+                            ->where('document_type', 'FACTURA')
+                            ->where('status', 'CONCILIADO')
+                            ->sum('base_imponible');
+                    }
+                }
+
+                $correctBig = $baseCosto + $mantenimientosFacturables;
+                if ($correctBig > 0) {
+                    $bigCents = (int) round($correctBig * 100);
+                    $ivaCents = (int) round($bigCents * 0.16);
+                    $totalCents = $bigCents + $ivaCents;
+
+                    $bill->big = number_format($correctBig, 2, ',', '.');
+                    $bill->iva = number_format($ivaCents / 100, 2, ',', '.');
+                    $bill->precio_total = number_format($totalCents / 100, 2, ',', '.');
+                    $bill->saveQuietly();
+                }
+            }
+        }
     }
 
     /**
