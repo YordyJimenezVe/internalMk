@@ -86,6 +86,32 @@ const handleNotifClick = (notif) => {
     });
 };
 
+const showTempModal = ref(false);
+const tempForm = ref({
+    tasa_bcv: page.props.temp_settings?.tasa_bcv || '',
+    utilidad: page.props.temp_settings?.utilidad || '',
+});
+
+const submitTempSettings = () => {
+    router.post(route('temp_settings.update'), tempForm.value, {
+        preserveScroll: true,
+        onSuccess: () => {
+            showTempModal.value = false;
+        }
+    });
+};
+
+const resetTempSettings = () => {
+    router.post(route('temp_settings.reset'), {}, {
+        preserveScroll: true,
+        onSuccess: () => {
+            showTempModal.value = false;
+            tempForm.value.tasa_bcv = '';
+            tempForm.value.utilidad = '';
+        }
+    });
+};
+
 const toggleSidebar = () => {
     isSidebarCollapsed.value = !isSidebarCollapsed.value;
     localStorage.setItem('sidebarCollapsed', isSidebarCollapsed.value);
@@ -331,6 +357,35 @@ const logout = () => {
                 </div>
                 
                 <div class="flex items-center space-x-4">
+                     <!-- Temp Rate / Margin Override Warning & Control Button -->
+                     <div v-if="$page.props.temp_settings?.is_active" class="flex items-center gap-2.5 bg-amber-50 dark:bg-amber-950/70 border border-amber-300 dark:border-amber-700/80 px-3 py-1.5 rounded-2xl shadow-sm text-xs animate-pulse">
+                        <i class="fa-solid fa-triangle-exclamation text-amber-500 text-sm"></i>
+                        <div class="flex flex-col text-[10px] leading-tight font-black text-amber-800 dark:text-amber-300">
+                            <span>TASA/UTILIDAD TEMPORAL</span>
+                            <span class="font-mono text-[9px] opacity-90">
+                                Tasa: Bs. {{ $page.props.temp_settings.tasa_bcv || 'Oficial' }} | Util: {{ $page.props.temp_settings.utilidad ?? 30 }}%
+                            </span>
+                        </div>
+                        <button 
+                            @click="resetTempSettings" 
+                            class="ml-1 bg-amber-500 hover:bg-amber-600 text-white font-black px-2.5 py-1 rounded-xl text-[10px] shadow transition-all active:scale-95 whitespace-nowrap flex items-center gap-1 uppercase"
+                            title="Restablecer con 1 clic a la tasa oficial del día"
+                        >
+                            <i class="fa-solid fa-rotate-left"></i> Restablecer Oficial
+                        </button>
+                     </div>
+
+                     <!-- Admin Button to open Temp Settings Modal -->
+                     <button 
+                        v-if="hasManageRoles || isAdministrador || hasSuperusuario || hasManageBilling"
+                        @click="showTempModal = true" 
+                        class="px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-700/60 hover:bg-indigo-50 dark:hover:bg-indigo-950 text-gray-700 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 focus:outline-none transition-all flex items-center gap-1.5 text-xs font-black border border-gray-200 dark:border-gray-600"
+                        title="Configurar Tasa BCV / Utilidad Temporal para Edición de Costos"
+                     >
+                        <i class="fa-solid fa-sliders text-indigo-500"></i>
+                        <span class="hidden md:inline text-[11px] font-bold">Ajuste Tasa/Utilidad</span>
+                     </button>
+
                      <!-- Dark Mode Toggle -->
                      <button @click="toggleDarkMode" class="p-2 rounded-lg text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 focus:outline-none transition-colors duration-200" :title="isDarkMode ? 'Cambiar a modo luz' : 'Cambiar a modo oscuro'">
                         <font-awesome-icon :icon="isDarkMode ? 'fa-solid fa-sun' : 'fa-solid fa-moon'" class="w-5 h-5" />
@@ -473,6 +528,71 @@ const logout = () => {
             <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 dark:bg-gray-900 p-6">
                 <slot />
             </main>
+        </div>
+
+        <!-- Modal para Ajustes Temporales de Tasa y Utilidad -->
+        <div v-if="showTempModal" class="fixed inset-0 z-[200] flex items-center justify-center p-4 min-h-screen">
+            <div class="fixed inset-0 bg-gray-900/70 backdrop-blur-sm transition-opacity" @click="showTempModal = false"></div>
+            
+            <div class="relative bg-white dark:bg-gray-800 rounded-[2.5rem] max-w-md w-full shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-700 p-8 transform transition-all animate-in zoom-in-95 duration-200">
+                <div class="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-700 mb-6">
+                    <h3 class="text-lg font-black text-gray-800 dark:text-white uppercase flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-indigo-500"></i> Tasa y Utilidad Temporales
+                    </h3>
+                    <button @click="showTempModal = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-6 leading-relaxed font-medium">
+                    Asigna una Tasa BCV y/o % de Utilidad temporal para editar masivamente varios contenedores sin modificar cada ítem a mano. <span class="font-bold text-emerald-600 dark:text-emerald-400">No afecta la facturación real.</span>
+                </p>
+
+                <form @submit.prevent="submitTempSettings" class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-2">
+                            <i class="fa-solid fa-earth-americas text-blue-500 mr-1"></i>Tasa BCV Temporal (Bs.)
+                        </label>
+                        <input 
+                            v-model="tempForm.tasa_bcv"
+                            type="text"
+                            placeholder="Ej: 737.07 (Dejar vacío para usar oficial)"
+                            class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-mono font-bold text-gray-800 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                        />
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-2">
+                            <i class="fa-solid fa-percent text-indigo-500 mr-1"></i>% Utilidad Temporal (Margen)
+                        </label>
+                        <input 
+                            v-model="tempForm.utilidad"
+                            type="number"
+                            min="0"
+                            max="500"
+                            placeholder="Ej: 10 (Dejar vacío para usar default 30%)"
+                            class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-mono font-bold text-gray-800 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                        />
+                    </div>
+
+                    <div class="pt-4 flex flex-col gap-3">
+                        <button 
+                            type="submit" 
+                            class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-3.5 rounded-xl shadow-lg shadow-indigo-500/20 transition-all active:scale-95 text-xs flex items-center justify-center gap-2 uppercase tracking-wider"
+                        >
+                            <i class="fa-solid fa-floppy-disk"></i> Aplicar Ajustes Temporales
+                        </button>
+
+                        <button 
+                            type="button"
+                            @click="resetTempSettings"
+                            class="w-full bg-amber-500 hover:bg-amber-600 text-white font-black py-3 rounded-xl shadow transition-all active:scale-95 text-xs flex items-center justify-center gap-2 uppercase tracking-wider"
+                        >
+                            <i class="fa-solid fa-rotate-left"></i> Restablecer a Tasa Oficial del Día (1 Clic)
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </template>

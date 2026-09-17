@@ -30,6 +30,11 @@ class HandleInertiaRequests extends Middleware
                 'warranty_ids' => fn() => $request->session()->get('warranty_ids'),
                 'is_motor' => fn() => $request->session()->get('is_motor'),
             ],
+            'temp_settings' => [
+                'is_active' => (bool) ($request->session()->get('temp_tasa_bcv') || $request->session()->get('temp_utilidad')),
+                'tasa_bcv' => $request->session()->get('temp_tasa_bcv'),
+                'utilidad' => $request->session()->get('temp_utilidad'),
+            ],
         ]);
     }
 }

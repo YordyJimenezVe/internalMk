@@ -357,8 +357,12 @@ class InventarioController extends Controller
         $containers = Container::all();
         $tipos = ['MOTOR 3/4', 'MOTOR 5/8', 'MOTOR 7/8', 'MOTOR COMPLETO', 'CAJA AUTOMÁTICA', 'CAJA SINCRÓNICA', 'CÁMARA', 'AUTOPARTE'];
         $latestRate = \App\Models\ExchangeRate::where('source', 'BCV')->latest()->first();
-        $tasaBCV = $latestRate ? (float) $latestRate->rate : 0;
-        $utilityPercentage = (float) \App\Models\Setting::get('utility_percentage', 30);
+        $officialTasa = $latestRate ? (float) $latestRate->rate : 0;
+        $tempTasa = session('temp_tasa_bcv');
+        $tempUtilidad = session('temp_utilidad');
+
+        $tasaBCV = $tempTasa ? (float) $tempTasa : $officialTasa;
+        $utilityPercentage = $tempUtilidad !== null ? (float) $tempUtilidad : (float) \App\Models\Setting::get('utility_percentage', 30);
 
         return inertia('Inventario/Edit', [
             'inventario' => $data,
@@ -875,15 +879,20 @@ class InventarioController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-
         $latestRate = \App\Models\ExchangeRate::where('source', 'BCV')->latest()->first();
-        $tasaBCV = $latestRate ? (float) $latestRate->rate : 0;
+        $officialTasa = $latestRate ? (float) $latestRate->rate : 0;
+        $tempTasa = session('temp_tasa_bcv');
+        $tempUtilidad = session('temp_utilidad');
+
+        $tasaBCV = $tempTasa ? (float) $tempTasa : $officialTasa;
+        $utilityPercentage = $tempUtilidad !== null ? (float) $tempUtilidad : (float) \App\Models\Setting::get('utility_percentage', 30);
 
         return Inertia::render('Inventario/PrecioPendiente', [
             'items' => $items,
             'filters' => $request->only(['search']),
             'totals' => $totals,
             'tasa_bcv' => $tasaBCV,
+            'utility_percentage' => $utilityPercentage,
         ]);
     }
 

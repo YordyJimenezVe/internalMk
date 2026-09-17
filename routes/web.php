@@ -29,6 +29,9 @@ Route::middleware([
 ])->group(function () {
     Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
 
+    Route::post('/temp-settings/update', [\App\Http\Controllers\TempSettingsController::class, 'update'])->name('temp_settings.update');
+    Route::post('/temp-settings/reset', [\App\Http\Controllers\TempSettingsController::class, 'reset'])->name('temp_settings.reset');
+
     Route::get('/inventario/precio-pendiente', [\App\Http\Controllers\InventarioController::class, 'precioPendienteIndex'])->name('inventario.precio_pendiente');
     Route::post('/inventario/precio-pendiente/update/{id}', [\App\Http\Controllers\InventarioController::class, 'updatePrecioPendiente'])->name('inventario.precio_pendiente.update');
 
