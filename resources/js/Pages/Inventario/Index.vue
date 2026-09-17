@@ -5,10 +5,11 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { library } from '@fortawesome/fontawesome-svg-core';
 import { fas } from '@fortawesome/free-solid-svg-icons';
 import { fab } from '@fortawesome/free-brands-svg-icons';
-import { router, Link } from '@inertiajs/vue3';
+import { router, Link, usePage } from '@inertiajs/vue3';
 import { computed, ref, reactive, watch, onMounted } from 'vue';
 
 library.add(fas, fab);
+const page = usePage();
 const props = defineProps({
     Inventarios: Object,
     filters: Object,
