@@ -363,9 +363,9 @@ const logout = () => {
                      <div v-if="$page.props.temp_settings?.is_active" class="flex items-center gap-2.5 bg-amber-50 dark:bg-amber-950/70 border border-amber-300 dark:border-amber-700/80 px-3 py-1.5 rounded-2xl shadow-sm text-xs animate-pulse">
                         <i class="fa-solid fa-triangle-exclamation text-amber-500 text-sm"></i>
                         <div class="flex flex-col text-[10px] leading-tight font-black text-amber-800 dark:text-amber-300">
-                             <span>AJUSTES TEMPORALES ACTIVOS</span>
+                             <span>TASA TEMPORAL ACTIVA</span>
                              <span class="font-mono text-[9px] opacity-90">
-                                 Tasa: Bs. {{ $page.props.temp_settings.tasa_bcv || 'Oficial' }} | Util: {{ $page.props.temp_settings.utilidad ?? 30 }}% <template v-if="$page.props.temp_settings.fecha_tasa_bcv">| Fecha: {{ $page.props.temp_settings.fecha_tasa_bcv }}</template>
+                                 Tasa: Bs. {{ $page.props.temp_settings.tasa_bcv || 'Oficial' }} <template v-if="$page.props.temp_settings.fecha_tasa_bcv">| Fecha: {{ $page.props.temp_settings.fecha_tasa_bcv }}</template>
                              </span>
                         </div>
                         <button 
@@ -532,14 +532,14 @@ const logout = () => {
             </main>
         </div>
 
-        <!-- Modal para Ajustes Temporales de Tasa y Utilidad -->
+        <!-- Modal para Ajustes Temporales de Tasa y Fecha BCV -->
         <div v-if="showTempModal" class="fixed inset-0 z-[200] flex items-center justify-center p-4 min-h-screen">
             <div class="fixed inset-0 bg-gray-900/70 backdrop-blur-sm transition-opacity" @click="showTempModal = false"></div>
             
             <div class="relative bg-white dark:bg-gray-800 rounded-[2.5rem] max-w-md w-full shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-700 p-8 transform transition-all animate-in zoom-in-95 duration-200">
                 <div class="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-700 mb-6">
                     <h3 class="text-lg font-black text-gray-800 dark:text-white uppercase flex items-center gap-2">
-                        <i class="fa-solid fa-sliders text-indigo-500"></i> Tasa y Utilidad Temporales
+                        <i class="fa-solid fa-sliders text-indigo-500"></i> Tasa BCV y Fecha Temporales
                     </h3>
                     <button @click="showTempModal = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
                         <i class="fa-solid fa-xmark text-lg"></i>
@@ -547,7 +547,7 @@ const logout = () => {
                 </div>
 
                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-6 leading-relaxed font-medium">
-                    Asigna una Tasa BCV y/o % de Utilidad temporal para editar masivamente varios contenedores sin modificar cada ítem a mano. <span class="font-bold text-emerald-600 dark:text-emerald-400">No afecta la facturación real.</span>
+                    Asigna una Tasa BCV y/o Fecha de Tasa temporal para ajustar la conversión de ítems de tus contenedores. <span class="font-bold text-emerald-600 dark:text-emerald-400">No afecta la facturación real.</span>
                 </p>
 
                 <form @submit.prevent="submitTempSettings" class="space-y-5">
@@ -558,21 +558,7 @@ const logout = () => {
                         <input 
                             v-model="tempForm.tasa_bcv"
                             type="text"
-                            placeholder="Ej: 737.07 (Dejar vacío para usar oficial)"
-                            class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-mono font-bold text-gray-800 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                        />
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-2">
-                            <i class="fa-solid fa-percent text-indigo-500 mr-1"></i>% Utilidad Temporal (Margen)
-                        </label>
-                        <input 
-                            v-model="tempForm.utilidad"
-                            type="number"
-                            min="0"
-                            max="500"
-                            placeholder="Ej: 10 (Dejar vacío para usar default 30%)"
+                            placeholder="Ej: 736.93 (Dejar vacío para usar oficial)"
                             class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-mono font-bold text-gray-800 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                         />
                     </div>

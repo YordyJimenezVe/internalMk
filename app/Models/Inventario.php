@@ -123,14 +123,11 @@ class Inventario extends Model
         $costoImportacion = (float) $this->costo_importacion_unitario;
         $costoTaller = (float) $this->getCostoTallerAttribute();
 
-        // If price is already set (> 0) and no temporary session override is active, preserve explicit price
         if ($this->price && (float) $this->price > 0 && !session()->has('temp_utilidad')) {
             return;
         }
 
-        $utilidad = session('temp_utilidad') !== null ? (float) session('temp_utilidad') : (float) \App\Models\Setting::get('utility_percentage', 30);
-
-        $newPrice = ($costoImportacion + $costoTaller) * (1 + $utilidad / 100);
+        $newPrice = $costoImportacion + $costoTaller;
 
         $this->price = number_format($newPrice, 2, '.', '');
         $this->saveQuietly();

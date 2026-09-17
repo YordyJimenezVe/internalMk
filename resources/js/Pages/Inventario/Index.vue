@@ -151,18 +151,15 @@ const columns = computed(() => {
 });
 
 const getBillingTotals = (row) => {
-    const baseCosto = parseFloat(row.costo_importacion_unitario || row.costo || 0);
+    const baseCosto = parseFloat(row.price || row.costo_importacion_unitario || row.costo || 0);
     if (!baseCosto || baseCosto <= 0) {
         return { hasCost: false };
     }
     const costoTaller = parseFloat(row.costo_taller || 0) || 0;
     
     let big = parseFloat(row.price || 0);
-    if (!big || big <= 0 || (page.props.temp_settings?.utilidad !== undefined && page.props.temp_settings?.utilidad !== null)) {
-        const util = (page.props.temp_settings?.utilidad !== undefined && page.props.temp_settings?.utilidad !== null)
-            ? parseFloat(page.props.temp_settings.utilidad) 
-            : 30;
-        big = (baseCosto + costoTaller) * (1 + util / 100);
+    if (!big || big <= 0) {
+        big = baseCosto + costoTaller;
     }
 
     const total = big * 1.16;

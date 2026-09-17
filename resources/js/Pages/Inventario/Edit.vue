@@ -138,8 +138,7 @@ const updateCalculatedPrice = () => {
         bsVal = 0;
     }
     const costoTaller = parseFloat(props.inventario?.costo_taller || 0) || 0;
-    const utilidad = parseFloat(utilityPercent.value ?? 30);
-    const calcPrice = (bsVal + costoTaller) * (1 + utilidad / 100);
+    const calcPrice = bsVal + costoTaller;
     form.price = calcPrice.toFixed(2);
 };
 
