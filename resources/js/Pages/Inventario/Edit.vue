@@ -411,59 +411,50 @@ onMounted(() => {
                                     <i class="fa-solid fa-calculator text-indigo-500"></i> Estructura de Costos y Facturación Declarada
                                 </h3>
 
-                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                    <!-- Costo de Importación Dual Input ($ y Bs) -->
-                                    <div>
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    <!-- Costo de Importación Dual Input ($ y Bs) - Takes 2 columns on lg -->
+                                    <div class="lg:col-span-2 bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
                                         <label class="block uppercase tracking-wide text-indigo-700 dark:text-indigo-400 text-xs font-bold mb-2">
-                                            <i class="fa-solid fa-ship mr-1"></i>Costo Importación ($ / Bs.)
+                                            <i class="fa-solid fa-ship mr-1"></i>Costo Importación (Dual: USD <i class="fa-solid fa-right-left mx-1 text-gray-400"></i> Bs.)
                                         </label>
-                                        <div class="flex flex-col gap-2">
-                                            <div class="flex items-center gap-2">
-                                                <!-- Dollar Input -->
-                                                <div class="relative rounded-xl shadow-sm flex-1">
-                                                    <div class="absolute inset-y-0 left-2.5 flex items-center pointer-events-none">
-                                                        <span class="text-gray-400 dark:text-gray-500 font-bold text-xs">$</span>
-                                                    </div>
-                                                    <input 
-                                                        v-model="costoUsd" 
-                                                        @input="onUsdChange"
-                                                        type="text" 
-                                                        placeholder="USD"
-                                                        class="block w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl py-2 pl-6 pr-2 text-right font-mono font-bold text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                                                    >
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+                                            <!-- Dollar Input -->
+                                            <div class="relative rounded-xl shadow-sm">
+                                                <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                                                    <span class="text-gray-400 dark:text-gray-500 font-bold text-xs">$</span>
                                                 </div>
-
-                                                <!-- Exchange Icon -->
-                                                <span class="text-gray-400 dark:text-gray-500 text-xs shrink-0">
-                                                    <i class="fa-solid fa-right-left"></i>
-                                                </span>
-
-                                                <!-- Bolivares Input -->
-                                                <div class="relative rounded-xl shadow-sm flex-1">
-                                                    <div class="absolute inset-y-0 left-2.5 flex items-center pointer-events-none">
-                                                        <span class="text-gray-400 dark:text-gray-500 font-bold text-xs">Bs.</span>
-                                                    </div>
-                                                    <input 
-                                                        v-model="form.costo_importacion_unitario" 
-                                                        @input="onBsChange"
-                                                        type="text" 
-                                                        placeholder="0.00"
-                                                        class="block w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl py-2 pl-8 pr-2 text-right font-mono font-bold text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                                                    >
-                                                </div>
+                                                <input 
+                                                    v-model="costoUsd" 
+                                                    @input="onUsdChange"
+                                                    type="text" 
+                                                    placeholder="0.00 USD"
+                                                    class="block w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-xl py-2.5 pl-7 pr-3 text-right font-mono font-bold text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                                                >
                                             </div>
 
-                                            <div class="flex items-center justify-between px-1">
-                                                <span class="text-[10px] text-gray-500 dark:text-gray-400 font-semibold">
-                                                    <i class="fa-solid fa-earth-americas mr-1 text-blue-500"></i>Tasa BCV: Bs. {{ props.tasa_bcv ? parseFloat(props.tasa_bcv).toFixed(2) : '0.00' }}
-                                                </span>
+                                            <!-- Bolivares Input -->
+                                            <div class="relative rounded-xl shadow-sm">
+                                                <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                                                    <span class="text-gray-400 dark:text-gray-500 font-bold text-xs">Bs.</span>
+                                                </div>
+                                                <input 
+                                                    v-model="form.costo_importacion_unitario" 
+                                                    @input="onBsChange"
+                                                    type="text" 
+                                                    placeholder="0.00 Bs"
+                                                    class="block w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-xl py-2.5 pl-9 pr-3 text-right font-mono font-bold text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                                                >
                                             </div>
+                                        </div>
+                                        <div class="flex items-center justify-between mt-2 px-1 text-[11px] text-gray-500 dark:text-gray-400 font-semibold">
+                                            <span><i class="fa-solid fa-earth-americas mr-1 text-blue-500"></i>Tasa BCV Aplicada: <strong>Bs. {{ props.tasa_bcv ? parseFloat(props.tasa_bcv).toFixed(2) : '0.00' }}</strong></span>
+                                            <span class="text-[10px] text-indigo-500 font-bold">Auto-conversión activa</span>
                                         </div>
                                         <InputError :message="form.errors.costo_importacion_unitario" class="mt-2" />
                                     </div>
 
                                     <!-- Fecha Tasa BCV Input -->
-                                    <div>
+                                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
                                         <label class="block uppercase tracking-wide text-indigo-700 dark:text-indigo-400 text-xs font-bold mb-2">
                                             <i class="fa-solid fa-calendar-day mr-1"></i>Fecha Tasa BCV
                                         </label>
@@ -472,19 +463,19 @@ onMounted(() => {
                                                 v-model="form.fecha_tasa_bcv"
                                                 type="text"
                                                 placeholder="Ej: 23/07/2026"
-                                                class="block w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl py-2 px-3 font-semibold text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                                                class="block w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-xl py-2.5 px-3 font-semibold text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                                             >
                                         </div>
-                                        <div class="text-[10px] text-gray-500 dark:text-gray-400 font-semibold mt-1">
-                                            Fecha de tasa BCV tomada (ej. 23/07/2026)
+                                        <div class="text-[10px] text-gray-500 dark:text-gray-400 font-semibold mt-2">
+                                            Fecha de referencia (ej. 23/07/2026)
                                         </div>
                                         <InputError :message="form.errors.fecha_tasa_bcv" class="mt-2" />
                                     </div>
 
                                     <!-- Utility % Selector/Input -->
-                                    <div>
+                                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
                                         <label class="block uppercase tracking-wide text-indigo-700 dark:text-indigo-400 text-xs font-bold mb-2">
-                                            <i class="fa-solid fa-percent mr-1"></i>% Utilidad
+                                            <i class="fa-solid fa-percent mr-1"></i>% Utilidad Declarada
                                         </label>
                                         <div class="relative rounded-xl shadow-sm">
                                             <input 
@@ -494,18 +485,18 @@ onMounted(() => {
                                                 min="0"
                                                 max="500"
                                                 step="1"
-                                                class="block w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl py-2 px-3 text-right font-mono font-bold text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                                                class="block w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-xl py-2.5 px-3 text-right font-mono font-bold text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                                             >
                                         </div>
-                                        <div class="text-[10px] text-gray-500 dark:text-gray-400 font-semibold mt-1">
+                                        <div class="text-[10px] text-gray-500 dark:text-gray-400 font-semibold mt-2">
                                             Margen sobre importación {{ props.inventario?.costo_taller > 0 ? '+ Taller' : '' }}
                                         </div>
                                     </div>
 
-                                    <!-- Precio de Venta (Divisas) -->
-                                    <div>
+                                    <!-- Precio de Venta Comercial ($) - Takes 2 cols on lg -->
+                                    <div class="lg:col-span-2 bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
                                         <label class="block uppercase tracking-wide text-indigo-700 dark:text-indigo-400 text-xs font-bold mb-2">
-                                            <i class="fa-solid fa-tag mr-1"></i>Precio Venta Comercial ($)
+                                            <i class="fa-solid fa-tag mr-1"></i>Precio de Venta Comercial ($ Divisas)
                                         </label>
                                         <div class="relative rounded-xl shadow-sm">
                                             <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
@@ -513,7 +504,7 @@ onMounted(() => {
                                             </div>
                                             <input 
                                                 v-model="form.price_sale" 
-                                                class="appearance-none block w-full bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 border border-gray-200 dark:border-gray-600 rounded-xl py-2 pl-7 pr-3 text-right focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-lg font-bold font-mono" 
+                                                class="appearance-none block w-full bg-gray-50 dark:bg-gray-900 text-indigo-600 dark:text-indigo-400 border border-gray-200 dark:border-gray-600 rounded-xl py-2.5 pl-7 pr-3 text-right focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all text-lg font-bold font-mono" 
                                                 type="text" 
                                                 placeholder="0.00"
                                             >
