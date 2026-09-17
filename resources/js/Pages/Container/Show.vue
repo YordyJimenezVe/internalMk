@@ -18,7 +18,11 @@ ChartJS.register(Title, Tooltip, Legend, ArcElement, CategoryScale, LinearScale,
 
 const props = defineProps({
     container: Object,
-    stats: Object
+    stats: Object,
+    motorBreakdown: {
+        type: Array,
+        default: () => []
+    }
 });
 
 const formatCurrency = (value) => {
@@ -209,6 +213,56 @@ const exportReport = (format) => {
                         </div>
                         <h3 class="text-gray-500 dark:text-gray-400 text-sm font-medium">No Cargado</h3>
                         <p class="text-lg font-semibold text-gray-800 dark:text-gray-200">{{ stats.not_loaded.count }} Piezas</p>
+                    </div>
+                </div>
+
+                <!-- Desglose de Motores por Modelo -->
+                <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden p-6 md:p-8">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-100 dark:border-gray-700">
+                        <div>
+                            <div class="flex items-center gap-3">
+                                <div class="p-2.5 bg-indigo-50 dark:bg-indigo-900/40 rounded-xl text-indigo-600 dark:text-indigo-400">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                    </svg>
+                                </div>
+                                <h3 class="text-xl font-black text-gray-800 dark:text-white tracking-tight">Motores Asociados por Modelo</h3>
+                            </div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Cantidades exactas de motores registrados en este expediente</p>
+                        </div>
+                        <div class="flex items-center gap-2.5 bg-indigo-50 dark:bg-indigo-900/40 px-4 py-2.5 rounded-2xl border border-indigo-100 dark:border-indigo-800/40 self-start sm:self-auto">
+                            <span class="text-xs uppercase font-extrabold text-indigo-600 dark:text-indigo-400 tracking-wider">Total Motores</span>
+                            <span class="text-xl font-black text-indigo-700 dark:text-indigo-300">{{ stats.categories.motores }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Motor Grid List -->
+                    <div v-if="motorBreakdown && motorBreakdown.length > 0" class="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div 
+                            v-for="(item, idx) in motorBreakdown" 
+                            :key="idx"
+                            class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/60 hover:bg-indigo-50/50 dark:hover:bg-indigo-900/20 rounded-2xl border border-gray-100 dark:border-gray-700/80 transition-all duration-200 group"
+                        >
+                            <div class="flex items-center space-x-3.5">
+                                <div class="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-black text-xs group-hover:scale-105 transition-transform">
+                                    <i class="fa-solid fa-gears text-base"></i>
+                                </div>
+                                <div>
+                                    <span class="block text-[11px] uppercase font-bold text-gray-400 dark:text-gray-500 tracking-wider">{{ item.marca }}</span>
+                                    <span class="block text-base font-black text-gray-800 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{{ item.modelo }}</span>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="inline-flex items-center px-3 py-1.5 rounded-xl text-sm font-black bg-indigo-600 text-white shadow-sm shadow-indigo-500/30">
+                                    {{ item.cantidad }} <span class="text-[10px] font-medium uppercase ml-1 opacity-90">unid.</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div v-else class="mt-6 py-8 text-center text-gray-400 dark:text-gray-500">
+                        <i class="fa-solid fa-box-open text-3xl mb-2 block opacity-50"></i>
+                        <p class="text-sm font-semibold">No se encontraron motores registrados en este contenedor.</p>
                     </div>
                 </div>
 

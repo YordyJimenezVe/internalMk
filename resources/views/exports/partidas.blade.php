@@ -272,6 +272,79 @@
             </table>
         </div>
     @endif
+
+    @php
+        $motoresGrouped = $partidas->filter(function($p) {
+            return str_contains(strtoupper($p->tipo ?? ''), 'MOTOR');
+        })->groupBy(function($p) {
+            $m = trim($p->marca ?? '');
+            $mod = trim($p->modelo ?? '');
+            $combined = trim($m . ' ' . $mod);
+            return $combined !== '' ? $combined : 'SIN MODELO ESPECIFICADO';
+        });
+        $totalMotores = $partidas->filter(function($p) {
+            return str_contains(strtoupper($p->tipo ?? ''), 'MOTOR');
+        })->count();
+    @endphp
+
+    @if($motoresGrouped->count() > 0)
+        @if($isExcel)
+            <table style="margin-top: 20px;">
+                <tr>
+                    <td colspan="11" style="font-size: 13px; font-weight: bold; color: #FFFFFF; background-color: #1E3A8A; text-align: left; padding: 6px;">
+                        DESGLOSE DE MOTORES POR MODELO (TOTAL MOTORES: {{ $totalMotores }})
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="4" style="{{ $headerStyle }}">MARCA</td>
+                    <td colspan="4" style="{{ $headerStyle }}">MODELO</td>
+                    <td colspan="3" style="{{ $headerStyle }}">CANTIDAD EXACTA</td>
+                </tr>
+                @foreach($motoresGrouped as $modelName => $groupItems)
+                    @php
+                        $firstItem = $groupItems->first();
+                        $marcaVal = $firstItem->marca ?: 'SIN MARCA';
+                        $modeloVal = $firstItem->modelo ?: 'SIN MODELO';
+                    @endphp
+                    <tr>
+                        <td colspan="4" style="{{ $cellStyle }}">{{ $marcaVal }}</td>
+                        <td colspan="4" style="{{ $cellStyle }} font-weight: bold;">{{ $modeloVal }}</td>
+                        <td colspan="3" style="{{ $cellStyle }} font-weight: bold; color: #2563EB;">{{ $groupItems->count() }}</td>
+                    </tr>
+                @endforeach
+            </table>
+        @else
+            <div style="margin-top: 20px; page-break-inside: avoid;">
+                <div style="font-size: 11px; font-weight: bold; color: #FFFFFF; background-color: #1E3A8A; padding: 6px 10px; border-radius: 4px; margin-bottom: 8px;">
+                    DESGLOSE DE MOTORES POR MODELO (TOTAL MOTORES: {{ $totalMotores }})
+                </div>
+                <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th style="{{ $headerStyle }} width: 35%;">MARCA</th>
+                            <th style="{{ $headerStyle }} width: 45%;">MODELO</th>
+                            <th style="{{ $headerStyle }} width: 20%;">CANTIDAD EXACTA</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($motoresGrouped as $modelName => $groupItems)
+                            @php
+                                $firstItem = $groupItems->first();
+                                $marcaVal = $firstItem->marca ?: 'SIN MARCA';
+                                $modeloVal = $firstItem->modelo ?: 'SIN MODELO';
+                                $isZebra = ($loop->index % 2 != 0);
+                            @endphp
+                            <tr style="{{ $isZebra ? $zebraStyle : '' }}">
+                                <td style="{{ $cellStyle }}">{{ $marcaVal }}</td>
+                                <td style="{{ $cellStyle }} font-weight: bold;">{{ $modeloVal }}</td>
+                                <td style="{{ $cellStyle }} font-weight: bold; color: #2563EB;">{{ $groupItems->count() }} motores</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+    @endif
 </body>
 
 </html>

@@ -239,9 +239,18 @@ class ContainersController extends Controller
             ]
         ];
 
+        // Motor breakdown by marca and modelo
+        $motorBreakdown = \App\Models\Inventario::where('container_id', $id)
+            ->where('tipo', 'LIKE', '%MOTOR%')
+            ->selectRaw("COALESCE(NULLIF(marca, ''), 'SIN MARCA') as marca, COALESCE(NULLIF(modelo, ''), 'SIN MODELO') as modelo, COUNT(*) as cantidad")
+            ->groupBy('marca', 'modelo')
+            ->orderBy('cantidad', 'desc')
+            ->get();
+
         return inertia('Container/Show', [
             'container' => $container,
-            'stats' => $stats
+            'stats' => $stats,
+            'motorBreakdown' => $motorBreakdown
         ]);
     }
 
