@@ -18,10 +18,18 @@ return new class extends Migration
             });
         }
 
-        // Backfill container 260723 with rate 736.93 if empty
+        // Backfill specific rates per expediente as requested
         DB::table('containers')
             ->where('expediente', '260723')
-            ->update(['tasa_bcv' => 736.93]);
+            ->update(['tasa_bcv' => 737.88]);
+
+        DB::table('containers')
+            ->where('expediente', '259705')
+            ->update(['tasa_bcv' => 311.84]);
+
+        DB::table('containers')
+            ->where('expediente', '255095')
+            ->update(['tasa_bcv' => 330.38]);
     }
 
     /**
