@@ -318,7 +318,10 @@ class InventarioController extends Controller
         $barcode = $generator->getBarcode($barcodeData, $generator::TYPE_CODE_128, 1);
 
         $latestRate = \App\Models\ExchangeRate::where('source', 'BCV')->latest()->first();
-        $tasaBCV = $latestRate ? (float) $latestRate->rate : 0;
+        $officialTasa = $latestRate ? (float) $latestRate->rate : 0;
+        $tempTasa = session('temp_tasa_bcv');
+        $containerTasa = ($data->container && $data->container->tasa_bcv > 0) ? (float) $data->container->tasa_bcv : null;
+        $tasaBCV = $containerTasa ?? ($tempTasa ? (float) $tempTasa : $officialTasa);
 
         return inertia('Inventario/Show', [
             'inventario' => $data,
@@ -374,7 +377,8 @@ class InventarioController extends Controller
         $tempTasa = session('temp_tasa_bcv');
         $tempUtilidad = session('temp_utilidad');
 
-        $tasaBCV = $tempTasa ? (float) $tempTasa : $officialTasa;
+        $containerTasa = ($data && $data->container && $data->container->tasa_bcv > 0) ? (float) $data->container->tasa_bcv : null;
+        $tasaBCV = $containerTasa ?? ($tempTasa ? (float) $tempTasa : $officialTasa);
         $utilityPercentage = $tempUtilidad !== null ? (float) $tempUtilidad : (float) \App\Models\Setting::get('utility_percentage', 30);
 
         return inertia('Inventario/Edit', [

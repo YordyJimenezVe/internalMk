@@ -13,6 +13,7 @@ const form = useForm({
     accesorios: 0,
     costo_importacion_general: 0,
     aplicar_costos: false,
+    tasa_bcv: '',
 });
 
 const submit = () => {
@@ -63,7 +64,7 @@ const submit = () => {
 
                             <div class="space-y-6">
                                 <h3 class="font-black text-[10px] uppercase tracking-[0.3em] text-gray-400 dark:text-gray-500 flex items-center">
-                                    <i class="fa-solid fa-clock mr-2"></i>Logística
+                                    <i class="fa-solid fa-clock mr-2"></i>Logística y Tasa
                                 </h3>
                                 <div class="grid grid-cols-1 gap-6">
                                     <div class="grid grid-cols-2 gap-4">
@@ -74,6 +75,15 @@ const submit = () => {
                                         <div>
                                             <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="hora">Hora</label>
                                             <input class="appearance-none block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-4 px-4 leading-tight focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all font-bold" id="hora" type="time" v-model="form.hora">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="tasa_bcv">Tasa BCV del Contenedor (Bs./$)</label>
+                                        <div class="relative">
+                                            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-indigo-500">
+                                                <i class="fa-solid fa-money-bill-wave"></i>
+                                            </div>
+                                            <input class="appearance-none block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-4 pl-12 pr-4 leading-tight focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-bold" id="tasa_bcv" type="number" step="0.0001" v-model="form.tasa_bcv" placeholder="Ej: 736.93">
                                         </div>
                                     </div>
                                 </div>

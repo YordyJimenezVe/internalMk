@@ -351,7 +351,10 @@ const exportReport = (format) => {
                                     <span class="text-slate-500 text-[10px] uppercase font-bold tracking-widest">Contenedor ID</span>
                                     <span class="text-indigo-300 font-mono text-xs">{{ container.cod }}</span>
                                 </div>
-                                <span class="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[10px] font-black text-indigo-400 uppercase tracking-tighter">{{ container.fecha }}</span>
+                                <div class="flex flex-col items-end">
+                                    <span class="px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[10px] font-black text-indigo-400 uppercase tracking-tighter">{{ container.fecha }}</span>
+                                    <span v-if="container.tasa_bcv" class="text-[10px] font-extrabold text-green-400 mt-1">Tasa: Bs. {{ parseFloat(container.tasa_bcv).toFixed(2) }}</span>
+                                </div>
                             </div>
                         </div>
                     </div>

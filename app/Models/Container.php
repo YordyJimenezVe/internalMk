@@ -31,6 +31,7 @@ class Container extends Model
         'accesorios',
         'costo_importacion_general',
         'aplicar_costos',
+        'tasa_bcv',
     ];
 
     public function items()
