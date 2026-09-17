@@ -172,13 +172,15 @@ const getBillingTotals = (row) => {
 
 const statusFilter = ref(props.filters?.status || 'ALL');
 const typeFilter = ref(props.filters?.type_filter || ''); // New
+const modelFilter = ref(props.filters?.model_filter || '');
 
 const fetchInventarios = () => {
     const routeName = isAutopart.value ? 'autopart' : (isCamara.value ? 'camara' : 'inventario');
     router.get(route(routeName), { 
         ...props.filters,
         status: statusFilter.value,
-        type_filter: typeFilter.value // Add this
+        type_filter: typeFilter.value,
+        model_filter: modelFilter.value
     }, { preserveState: true });
 };
 
@@ -240,7 +242,7 @@ const confirmDelete = () => {
             </div>
             
             <!-- Advanced Toolbar -->
-            <div class="mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 bg-white dark:bg-gray-800 p-6 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-700/50 backdrop-blur-sm">
+            <div class="mb-8 grid grid-cols-1 md:grid-cols-3 gap-6 bg-white dark:bg-gray-800 p-6 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-700/50 backdrop-blur-sm">
                 
                 <!-- Category/Type Filter -->
                 <div class="space-y-2">
@@ -254,6 +256,25 @@ const confirmDelete = () => {
                             <option value="camaras">CÁMARAS</option>
                             <option value="autopartes">AUTOPARTES</option>
                         </select>
+                    </div>
+                </div>
+
+                <!-- Model Filter -->
+                <div class="space-y-2">
+                    <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] ml-2">MODELO DE AUTO</label>
+                    <div class="relative group">
+                        <i class="fa-solid fa-car-side absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors"></i>
+                        <input 
+                            v-model="modelFilter" 
+                            @keyup.enter="fetchInventarios"
+                            @blur="fetchInventarios"
+                            type="text" 
+                            placeholder="Ej: COROLLA, HILUX..." 
+                            class="w-full pl-12 pr-10 py-3.5 bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl focus:ring-2 focus:ring-blue-500 transition-all font-bold outline-none uppercase text-sm"
+                        />
+                        <button v-if="modelFilter" @click="modelFilter = ''; fetchInventarios();" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -274,18 +295,6 @@ const confirmDelete = () => {
                     </div>
                 </div>
 
-                <!-- Summary Stats Card (Quick View) -->
-                <div class="hidden lg:flex items-center justify-around bg-indigo-50/50 dark:bg-indigo-900/10 rounded-2xl border border-indigo-100/50 dark:border-indigo-800/30 px-4 py-3">
-                    <div class="text-center">
-                        <p class="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Total</p>
-                        <p class="text-xl font-black text-indigo-600 dark:text-indigo-400">{{ Inventarios.total }}</p>
-                    </div>
-                    <div class="h-8 w-[1px] bg-indigo-200 dark:bg-indigo-800"></div>
-                    <div class="text-center">
-                        <p class="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Página</p>
-                        <p class="text-xl font-black text-emerald-600 dark:text-emerald-400">{{ Inventarios.current_page }}</p>
-                    </div>
-                </div>
             </div>
 
             <!-- Premium DataTable -->
@@ -293,7 +302,7 @@ const confirmDelete = () => {
                 <DataTable 
                     :rows="Inventarios" 
                     :columns="columns" 
-                    :filters="{ ...filters, status: statusFilter, type_filter: typeFilter }"
+                    :filters="{ ...filters, status: statusFilter, type_filter: typeFilter, model_filter: modelFilter }"
                     :routeName="isAutopart ? 'autopart' : (isCamara ? 'camara' : 'inventario')"
                     :title="isAutopart ? 'LISTADO DE AUTOPARTES' : 'REGISTROS DE INVENTARIO'"
                     exportType="Inventarios"

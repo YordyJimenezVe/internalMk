@@ -77,6 +77,7 @@ class InventarioController extends Controller
         // --- Filter Logic ---
         $statusFilter = $request->input('status', 'DISPONIBLE'); // Default: Only Available
         $typeFilter = $request->input('type_filter', null); // New Type Filter
+        $modelFilter = $request->input('model_filter', null); // Model Filter
 
         // REMOVED 'AUTOPARTE' EXCLUSION to consolidate modules
         $inventarios = Inventario::with('container');
@@ -92,6 +93,11 @@ class InventarioController extends Controller
             } elseif ($typeFilter === 'autopartes') {
                 $inventarios->where('tipo', 'AUTOPARTE');
             }
+        }
+
+        // Apply Model Filter
+        if ($modelFilter) {
+            $inventarios->whereRaw('LOWER(modelo) LIKE ?', ['%' . strtolower(trim($modelFilter)) . '%']);
         }
 
         // Apply Status Filter
@@ -114,48 +120,54 @@ class InventarioController extends Controller
         // If 'ALL', we don't filter by billing/status, just show everything.
 
         if ($search) {
-            // Dividimos la búsqueda en palabras clave separadas por espacios
-            $keywords = explode(' ', strtolower($search));
+            $searchLower = strtolower(trim($search));
+            $words = array_filter(explode(' ', $searchLower));
 
-            $marcaKeyword = array_shift($keywords);
-
-            $inventarios->where(function ($query) use ($marcaKeyword, $keywords, $search, $searchRaw) {
-                // Expanded Search Logic
-                $query->whereRaw('LOWER(marca) LIKE ?', ['%' . $search . '%'])
-                    ->orWhereRaw('LOWER(modelo) LIKE ?', ['%' . $search . '%'])
-                    ->orWhereRaw('LOWER(tipo) LIKE ?', ['%' . $search . '%'])
-                    ->orWhereRaw('LOWER(codInv) LIKE ?', ['%' . $search . '%'])
-                    ->orWhereRaw('LOWER(serial) LIKE ?', ['%' . $search . '%'])
-                    ->orWhereRaw('LOWER(expediente) LIKE ?', ['%' . $search . '%'])
-                    ->orWhereRaw('LOWER(categorie) LIKE ?', ['%' . $search . '%'])
-                    ->orWhereRaw('LOWER(observation) LIKE ?', ['%' . $search . '%'])
-                    ->orWhere('año', 'like', "%{$search}%")
-                    ->orWhere('cantidad', 'like', "%{$search}%")
-                    ->orWhereHas('container', function ($q) use ($search) {
-                        $q->whereRaw("CONCAT(SUBSTR(cod, 1, 4), '-', codInv) LIKE CONCAT('%', ?, '%')", [
-                            $search
-                        ]);
-                    });
-
-                if ($searchRaw && is_numeric($searchRaw)) {
-                    // Barcode/Exact match priority
-                    $query->orWhere('id', $searchRaw);
-                }
-
-                // Original complex logic for keyword matching
-                $query->orWhere(function ($subQuery) use ($marcaKeyword, $keywords) {
-                    $subQuery->whereRaw('LOWER(marca) LIKE ?', ['%' . $marcaKeyword . '%']);
-                    if (!empty($keywords)) {
-                        $subQuery->where(function ($modelQuery) use ($keywords) {
-                            foreach ($keywords as $keyword) {
-                                $modelQuery->orWhereRaw('LOWER(modelo) LIKE ?', ['%' . $keyword . '%']);
-                            }
+            if (count($words) > 1) {
+                $inventarios->where(function ($query) use ($words) {
+                    foreach ($words as $word) {
+                        $query->where(function ($subQuery) use ($word) {
+                            $subQuery->whereRaw('LOWER(marca) LIKE ?', ['%' . $word . '%'])
+                                ->orWhereRaw('LOWER(modelo) LIKE ?', ['%' . $word . '%'])
+                                ->orWhereRaw('LOWER(tipo) LIKE ?', ['%' . $word . '%'])
+                                ->orWhereRaw('LOWER(codInv) LIKE ?', ['%' . $word . '%'])
+                                ->orWhereRaw('LOWER(serial) LIKE ?', ['%' . $word . '%'])
+                                ->orWhereRaw('LOWER(expediente) LIKE ?', ['%' . $word . '%'])
+                                ->orWhereRaw('LOWER(categorie) LIKE ?', ['%' . $word . '%'])
+                                ->orWhereRaw('LOWER(observation) LIKE ?', ['%' . $word . '%'])
+                                ->orWhere('año', 'like', "%{$word}%")
+                                ->orWhere('cantidad', 'like', "%{$word}%")
+                                ->orWhereHas('container', function ($q) use ($word) {
+                                    $q->whereRaw("CONCAT(SUBSTR(cod, 1, 4), '-', codInv) LIKE CONCAT('%', ?, '%')", [
+                                        $word
+                                    ]);
+                                });
                         });
                     }
                 });
-            });
+            } else {
+                $inventarios->where(function ($query) use ($searchLower, $searchRaw) {
+                    $query->whereRaw('LOWER(marca) LIKE ?', ['%' . $searchLower . '%'])
+                        ->orWhereRaw('LOWER(modelo) LIKE ?', ['%' . $searchLower . '%'])
+                        ->orWhereRaw('LOWER(tipo) LIKE ?', ['%' . $searchLower . '%'])
+                        ->orWhereRaw('LOWER(codInv) LIKE ?', ['%' . $searchLower . '%'])
+                        ->orWhereRaw('LOWER(serial) LIKE ?', ['%' . $searchLower . '%'])
+                        ->orWhereRaw('LOWER(expediente) LIKE ?', ['%' . $searchLower . '%'])
+                        ->orWhereRaw('LOWER(categorie) LIKE ?', ['%' . $searchLower . '%'])
+                        ->orWhereRaw('LOWER(observation) LIKE ?', ['%' . $searchLower . '%'])
+                        ->orWhere('año', 'like', "%{$searchLower}%")
+                        ->orWhere('cantidad', 'like', "%{$searchLower}%")
+                        ->orWhereHas('container', function ($q) use ($searchLower) {
+                            $q->whereRaw("CONCAT(SUBSTR(cod, 1, 4), '-', codInv) LIKE CONCAT('%', ?, '%')", [
+                                $searchLower
+                            ]);
+                        });
 
-
+                    if ($searchRaw && is_numeric($searchRaw)) {
+                        $query->orWhere('id', $searchRaw);
+                    }
+                });
+            }
         }
 
         // Sorting
@@ -196,6 +208,7 @@ class InventarioController extends Controller
                 'search' => $searchRaw,
                 'status' => $statusFilter,
                 'type_filter' => $typeFilter,
+                'model_filter' => $modelFilter,
                 'sort' => $sort,
                 'direction' => $direction,
             ],
