@@ -64,6 +64,24 @@ class ContainersController extends Controller
         $direction = $request->input('direction', 'desc');
 
         $containers = Container::query()
+            ->withCount([
+                'items as motores_registered' => function ($q) {
+                    $q->where('tipo', 'LIKE', '%MOTOR%');
+                },
+                'items as cajas_registered' => function ($q) {
+                    $q->where('tipo', 'LIKE', '%CAJA%');
+                },
+                'items as camaras_registered' => function ($q) {
+                    $q->where(function ($c) {
+                        $c->where('tipo', 'LIKE', '%CÁMARA%')
+                          ->orWhere('tipo', 'LIKE', '%CAMARA%');
+                    });
+                },
+                'items as accesorios_registered' => function ($q) {
+                    $q->where('tipo', 'AUTOPARTE');
+                },
+                'items as total_registered'
+            ])
             ->when($searchCleaned, function ($query, $searchCleaned) {
                 $query->where(function ($q) use ($searchCleaned) {
                     $q->where('expediente', 'like', "%{$searchCleaned}%")

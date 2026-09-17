@@ -61,20 +61,28 @@ const eliminarContainer = id => {
                 >
                     <!-- Custom Cell Formatting -->
                     <template #cell-motores="{ row }">
-                        {{ formatoMiles(row.motores) }}
+                        <span class="font-mono font-bold">
+                            <span class="text-indigo-600 dark:text-indigo-400 font-black">{{ formatoMiles(row.motores_registered || 0) }}</span><span class="text-gray-400 font-normal">/</span>{{ formatoMiles(row.motores) }}
+                        </span>
                     </template>
                     <template #cell-cajas="{ row }">
-                        {{ formatoMiles(row.cajas) }}
+                        <span class="font-mono font-bold">
+                            <span class="text-indigo-600 dark:text-indigo-400 font-black">{{ formatoMiles(row.cajas_registered || 0) }}</span><span class="text-gray-400 font-normal">/</span>{{ formatoMiles(row.cajas) }}
+                        </span>
                     </template>
                     <template #cell-camaras="{ row }">
-                        {{ formatoMiles(row.camaras) }}
+                        <span class="font-mono font-bold">
+                            <span class="text-indigo-600 dark:text-indigo-400 font-black">{{ formatoMiles(row.camaras_registered || 0) }}</span><span class="text-gray-400 font-normal">/</span>{{ formatoMiles(row.camaras) }}
+                        </span>
                     </template>
                     <template #cell-accesorios="{ row }">
-                        {{ formatoMiles(row.accesorios) }}
+                        <span class="font-mono font-bold">
+                            <span class="text-indigo-600 dark:text-indigo-400 font-black">{{ formatoMiles(row.accesorios_registered || 0) }}</span><span class="text-gray-400 font-normal">/</span>{{ formatoMiles(row.accesorios) }}
+                        </span>
                     </template>
                     <template #cell-total="{ row }">
-                        <span class="font-bold text-gray-800 dark:text-gray-200">
-                             {{ formatoMiles((row.motores || 0) + (row.cajas || 0) + (row.camaras || 0) + (row.accesorios || 0)) }}
+                        <span class="font-mono font-bold text-gray-800 dark:text-gray-200">
+                             <span class="text-emerald-600 dark:text-emerald-400 font-black">{{ formatoMiles(row.total_registered || 0) }}</span><span class="text-gray-400 font-normal">/</span>{{ formatoMiles((row.motores || 0) + (row.cajas || 0) + (row.camaras || 0) + (row.accesorios || 0)) }}
                         </span>
                     </template>
 
