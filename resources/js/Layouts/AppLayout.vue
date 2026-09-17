@@ -90,6 +90,7 @@ const showTempModal = ref(false);
 const tempForm = ref({
     tasa_bcv: page.props.temp_settings?.tasa_bcv || '',
     utilidad: page.props.temp_settings?.utilidad || '',
+    fecha_tasa_bcv: page.props.temp_settings?.fecha_tasa_bcv || '',
 });
 
 const submitTempSettings = () => {
@@ -108,6 +109,7 @@ const resetTempSettings = () => {
             showTempModal.value = false;
             tempForm.value.tasa_bcv = '';
             tempForm.value.utilidad = '';
+            tempForm.value.fecha_tasa_bcv = '';
         }
     });
 };
@@ -361,10 +363,10 @@ const logout = () => {
                      <div v-if="$page.props.temp_settings?.is_active" class="flex items-center gap-2.5 bg-amber-50 dark:bg-amber-950/70 border border-amber-300 dark:border-amber-700/80 px-3 py-1.5 rounded-2xl shadow-sm text-xs animate-pulse">
                         <i class="fa-solid fa-triangle-exclamation text-amber-500 text-sm"></i>
                         <div class="flex flex-col text-[10px] leading-tight font-black text-amber-800 dark:text-amber-300">
-                            <span>TASA/UTILIDAD TEMPORAL</span>
-                            <span class="font-mono text-[9px] opacity-90">
-                                Tasa: Bs. {{ $page.props.temp_settings.tasa_bcv || 'Oficial' }} | Util: {{ $page.props.temp_settings.utilidad ?? 30 }}%
-                            </span>
+                             <span>AJUSTES TEMPORALES ACTIVOS</span>
+                             <span class="font-mono text-[9px] opacity-90">
+                                 Tasa: Bs. {{ $page.props.temp_settings.tasa_bcv || 'Oficial' }} | Util: {{ $page.props.temp_settings.utilidad ?? 30 }}% <template v-if="$page.props.temp_settings.fecha_tasa_bcv">| Fecha: {{ $page.props.temp_settings.fecha_tasa_bcv }}</template>
+                             </span>
                         </div>
                         <button 
                             @click="resetTempSettings" 
@@ -571,6 +573,18 @@ const logout = () => {
                             min="0"
                             max="500"
                             placeholder="Ej: 10 (Dejar vacío para usar default 30%)"
+                            class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-mono font-bold text-gray-800 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                        />
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 dark:text-gray-300 uppercase mb-2">
+                            <i class="fa-solid fa-calendar-day text-indigo-500 mr-1"></i>Fecha Tasa BCV Temporal
+                        </label>
+                        <input 
+                            v-model="tempForm.fecha_tasa_bcv"
+                            type="text"
+                            placeholder="Ej: 23/07/2026 (Se autocompletará en los registros)"
                             class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 text-sm font-mono font-bold text-gray-800 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                         />
                     </div>

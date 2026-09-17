@@ -31,9 +31,10 @@ class HandleInertiaRequests extends Middleware
                 'is_motor' => fn() => $request->session()->get('is_motor'),
             ],
             'temp_settings' => [
-                'is_active' => (bool) ($request->session()->get('temp_tasa_bcv') || $request->session()->get('temp_utilidad')),
+                'is_active' => (bool) ($request->session()->get('temp_tasa_bcv') || $request->session()->get('temp_utilidad') || $request->session()->get('temp_fecha_tasa_bcv')),
                 'tasa_bcv' => $request->session()->get('temp_tasa_bcv'),
                 'utilidad' => $request->session()->get('temp_utilidad'),
+                'fecha_tasa_bcv' => $request->session()->get('temp_fecha_tasa_bcv'),
             ],
         ]);
     }

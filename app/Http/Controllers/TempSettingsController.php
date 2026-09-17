@@ -33,6 +33,13 @@ class TempSettingsController extends Controller
             $request->session()->forget('temp_utilidad');
         }
 
+        $fecha = $request->input('fecha_tasa_bcv');
+        if ($fecha !== null && $fecha !== '') {
+            $request->session()->put('temp_fecha_tasa_bcv', $fecha);
+        } else {
+            $request->session()->forget('temp_fecha_tasa_bcv');
+        }
+
         return redirect()->back()->with('success', 'Ajustes temporales de edición aplicados correctamente.');
     }
 
@@ -41,7 +48,7 @@ class TempSettingsController extends Controller
      */
     public function reset(Request $request)
     {
-        $request->session()->forget(['temp_tasa_bcv', 'temp_utilidad']);
+        $request->session()->forget(['temp_tasa_bcv', 'temp_utilidad', 'temp_fecha_tasa_bcv']);
         return redirect()->back()->with('success', 'Se ha restablecido la Tasa BCV oficial del día y la utilidad predeterminada.');
     }
 }

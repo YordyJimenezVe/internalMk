@@ -42,7 +42,7 @@ const form = useForm({
     price: props.inventario.price || '',
     price_sale: props.inventario.price_sale || '',
     costo_importacion_unitario: props.inventario.costo_importacion_unitario || '',
-    fecha_tasa_bcv: props.inventario.fecha_tasa_bcv || '',
+    fecha_tasa_bcv: props.inventario.fecha_tasa_bcv || page.props.temp_settings?.fecha_tasa_bcv || '',
     condicion: props.inventario.condicion || 'APLICA',
     status: props.inventario.status || 'DISPONIBLE',
     observation: props.inventario.observation || '',

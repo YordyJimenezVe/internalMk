@@ -1,9 +1,11 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { useForm, router, Link } from '@inertiajs/vue3';
+import { useForm, router, Link, usePage } from '@inertiajs/vue3';
 import { ref, reactive, computed, watch, onMounted } from 'vue';
 import { debounce } from 'lodash';
 import axios from 'axios';
+
+const page = usePage();
 
 const props = defineProps({
     items: Object, // Paginated items object from backend
@@ -84,7 +86,7 @@ const initForms = () => {
                 costo_usd: hasValue && props.tasa_bcv > 0 
                     ? (parseFloat(item.costo_importacion_unitario) / props.tasa_bcv).toFixed(2) 
                     : '',
-                fecha_tasa_bcv: item.fecha_tasa_bcv || '',
+                fecha_tasa_bcv: item.fecha_tasa_bcv || page.props.temp_settings?.fecha_tasa_bcv || '',
                 utility_percent: 30,
                 processing: false,
             };
