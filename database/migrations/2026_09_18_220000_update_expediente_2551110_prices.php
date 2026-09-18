@@ -10,68 +10,68 @@ return new class extends Migration
      */
     public function up(): void
     {
-        $expedientes = ['2551110', '255110', '255111'];
+        // Search for items in expedientes matching 2551110, 255110, 255111, or 25511
+        $items = DB::table('inventarios')
+            ->where(function ($query) {
+                $query->where('expediente', '2551110')
+                      ->orWhere('expediente', '255110')
+                      ->orWhere('expediente', '255111')
+                      ->orWhere('expediente', 'like', '%2551110%')
+                      ->orWhere('expediente', 'like', '%255110%');
+            })
+            ->get();
 
-        foreach ($expedientes as $exp) {
+        foreach ($items as $item) {
+            // Find container rate if available
             $container = DB::table('containers')
-                ->where('expediente', $exp)
+                ->where('expediente', $item->expediente)
+                ->orWhere('id', $item->container_id ?? 0)
                 ->first();
 
-            $tasa = ($container && isset($container->tasa_bcv) && (float)$container->tasa_bcv > 0)
-                ? (float)$container->tasa_bcv
-                : null;
-
-            // 1. Items de ~136.06$ -> 340.00$
-            $items136 = DB::table('inventarios')
-                ->where('expediente', $exp)
-                ->where(function ($q) {
-                    $q->whereBetween('costo', [130, 140])
-                      ->orWhereBetween('costo_importacion_unitario', [130, 140]);
-                })
-                ->get();
-
-            foreach ($items136 as $item) {
-                $itemTasa = $tasa;
-                if (!$itemTasa && (float)$item->costo > 0 && (float)$item->costo_importacion_unitario > (float)$item->costo) {
-                    $itemTasa = (float)$item->costo_importacion_unitario / (float)$item->costo;
-                }
-
-                $newCostoUsd = 340.00;
-                $newCostoBs = $itemTasa ? round($newCostoUsd * $itemTasa, 2) : $newCostoUsd;
-
-                DB::table('inventarios')
-                    ->where('id', $item->id)
-                    ->update([
-                        'costo' => $newCostoUsd,
-                        'costo_importacion_unitario' => $newCostoBs,
-                        'price' => $newCostoBs,
-                    ]);
+            $tasa = 0;
+            if ($container && isset($container->tasa_bcv) && (float)$container->tasa_bcv > 0) {
+                $tasa = (float)$container->tasa_bcv;
+            } elseif ((float)$item->costo > 0 && (float)$item->costo_importacion_unitario > (float)$item->costo) {
+                $tasa = (float)$item->costo_importacion_unitario / (float)$item->costo;
+            } else {
+                // Default rate for expediente 2551110 as seen in UI: 848.5458
+                $tasa = 848.5458;
             }
 
-            // 2. Items de ~205.16$ -> 400.00$
-            $items205 = DB::table('inventarios')
-                ->where('expediente', $exp)
-                ->where(function ($q) {
-                    $q->whereBetween('costo', [200, 210])
-                      ->orWhereBetween('costo_importacion_unitario', [200, 210]);
-                })
-                ->get();
+            // Calculate current USD import cost
+            $currentUsdCost = (float)$item->costo;
+            if ($currentUsdCost <= 0 && $tasa > 0 && (float)$item->costo_importacion_unitario > 0) {
+                $currentUsdCost = (float)$item->costo_importacion_unitario / $tasa;
+            }
 
-            foreach ($items205 as $item) {
-                $itemTasa = $tasa;
-                if (!$itemTasa && (float)$item->costo > 0 && (float)$item->costo_importacion_unitario > (float)$item->costo) {
-                    $itemTasa = (float)$item->costo_importacion_unitario / (float)$item->costo;
-                }
+            // Check ranges for $136.06 and $205.16 (both in USD and in converted Bs.)
+            $is136 = ($currentUsdCost >= 130 && $currentUsdCost <= 142) ||
+                     ((float)$item->costo_importacion_unitario >= 110000 && (float)$item->costo_importacion_unitario <= 125000);
 
-                $newCostoUsd = 400.00;
-                $newCostoBs = $itemTasa ? round($newCostoUsd * $itemTasa, 2) : $newCostoUsd;
+            $is205 = ($currentUsdCost >= 200 && $currentUsdCost <= 210) ||
+                     ((float)$item->costo_importacion_unitario >= 165000 && (float)$item->costo_importacion_unitario <= 180000);
+
+            if ($is136) {
+                $newUsd = 340.00;
+                $newBs = round($newUsd * $tasa, 2);
 
                 DB::table('inventarios')
                     ->where('id', $item->id)
                     ->update([
-                        'costo' => $newCostoUsd,
-                        'costo_importacion_unitario' => $newCostoBs,
-                        'price' => $newCostoBs,
+                        'costo' => $newUsd,
+                        'costo_importacion_unitario' => $newBs,
+                        'price' => $newBs,
+                    ]);
+            } elseif ($is205) {
+                $newUsd = 400.00;
+                $newBs = round($newUsd * $tasa, 2);
+
+                DB::table('inventarios')
+                    ->where('id', $item->id)
+                    ->update([
+                        'costo' => $newUsd,
+                        'costo_importacion_unitario' => $newBs,
+                        'price' => $newBs,
                     ]);
             }
         }
