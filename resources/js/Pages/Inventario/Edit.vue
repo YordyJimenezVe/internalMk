@@ -89,10 +89,12 @@ const activeTasaBcv = ref(props.tasa_bcv || 0);
 
 const parseLocaleFloat = (val) => {
     if (val === null || val === undefined) return NaN;
+    if (typeof val === 'number') return isNaN(val) ? NaN : val;
     let str = val.toString().trim();
     if (!str) return NaN;
     
     str = str.replace(/[^\d.,-]/g, '');
+    if (!str) return NaN;
     
     if (str.includes(',') && str.includes('.')) {
         const firstComma = str.indexOf(',');
@@ -107,22 +109,12 @@ const parseLocaleFloat = (val) => {
         if (parts.length > 2) {
             str = str.replace(/,/g, '');
         } else {
-            const decimals = parts[1];
-            if (decimals.length === 2 || decimals.length === 1) {
-                str = str.replace(',', '.');
-            } else {
-                str = str.replace(/,/g, '');
-            }
+            str = str.replace(',', '.');
         }
     } else if (str.includes('.')) {
         const parts = str.split('.');
         if (parts.length > 2) {
             str = str.replace(/\./g, '');
-        } else {
-            const decimals = parts[1];
-            if (decimals.length === 3) {
-                str = str.replace(/\./g, '');
-            }
         }
     }
     

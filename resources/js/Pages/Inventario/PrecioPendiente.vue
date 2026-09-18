@@ -103,53 +103,32 @@ watch(itemsList, () => {
 
 const parseLocaleFloat = (val) => {
     if (val === null || val === undefined) return NaN;
+    if (typeof val === 'number') return isNaN(val) ? NaN : val;
     let str = val.toString().trim();
     if (!str) return NaN;
     
-    // Remove everything except numbers, commas, and dots
     str = str.replace(/[^\d.,-]/g, '');
+    if (!str) return NaN;
     
-    // Check if both comma and dot exist (e.g. 1.234,56 or 1,234.56)
     if (str.includes(',') && str.includes('.')) {
         const firstComma = str.indexOf(',');
         const firstDot = str.indexOf('.');
         if (firstComma < firstDot) {
-            // comma is thousands, dot is decimal (1,234.56)
             str = str.replace(/,/g, '');
         } else {
-            // dot is thousands, comma is decimal (1.234,56)
             str = str.replace(/\./g, '').replace(',', '.');
         }
     } else if (str.includes(',')) {
-        // Only comma is present.
         const parts = str.split(',');
         if (parts.length > 2) {
-            // e.g. 1,234,567
             str = str.replace(/,/g, '');
         } else {
-            // e.g. 12,34 or 1,234
-            const decimals = parts[1];
-            if (decimals.length === 2 || decimals.length === 1) {
-                // likely decimal
-                str = str.replace(',', '.');
-            } else {
-                // likely thousands
-                str = str.replace(/,/g, '');
-            }
+            str = str.replace(',', '.');
         }
     } else if (str.includes('.')) {
-        // Only dot is present.
         const parts = str.split('.');
         if (parts.length > 2) {
-            // e.g. 1.234.567
             str = str.replace(/\./g, '');
-        } else {
-            // e.g. 12.34 or 1.234
-            const decimals = parts[1];
-            if (decimals.length === 3) {
-                // likely thousands (e.g. 1.234)
-                str = str.replace(/\./g, '');
-            }
         }
     }
     
