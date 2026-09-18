@@ -162,7 +162,9 @@ const initCostoUsd = () => {
     } else {
         costoUsd.value = '';
     }
-    updateCalculatedPrice();
+    if (!form.price || parseFloat(form.price) === 0) {
+        updateCalculatedPrice();
+    }
 };
 
 const onUsdChange = () => {
