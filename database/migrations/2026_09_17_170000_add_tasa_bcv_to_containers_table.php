@@ -21,7 +21,7 @@ return new class extends Migration
         // Backfill specific rates per expediente as requested
         DB::table('containers')
             ->where('expediente', '260723')
-            ->update(['tasa_bcv' => 737.88]);
+            ->update(['tasa_bcv' => 736.933]);
 
         DB::table('containers')
             ->where('expediente', '259705')
