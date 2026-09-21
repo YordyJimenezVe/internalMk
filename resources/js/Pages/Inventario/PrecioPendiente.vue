@@ -136,16 +136,20 @@ const parseLocaleFloat = (val) => {
     return isNaN(parsed) ? NaN : parsed;
 };
 
-const submitCost = (id) => {
+const saveRow = (id) => {
     const f = forms.value[id];
     if (!f) return;
     
     const parsedBsVal = parseLocaleFloat(f.costo_importacion_unitario);
     if (isNaN(parsedBsVal)) return;
     
+    const finSummary = getItemFinancialSummary(id);
+    
     router.post(route('inventario.precio_pendiente.update', id), {
         costo_importacion_unitario: parsedBsVal,
         fecha_tasa_bcv: f.fecha_tasa_bcv,
+        price: finSummary.big.toFixed(2),
+        price_sale: finSummary.totalUsd.toFixed(2),
     }, {
         preserveScroll: true,
         onStart: () => {

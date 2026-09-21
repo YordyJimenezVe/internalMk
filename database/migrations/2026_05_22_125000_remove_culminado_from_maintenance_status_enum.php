@@ -18,7 +18,11 @@ return new class extends Migration {
 
         // Now change the enum on the table to exclude CULMINADO
         Schema::table('maintenances', function (Blueprint $table) {
-            $table->enum('status', ["EN ESPERA", "EN PROCESO", "TERMINADO", "CANCELADO"])->change();
+            if (Schema::getConnection()->getDriverName() === 'sqlite') {
+                $table->string('status')->change();
+            } else {
+                $table->enum('status', ["EN ESPERA", "EN PROCESO", "TERMINADO", "CANCELADO"])->change();
+            }
         });
     }
 

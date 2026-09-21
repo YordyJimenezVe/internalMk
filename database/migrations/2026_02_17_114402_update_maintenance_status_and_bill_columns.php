@@ -10,9 +10,12 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        // Update statuses in maintenances table
         Schema::table('maintenances', function (Blueprint $table) {
-            $table->enum('status', ["EN ESPERA", "EN PROCESO", "TERMINADO", "CULMINADO", "CANCELADO"])->change();
+            if (Schema::getConnection()->getDriverName() === 'sqlite') {
+                $table->string('status')->change();
+            } else {
+                $table->enum('status', ["EN ESPERA", "EN PROCESO", "TERMINADO", "CULMINADO", "CANCELADO"])->change();
+            }
         });
 
         // We'll keep the columns in maintenance_bills but the logic will group them in the UI.

@@ -8,7 +8,11 @@ use Illuminate\Support\Facades\DB;
 return new class extends Migration {
     public function up(): void
     {
-        if (DB::getDriverName() !== 'sqlite') {
+        if (DB::getDriverName() === 'sqlite') {
+            Schema::table('maintenances', function (Blueprint $table) {
+                $table->renameColumn('estado', 'status');
+            });
+        } else {
             DB::statement("ALTER TABLE maintenances CHANGE estado status ENUM('EN ESPERA','EN PROCESO','TERMINADO','NO SE PUDO CONTINUAR') NOT NULL");
         }
     }

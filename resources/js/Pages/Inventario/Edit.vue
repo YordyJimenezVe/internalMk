@@ -130,8 +130,25 @@ const updateCalculatedPrice = () => {
         bsVal = 0;
     }
     const costoTaller = parseFloat(props.inventario?.costo_taller || 0) || 0;
-    const calcPrice = bsVal + costoTaller;
-    form.price = calcPrice.toFixed(2);
+    const util = parseFloat(utilityPercent.value) || 0;
+    
+    // 1. Base Imponible (B.I.G.) en Bs. = (Costo Importación Bs. + Costo Taller Bs.) * (1 + Utilidad% / 100)
+    const calcBaseImponible = (bsVal + costoTaller) * (1 + util / 100);
+    form.price = calcBaseImponible.toFixed(2);
+
+    // 2. Precio Venta Comercial ($) = Costo USD * (1 + Utilidad% / 100) * 1.16 (con IVA)
+    let usdVal = parseLocaleFloat(costoUsd.value);
+    if (isNaN(usdVal) || usdVal <= 0) {
+        const rate = getRate();
+        if (bsVal > 0 && rate > 0) {
+            usdVal = bsVal / rate;
+        }
+    }
+
+    if (!isNaN(usdVal) && usdVal > 0) {
+        const calcSalePriceUsd = usdVal * (1 + util / 100) * 1.16;
+        form.price_sale = calcSalePriceUsd.toFixed(2);
+    }
 };
 
 const getRate = () => {
@@ -140,10 +157,17 @@ const getRate = () => {
 };
 
 const onTasaBcvChange = () => {
+    const usdVal = parseLocaleFloat(costoUsd.value);
     const rate = getRate();
-    if (rate > 0) {
-        onBsChange();
+    if (!isNaN(usdVal) && usdVal > 0 && rate > 0) {
+        form.costo_importacion_unitario = (usdVal * rate).toFixed(2);
+    } else {
+        const bsVal = parseLocaleFloat(form.costo_importacion_unitario);
+        if (!isNaN(bsVal) && bsVal > 0 && rate > 0) {
+            costoUsd.value = (bsVal / rate).toFixed(2);
+        }
     }
+    updateCalculatedPrice();
 };
 
 const initCostoUsd = () => {
@@ -154,9 +178,7 @@ const initCostoUsd = () => {
     } else {
         costoUsd.value = '';
     }
-    if (!form.price || parseFloat(form.price) === 0) {
-        updateCalculatedPrice();
-    }
+    updateCalculatedPrice();
 };
 
 const onUsdChange = () => {

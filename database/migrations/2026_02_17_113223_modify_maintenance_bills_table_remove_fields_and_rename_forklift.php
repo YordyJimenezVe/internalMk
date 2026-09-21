@@ -10,23 +10,26 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::table('maintenance_bills', function (Blueprint $table) {
-            if (Schema::hasColumn('maintenance_bills', 'multi_equipament')) {
+        if (Schema::hasColumn('maintenance_bills', 'multi_equipament')) {
+            Schema::table('maintenance_bills', function (Blueprint $table) {
                 $table->dropColumn('multi_equipament');
-            }
-            if (Schema::hasColumn('maintenance_bills', 'drinking_water')) {
+            });
+        }
+        if (Schema::hasColumn('maintenance_bills', 'drinking_water')) {
+            Schema::table('maintenance_bills', function (Blueprint $table) {
                 $table->dropColumn('drinking_water');
-            }
-            if (Schema::hasColumn('maintenance_bills', 'forklift_driver')) {
-                // If forklift already exists (partial migration), we just drop the old one
-                if (Schema::hasColumn('maintenance_bills', 'forklift')) {
-                    $table->dropColumn('forklift_driver');
-                } else {
+            });
+        }
+        if (Schema::hasColumn('maintenance_bills', 'forklift_driver')) {
+            if (!Schema::hasColumn('maintenance_bills', 'forklift')) {
+                Schema::table('maintenance_bills', function (Blueprint $table) {
                     $table->string('forklift')->nullable()->after('forklift_driver');
-                    $table->dropColumn('forklift_driver');
-                }
+                });
             }
-        });
+            Schema::table('maintenance_bills', function (Blueprint $table) {
+                $table->dropColumn('forklift_driver');
+            });
+        }
     }
 
     /**

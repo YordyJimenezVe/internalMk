@@ -972,6 +972,12 @@ class InventarioController extends Controller
         if ($request->has('fecha_tasa_bcv')) {
             $item->fecha_tasa_bcv = $request->fecha_tasa_bcv;
         }
+        if ($request->has('price')) {
+            $item->price = $request->price;
+        }
+        if ($request->has('price_sale')) {
+            $item->price_sale = $request->price_sale;
+        }
         
         if ($item->status === 'PRECIO PENDIENTE') {
             $item->status = 'DISPONIBLE';
