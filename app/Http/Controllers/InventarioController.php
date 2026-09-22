@@ -379,7 +379,9 @@ class InventarioController extends Controller
 
         $containerTasa = ($data && $data->container && $data->container->tasa_bcv > 0) ? (float) $data->container->tasa_bcv : null;
         $tasaBCV = $containerTasa ?? ($tempTasa ? (float) $tempTasa : $officialTasa);
-        $utilityPercentage = $tempUtilidad !== null ? (float) $tempUtilidad : (float) \App\Models\Setting::get('utility_percentage', 30);
+        $utilityPercentage = $tempUtilidad !== null 
+            ? (float) $tempUtilidad 
+            : (($data && $data->porcentaje_utilidad !== null) ? (float) $data->porcentaje_utilidad : (float) \App\Models\Setting::get('utility_percentage', 30));
 
         return inertia('Inventario/Edit', [
             'inventario' => $data,
@@ -969,6 +971,12 @@ class InventarioController extends Controller
         }
 
         $item->costo_importacion_unitario = (float) $cleanCost;
+        if ($request->has('prorrateo_gastos')) {
+            $item->prorrateo_gastos = (float) $request->prorrateo_gastos;
+        }
+        if ($request->has('porcentaje_utilidad')) {
+            $item->porcentaje_utilidad = (float) $request->porcentaje_utilidad;
+        }
         if ($request->has('fecha_tasa_bcv')) {
             $item->fecha_tasa_bcv = $request->fecha_tasa_bcv;
         }

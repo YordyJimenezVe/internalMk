@@ -42,6 +42,8 @@ const form = useForm({
     price: props.inventario.price || '',
     price_sale: props.inventario.price_sale || '',
     costo_importacion_unitario: props.inventario.costo_importacion_unitario || '',
+    prorrateo_gastos: props.inventario.prorrateo_gastos || '',
+    porcentaje_utilidad: props.inventario.porcentaje_utilidad || props.utility_percentage || 10,
     fecha_tasa_bcv: props.inventario.fecha_tasa_bcv || page.props.temp_settings?.fecha_tasa_bcv || '',
     condicion: props.inventario.condicion || 'APLICA',
     status: props.inventario.status || 'DISPONIBLE',
@@ -122,31 +124,33 @@ const parseLocaleFloat = (val) => {
     return isNaN(parsed) ? NaN : parsed;
 };
 
-const utilityPercent = ref(props.utility_percentage ?? 30);
+const utilityPercent = ref(props.inventario?.porcentaje_utilidad ?? props.utility_percentage ?? 10);
 
 const updateCalculatedPrice = () => {
     let bsVal = parseLocaleFloat(form.costo_importacion_unitario);
     if (isNaN(bsVal)) {
         bsVal = 0;
     }
+    let prorrateoVal = parseLocaleFloat(form.prorrateo_gastos);
+    if (isNaN(prorrateoVal)) {
+        prorrateoVal = 0;
+    }
     const costoTaller = parseFloat(props.inventario?.costo_taller || 0) || 0;
     const util = parseFloat(utilityPercent.value) || 0;
+    form.porcentaje_utilidad = util;
+
+    // Costo Landed Total = Costo Importación FOB (Bs.) + Prorrateo Gastos (Bs.) + Costo Taller (Bs.)
+    const costoLandedBs = bsVal + prorrateoVal + costoTaller;
     
-    // 1. Base Imponible (B.I.G.) en Bs. = (Costo Importación Bs. + Costo Taller Bs.) * (1 + Utilidad% / 100)
-    const calcBaseImponible = (bsVal + costoTaller) * (1 + util / 100);
+    // 1. Base Imponible (B.I.G.) en Bs. = Costo Landed * (1 + Utilidad% / 100)
+    const calcBaseImponible = costoLandedBs * (1 + util / 100);
     form.price = calcBaseImponible.toFixed(2);
 
-    // 2. Precio Venta Comercial ($) = Costo USD * (1 + Utilidad% / 100) * 1.16 (con IVA)
-    let usdVal = parseLocaleFloat(costoUsd.value);
-    if (isNaN(usdVal) || usdVal <= 0) {
-        const rate = getRate();
-        if (bsVal > 0 && rate > 0) {
-            usdVal = bsVal / rate;
-        }
-    }
-
-    if (!isNaN(usdVal) && usdVal > 0) {
-        const calcSalePriceUsd = usdVal * (1 + util / 100) * 1.16;
+    // 2. Precio Venta Comercial ($) = (Base Imponible Bs. * 1.16 IVA) / Tasa BCV Aplicada
+    const rate = getRate();
+    if (rate > 0) {
+        const precioFinalBsWithIva = calcBaseImponible * 1.16;
+        const calcSalePriceUsd = precioFinalBsWithIva / rate;
         form.price_sale = calcSalePriceUsd.toFixed(2);
     }
 };
@@ -523,6 +527,29 @@ onMounted(() => {
                                             Fecha de referencia (ej. 23/07/2026)
                                         </div>
                                         <InputError :message="form.errors.fecha_tasa_bcv" class="mt-2" />
+                                    </div>
+
+                                    <!-- Prorrateo Gastos Importación (Bs.) -->
+                                    <div class="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+                                        <label class="block uppercase tracking-wide text-indigo-700 dark:text-indigo-400 text-xs font-bold mb-2">
+                                            <i class="fa-solid fa-boxes-packing mr-1"></i>Prorrateo Gastos (Bs.)
+                                        </label>
+                                        <div class="relative rounded-xl shadow-sm">
+                                            <div class="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                                                <span class="text-gray-400 dark:text-gray-500 font-bold text-xs">Bs.</span>
+                                            </div>
+                                            <input 
+                                                v-model="form.prorrateo_gastos"
+                                                @input="updateCalculatedPrice"
+                                                type="text"
+                                                placeholder="0.00 Bs"
+                                                class="block w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-xl py-2.5 pl-9 pr-3 text-right font-mono font-bold text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                                            >
+                                        </div>
+                                        <div class="text-[10px] text-gray-500 dark:text-gray-400 font-semibold mt-2">
+                                            Flete, nacionalización y costos adm.
+                                        </div>
+                                        <InputError :message="form.errors.prorrateo_gastos" class="mt-2" />
                                     </div>
 
                                     <!-- Utility % Selector/Input -->

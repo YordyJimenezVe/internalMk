@@ -31,6 +31,8 @@ class UpdateInventarioRequest extends FormRequest
             'modelo' => 'required|string',
             'serial' => 'nullable|string',
             'costo_importacion_unitario' => 'nullable|numeric',
+            'prorrateo_gastos' => 'nullable|numeric',
+            'porcentaje_utilidad' => 'nullable|numeric',
             'fecha_tasa_bcv' => 'nullable|string',
             'price_sale' => 'nullable|string',
             'observation' => 'nullable|string',
@@ -127,6 +129,12 @@ class UpdateInventarioRequest extends FormRequest
         }
         if ($this->has('costo_importacion_unitario')) {
             $this->merge(['costo_importacion_unitario' => $this->cleanCurrency($this->input('costo_importacion_unitario'))]);
+        }
+        if ($this->has('prorrateo_gastos')) {
+            $this->merge(['prorrateo_gastos' => $this->cleanCurrency($this->input('prorrateo_gastos'))]);
+        }
+        if ($this->has('porcentaje_utilidad')) {
+            $this->merge(['porcentaje_utilidad' => $this->cleanCurrency($this->input('porcentaje_utilidad'))]);
         }
 
         // Default price if not provided
