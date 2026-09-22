@@ -414,6 +414,14 @@ class InventarioController extends Controller
 
         $inventario->update($data);
 
+        if (!empty($data['tasa_bcv']) && (float) $data['tasa_bcv'] > 0) {
+            if ($inventario->container_id) {
+                \App\Models\Container::where('id', $inventario->container_id)->update([
+                    'tasa_bcv' => $data['tasa_bcv']
+                ]);
+            }
+        }
+
         $this->syncZeroBillingsForPartida($inventario->id);
 
         // Auto-create maintenance ticket if status is GARANTIA/GARANTÍA and no active maintenance exists

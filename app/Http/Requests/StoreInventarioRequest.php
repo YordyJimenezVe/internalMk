@@ -28,9 +28,11 @@ class StoreInventarioRequest extends FormRequest
             'marca' => 'required|string',
             'modelo' => 'required|string',
             'serial' => 'nullable|string',
+            'costo' => 'nullable|numeric',
             'costo_importacion_unitario' => 'nullable|numeric',
             'prorrateo_gastos' => 'nullable|numeric',
             'porcentaje_utilidad' => 'nullable|numeric',
+            'tasa_bcv' => 'nullable|numeric',
             'fecha_tasa_bcv' => 'nullable|string',
             'price_sale' => 'nullable|string',
             'observation' => 'nullable|string',
@@ -70,6 +72,11 @@ class StoreInventarioRequest extends FormRequest
             return null;
         }
 
+        if (is_numeric($value)) {
+            return (string) $value;
+        }
+
+        $value = trim((string) $value);
         $value = str_replace(' ', '', $value);
 
         if (strpos($value, '.') !== false && strpos($value, ',') !== false) {
@@ -81,28 +88,11 @@ class StoreInventarioRequest extends FormRequest
                 $value = str_replace('.', '', $value);
                 $value = str_replace(',', '.', $value);
             }
-        } else {
-            if (strpos($value, ',') !== false) {
-                if (preg_match('/,\d{2}$/', $value)) {
-                    $value = str_replace(',', '.', $value);
-                } else {
-                    $value = str_replace(',', '', $value);
-                }
-            }
-            if (strpos($value, '.') !== false) {
-                if (substr_count($value, '.') > 1) {
-                    $value = str_replace('.', '', $value);
-                } else {
-                    if (preg_match('/\.\d{2}$/', $value)) {
-                        // Keep single dot as decimal separator
-                    } else {
-                        $value = str_replace('.', '', $value);
-                    }
-                }
-            }
+        } elseif (strpos($value, ',') !== false) {
+            $value = str_replace(',', '.', $value);
         }
 
-        return $value;
+        return is_numeric($value) ? $value : str_replace(',', '', $value);
     }
 
     protected function prepareForValidation()
@@ -119,6 +109,9 @@ class StoreInventarioRequest extends FormRequest
             $this->merge(['serial' => strtoupper($this->input('serial'))]);
         }
 
+        if ($this->has('costo')) {
+            $this->merge(['costo' => $this->cleanCurrency($this->input('costo'))]);
+        }
         if ($this->has('price')) {
             $this->merge(['price' => $this->cleanCurrency($this->input('price'))]);
         }
@@ -133,6 +126,9 @@ class StoreInventarioRequest extends FormRequest
         }
         if ($this->has('porcentaje_utilidad')) {
             $this->merge(['porcentaje_utilidad' => $this->cleanCurrency($this->input('porcentaje_utilidad'))]);
+        }
+        if ($this->has('tasa_bcv')) {
+            $this->merge(['tasa_bcv' => $this->cleanCurrency($this->input('tasa_bcv'))]);
         }
 
         // Default price if not provided

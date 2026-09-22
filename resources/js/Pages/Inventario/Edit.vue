@@ -41,9 +41,11 @@ const form = useForm({
     cantidad: props.inventario.cantidad || '',
     price: props.inventario.price || '',
     price_sale: props.inventario.price_sale || '',
+    costo: props.inventario.costo || '',
     costo_importacion_unitario: props.inventario.costo_importacion_unitario || '',
     prorrateo_gastos: props.inventario.prorrateo_gastos || '',
     porcentaje_utilidad: props.inventario.porcentaje_utilidad || props.utility_percentage || 10,
+    tasa_bcv: props.tasa_bcv || '',
     fecha_tasa_bcv: props.inventario.fecha_tasa_bcv || page.props.temp_settings?.fecha_tasa_bcv || '',
     condicion: props.inventario.condicion || 'APLICA',
     status: props.inventario.status || 'DISPONIBLE',
@@ -86,8 +88,8 @@ watch(() => form.container_id, (newVal) => {
 });
 
 // Currency & Conversion Logic
-const costoUsd = ref('');
-const activeTasaBcv = ref(props.tasa_bcv || 0);
+const costoUsd = ref(props.inventario?.costo || '');
+const activeTasaBcv = ref(props.tasa_bcv || '');
 
 const parseLocaleFloat = (val) => {
     if (val === null || val === undefined) return NaN;
@@ -126,6 +128,11 @@ const parseLocaleFloat = (val) => {
 
 const utilityPercent = ref(props.inventario?.porcentaje_utilidad ?? props.utility_percentage ?? 10);
 
+const getRate = () => {
+    const r = parseLocaleFloat(activeTasaBcv.value);
+    return (!isNaN(r) && r > 0) ? r : (props.tasa_bcv || 0);
+};
+
 const updateCalculatedPrice = () => {
     let bsVal = parseLocaleFloat(form.costo_importacion_unitario);
     if (isNaN(bsVal)) {
@@ -153,14 +160,14 @@ const updateCalculatedPrice = () => {
         const calcSalePriceUsd = precioFinalBsWithIva / rate;
         form.price_sale = calcSalePriceUsd.toFixed(2);
     }
-};
 
-const getRate = () => {
-    const r = parseLocaleFloat(activeTasaBcv.value);
-    return (!isNaN(r) && r > 0) ? r : (props.tasa_bcv || 0);
+    // Sync costo and tasa_bcv to form
+    form.costo = costoUsd.value;
+    form.tasa_bcv = activeTasaBcv.value;
 };
 
 const onTasaBcvChange = () => {
+    form.tasa_bcv = activeTasaBcv.value;
     const usdVal = parseLocaleFloat(costoUsd.value);
     const rate = getRate();
     if (!isNaN(usdVal) && usdVal > 0 && rate > 0) {
@@ -169,23 +176,31 @@ const onTasaBcvChange = () => {
         const bsVal = parseLocaleFloat(form.costo_importacion_unitario);
         if (!isNaN(bsVal) && bsVal > 0 && rate > 0) {
             costoUsd.value = (bsVal / rate).toFixed(2);
+            form.costo = costoUsd.value;
         }
     }
     updateCalculatedPrice();
 };
 
 const initCostoUsd = () => {
-    const bsVal = parseLocaleFloat(form.costo_importacion_unitario);
-    const rate = getRate();
-    if (!isNaN(bsVal) && bsVal > 0 && rate > 0) {
-        costoUsd.value = (bsVal / rate).toFixed(2);
+    if (props.inventario?.costo && parseFloat(props.inventario.costo) > 0) {
+        costoUsd.value = props.inventario.costo;
     } else {
-        costoUsd.value = '';
+        const bsVal = parseLocaleFloat(form.costo_importacion_unitario);
+        const rate = getRate();
+        if (!isNaN(bsVal) && bsVal > 0 && rate > 0) {
+            costoUsd.value = (bsVal / rate).toFixed(2);
+        } else {
+            costoUsd.value = '';
+        }
     }
+    form.costo = costoUsd.value;
+    form.tasa_bcv = activeTasaBcv.value;
     updateCalculatedPrice();
 };
 
 const onUsdChange = () => {
+    form.costo = costoUsd.value;
     const usdVal = parseLocaleFloat(costoUsd.value);
     const rate = getRate();
     if (!isNaN(usdVal) && rate > 0) {
@@ -201,8 +216,10 @@ const onBsChange = () => {
     const rate = getRate();
     if (!isNaN(bsVal) && rate > 0) {
         costoUsd.value = (bsVal / rate).toFixed(2);
+        form.costo = costoUsd.value;
     } else {
         costoUsd.value = '';
+        form.costo = '';
     }
     updateCalculatedPrice();
 };
@@ -217,6 +234,8 @@ const submit = () => {
     form.marca = form.marca?.toUpperCase();
     form.modelo = form.modelo?.toUpperCase();
     form.serial = form.serial?.toUpperCase();
+    form.costo = costoUsd.value;
+    form.tasa_bcv = activeTasaBcv.value;
     form.post(route('updateInventario', props.inventario.id));
 };
 
