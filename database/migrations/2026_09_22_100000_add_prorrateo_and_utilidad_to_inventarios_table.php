@@ -41,6 +41,28 @@ return new class extends Migration
                 'price' => 282532.91,
                 'price_sale' => 444.73,
             ]);
+
+        // Update items belonging to expediente 2551110
+        // Tasa BCV: 282.512
+        // FOB Bs: 113,004.80 ($400.00 USD)
+        // Prorrateo Gastos Bs: 4,343.34
+        // Costo Landed: 117,348.14 Bs.
+        // Utilidad: 15% (17,602.22 Bs.)
+        // Base Imponible (B.I.G.): 134,950.36 Bs.
+        // IVA 16%: 21,592.06 Bs.
+        // Precio Final con IVA Bs: 156,542.42 Bs.
+        // Precio Venta Comercial USD: 554.11 USD
+        DB::table('containers')->where('expediente', '2551110')->update(['tasa_bcv' => 282.512]);
+        DB::table('inventarios')
+            ->where('expediente', '2551110')
+            ->update([
+                'costo' => 400.00,
+                'costo_importacion_unitario' => 113004.80,
+                'prorrateo_gastos' => 4343.34,
+                'porcentaje_utilidad' => 15.00,
+                'price' => 134950.36,
+                'price_sale' => 554.11,
+            ]);
     }
 
     /**
