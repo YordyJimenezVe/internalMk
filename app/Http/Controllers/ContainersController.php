@@ -282,7 +282,59 @@ class ContainersController extends Controller
         $container->fill($request->all());
         $container->save();
 
-        return redirect()->route('container');
+        // Propagate tasa_bcv, prorrateo_gastos, and porcentaje_utilidad to all associated inventario items
+        $rate = $container->tasa_bcv ? (float) $container->tasa_bcv : null;
+        $prorrateo = $container->prorrateo_gastos !== null ? (float) $container->prorrateo_gastos : null;
+        $utilidad = $container->porcentaje_utilidad !== null ? (float) $container->porcentaje_utilidad : null;
+
+        $query = \App\Models\Inventario::where('container_id', $container->id);
+        if ($container->expediente) {
+            $query->orWhere('expediente', $container->expediente);
+        }
+        $items = $query->get();
+
+        foreach ($items as $item) {
+            $updateData = [];
+
+            if ($prorrateo !== null && $prorrateo > 0) {
+                $updateData['prorrateo_gastos'] = $prorrateo;
+            }
+
+            if ($utilidad !== null && $utilidad > 0) {
+                $updateData['porcentaje_utilidad'] = $utilidad;
+            }
+
+            if ($container->fecha) {
+                $updateData['fecha_tasa_bcv'] = $container->fecha;
+            }
+
+            $itemProrrateo = isset($updateData['prorrateo_gastos']) ? $updateData['prorrateo_gastos'] : (float) ($item->prorrateo_gastos ?? 0);
+            $itemUtilidad = isset($updateData['porcentaje_utilidad']) ? $updateData['porcentaje_utilidad'] : (float) ($item->porcentaje_utilidad ?? 20);
+            $costoBs = (float) ($item->costo_importacion_unitario ?? 0);
+
+            if ($rate && $rate > 0) {
+                if ($costoBs > 0) {
+                    $updateData['costo'] = round($costoBs / $rate, 2);
+                }
+            }
+
+            if ($costoBs > 0) {
+                $landedBs = $costoBs + $itemProrrateo;
+                $baseImponibleBs = round($landedBs * (1 + ($itemUtilidad / 100)), 2);
+                $updateData['price'] = $baseImponibleBs;
+
+                if ($rate && $rate > 0) {
+                    $precioConIvaBs = $landedBs * (1 + ($itemUtilidad / 100)) * 1.16;
+                    $updateData['price_sale'] = round($precioConIvaBs / $rate, 2);
+                }
+            }
+
+            if (!empty($updateData)) {
+                \App\Models\Inventario::where('id', $item->id)->update($updateData);
+            }
+        }
+
+        return redirect()->route('container')->with('success', 'Contenedor y costos actualizados correctamente');
     }
 
 

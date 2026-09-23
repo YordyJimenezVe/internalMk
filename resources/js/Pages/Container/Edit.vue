@@ -15,9 +15,11 @@ const form = useForm({
     cajas: props.container.cajas,
     camaras: props.container.camaras,
     accesorios: props.container.accesorios,
-    costo_importacion_general: props.container.costo_importacion_general,
+    costo_importacion_general: props.container.costo_importacion_general || 0,
     aplicar_costos: props.container.aplicar_costos === 1 || props.container.aplicar_costos === true,
     tasa_bcv: props.container.tasa_bcv || '',
+    prorrateo_gastos: props.container.prorrateo_gastos || '',
+    porcentaje_utilidad: props.container.porcentaje_utilidad ?? 20.00,
 });
 
 const submit = () => {
@@ -104,6 +106,59 @@ const submit = () => {
                             </div>
                         </div>
 
+                        <!-- Financial & Prorrateo Section -->
+                        <div class="p-8 bg-indigo-50/50 dark:bg-gray-900/40 rounded-[2rem] border border-indigo-100 dark:border-gray-700/50 space-y-6">
+                            <h3 class="font-black text-[10px] uppercase tracking-[0.3em] text-indigo-600 dark:text-indigo-400 flex items-center">
+                                <i class="fa-solid fa-calculator mr-2"></i>Estructura de Costos y Margen del Contenedor
+                            </h3>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="prorrateo_gastos">
+                                        Prorrateo Gastos por Pieza (Bs.)
+                                    </label>
+                                    <div class="relative">
+                                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-indigo-500 font-bold text-xs">
+                                            Bs.
+                                        </div>
+                                        <input 
+                                            class="appearance-none block w-full bg-white dark:bg-gray-800 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-700 rounded-2xl py-4 pl-12 pr-4 leading-tight focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-bold" 
+                                            id="prorrateo_gastos" 
+                                            type="number" 
+                                            step="0.01" 
+                                            v-model="form.prorrateo_gastos" 
+                                            placeholder="Ej: 936.39"
+                                        >
+                                    </div>
+                                    <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-2 font-medium ml-1">
+                                        Gastos administrativos y de nacionalización por unidad.
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="porcentaje_utilidad">
+                                        % Utilidad Global del Contenedor
+                                    </label>
+                                    <div class="relative">
+                                        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-indigo-500 font-bold text-xs">
+                                            %
+                                        </div>
+                                        <input 
+                                            class="appearance-none block w-full bg-white dark:bg-gray-800 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-700 rounded-2xl py-4 pl-10 pr-4 leading-tight focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all font-bold" 
+                                            id="porcentaje_utilidad" 
+                                            type="number" 
+                                            step="0.01" 
+                                            v-model="form.porcentaje_utilidad" 
+                                            placeholder="Ej: 20.00"
+                                        >
+                                    </div>
+                                    <p class="text-[10px] text-gray-400 dark:text-gray-500 mt-2 font-medium ml-1">
+                                        Porcentaje de margen global aplicado a la partida.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Quantities Section -->
                         <div class="p-8 bg-gray-50 dark:bg-gray-900/30 rounded-[2rem] border border-gray-100 dark:border-gray-700/50">
                             <h3 class="font-black text-[10px] uppercase tracking-[0.3em] text-gray-400 dark:text-gray-500 mb-6 flex items-center">
@@ -128,8 +183,6 @@ const submit = () => {
                                 </div>
                             </div>
                         </div>
-
-
 
                         <!-- Actions Section -->
                         <div class="pt-8 flex flex-col md:flex-row items-center justify-between gap-6">
