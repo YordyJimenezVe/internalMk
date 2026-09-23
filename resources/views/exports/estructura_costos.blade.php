@@ -162,6 +162,15 @@
                     $currentRowStyle = $cellStyle . ($isZebra ? $zebraStyle : '');
                     $statusColor = ($partida->status == 'VENDIDO') ? 'color: #dc2626;' : (($partida->status == 'DISPONIBLE') ? 'color: #16a34a;' : 'color: #d97706;');
                     $containerCod = $partida->container ? $partida->container->cod : '-';
+
+                    $fechaTasaStr = '-';
+                    if (!empty($partida->fecha_tasa_bcv)) {
+                        try {
+                            $fechaTasaStr = \Carbon\Carbon::parse(str_replace('/', '-', $partida->fecha_tasa_bcv))->format('d/m/Y');
+                        } catch (\Exception $e) {
+                            $fechaTasaStr = $partida->fecha_tasa_bcv;
+                        }
+                    }
                 @endphp
                 <tr>
                     <td style="{{ $currentRowStyle }} font-weight: bold;">{{ str_pad($partida->codInv, 4, '0', STR_PAD_LEFT) }}</td>
@@ -172,7 +181,7 @@
                     <td style="{{ $currentRowStyle }}">{{ $partida->año }}</td>
                     <td style="{{ $currentRowStyle }}">{{ $partida->expediente ?? '-' }}</td>
                     <td style="{{ $currentRowStyle }}">{{ $containerCod }}</td>
-                    <td style="{{ $currentRowStyle }}">{{ $partida->fecha_tasa_bcv ? \Carbon\Carbon::parse($partida->fecha_tasa_bcv)->format('d/m/Y') : '-' }}</td>
+                    <td style="{{ $currentRowStyle }}">{{ $fechaTasaStr }}</td>
                     <td style="{{ $currentRowStyle }} font-weight: bold; color: #4338ca;">{{ number_format($partida->tasa_bcv_aplicada, 4, ',', '.') }}</td>
                     <td style="{{ $currentRowStyle }} font-weight: bold; color: #0284c7;">$ {{ number_format($partida->costo_usd_calc, 2, ',', '.') }}</td>
                     <td style="{{ $currentRowStyle }} font-weight: bold; color: #059669;">Bs. {{ number_format($partida->costo_bs_calc, 2, ',', '.') }}</td>
