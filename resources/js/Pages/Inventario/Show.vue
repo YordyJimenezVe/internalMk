@@ -93,9 +93,13 @@ const getInitialSerial = (serial) => {
     return serial;
 };
 
+const todayStr = new Date().toISOString().split('T')[0];
+
 const form = useForm({
     partida_id: props.inventario.id,
     price: '',
+    tasa_bcv: props.tasa_bcv || '',
+    fecha_tasa_bcv: todayStr,
     client_name: '',
     client_cedula: '',
     client_phone: '',
@@ -106,6 +110,38 @@ const form = useForm({
     serial_file: null,
     serial: getInitialSerial(props.inventario.serial),
     observation: getDefaultDispatchDetail(),
+});
+
+const fetchingRate = ref(false);
+const fetchRateByDate = async (selectedDate) => {
+    if (!selectedDate) return;
+    fetchingRate.value = true;
+    try {
+        const response = await fetch(`/api/exchange-rate/by-date?date=${selectedDate}`);
+        const data = await response.json();
+        if (data && data.rate) {
+            form.tasa_bcv = data.rate;
+        }
+    } catch (e) {
+        console.error('Error al consultar tasa por fecha:', e);
+    } finally {
+        fetchingRate.value = false;
+    }
+};
+
+watch(() => form.fecha_tasa_bcv, (newDate) => {
+    if (newDate) {
+        fetchRateByDate(newDate);
+    }
+});
+
+const montoCalculadoBs = computed(() => {
+    const usd = parseFloat(form.price) || 0;
+    const rate = parseFloat(form.tasa_bcv) || 0;
+    if (usd > 0 && rate > 0) {
+        return (usd * rate).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    return '0,00';
 });
 
 const serialDisplayText = computed(() => {
@@ -524,9 +560,28 @@ const submitBilling = () => {
                                 </div>
 
                                 <form v-else-if="canRequestBilling" @submit.prevent="submitBilling" class="space-y-5">
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-bold mb-2 uppercase opacity-80">Precio Final ($)</label>
+                                            <input v-model="form.price" type="text" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:ring-2 focus:ring-white outline-none font-bold" placeholder="0.00" required>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-bold mb-2 uppercase opacity-80 flex items-center justify-between">
+                                                <span>Tasa BCV (Bs./$)</span>
+                                                <span v-if="fetchingRate" class="text-[10px] lowercase text-amber-300 font-normal">buscando...</span>
+                                            </label>
+                                            <input v-model="form.tasa_bcv" type="number" step="0.01" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:ring-2 focus:ring-white outline-none font-bold" placeholder="0.00">
+                                        </div>
+                                    </div>
+                                    
                                     <div>
-                                        <label class="block text-xs font-bold mb-2 uppercase opacity-80">Precio Final ($)</label>
-                                        <input v-model="form.price" type="text" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:ring-2 focus:ring-white outline-none" placeholder="0.00" required>
+                                        <label class="block text-xs font-bold mb-2 uppercase opacity-80">Fecha Tasa BCV</label>
+                                        <input v-model="form.fecha_tasa_bcv" type="date" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:ring-2 focus:ring-white outline-none">
+                                    </div>
+
+                                    <div v-if="parseFloat(form.price) > 0 && parseFloat(form.tasa_bcv) > 0" class="p-3 bg-emerald-500/20 rounded-xl border border-emerald-500/40 flex items-center justify-between text-xs font-bold">
+                                        <span class="opacity-90 uppercase">Monto Estimado en Bs.:</span>
+                                        <span class="text-emerald-300 text-sm font-black">Bs. {{ montoCalculadoBs }}</span>
                                     </div>
                                     <div class="grid grid-cols-1 gap-4">
                                         <div>

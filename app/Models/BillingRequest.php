@@ -12,6 +12,8 @@ class BillingRequest extends Model
         'user_id',
         'quantity',
         'price',
+        'tasa_bcv',
+        'fecha_tasa_bcv',
         'client_name',
         'client_cedula',
         'client_cedula_file',

@@ -91,6 +91,8 @@ const editingRequest = ref(null);
 const editForm = useForm({
     quantity: 1,
     price: 0,
+    tasa_bcv: '',
+    fecha_tasa_bcv: '',
     client_name: '',
     client_cedula: '',
     client_phone: '',
@@ -98,6 +100,20 @@ const editForm = useForm({
     client_email: '',
     serial: '',
     observation: '',
+});
+
+watch(() => editForm.fecha_tasa_bcv, async (newDate) => {
+    if (newDate && editingRequest.value) {
+        try {
+            const res = await fetch(`/api/exchange-rate/by-date?date=${newDate}`);
+            const data = await res.json();
+            if (data && data.rate) {
+                editForm.tasa_bcv = data.rate;
+            }
+        } catch (e) {
+            console.error('Error al consultar tasa por fecha:', e);
+        }
+    }
 });
 
 const formatSerial = (serial, imageUrl = null) => {
@@ -114,6 +130,8 @@ const startEdit = (req) => {
     editingRequest.value = req;
     editForm.quantity = req.quantity;
     editForm.price = req.price;
+    editForm.tasa_bcv = req.tasa_bcv || '';
+    editForm.fecha_tasa_bcv = req.fecha_tasa_bcv || '';
     editForm.client_name = req.client_name || '';
     editForm.client_cedula = req.client_cedula || '';
     editForm.client_phone = req.client_phone || '';
@@ -310,6 +328,10 @@ const goToCreateBilling = (id, requestId) => {
                                                 <span class="text-[9px] font-black text-indigo-500 uppercase tracking-widest">{{ req.quantity }} UND</span>
                                             </div>
                                             <span class="text-[11px] font-black text-gray-800 dark:text-white mt-1 border-t border-gray-100 dark:border-gray-700 pt-1 w-20">Total: ${{ (req.price * req.quantity).toFixed(2) }}</span>
+                                            <span v-if="req.tasa_bcv" class="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 mt-1 flex items-center gap-1">
+                                                <i class="fa-solid fa-earth-americas text-[8px]"></i>
+                                                Bs. {{ parseFloat(req.tasa_bcv).toFixed(2) }}
+                                            </span>
                                         </div>
                                     </td>
                                     <td class="px-8 py-6 whitespace-nowrap">
@@ -398,6 +420,23 @@ const goToCreateBilling = (id, requestId) => {
                                         <div class="relative group">
                                             <i class="fa-solid fa-dollar-sign absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors"></i>
                                             <input v-model="editForm.price" type="number" step="0.01" class="block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-3.5 pl-12 pr-4 focus:ring-2 focus:ring-blue-500 transition-all font-bold outline-none">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div class="space-y-2">
+                                        <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest ml-1">Fecha Tasa BCV</label>
+                                        <div class="relative group">
+                                            <i class="fa-solid fa-calendar-days absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors"></i>
+                                            <input v-model="editForm.fecha_tasa_bcv" type="date" class="block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-3.5 pl-12 pr-4 focus:ring-2 focus:ring-blue-500 transition-all font-bold outline-none">
+                                        </div>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest ml-1">Tasa BCV (Bs./$)</label>
+                                        <div class="relative group">
+                                            <i class="fa-solid fa-earth-americas absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors"></i>
+                                            <input v-model="editForm.tasa_bcv" type="number" step="0.01" class="block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-3.5 pl-12 pr-4 focus:ring-2 focus:ring-blue-500 transition-all font-bold outline-none" placeholder="0.00">
                                         </div>
                                     </div>
                                 </div>

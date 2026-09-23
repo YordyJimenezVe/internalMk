@@ -54,6 +54,8 @@ class BillingRequestController extends Controller
             'partida_id' => 'required|exists:inventarios,id',
             'quantity' => 'required|integer|min:1',
             'price' => 'required|numeric',
+            'tasa_bcv' => 'nullable|numeric|min:0',
+            'fecha_tasa_bcv' => 'nullable|date',
             'client_cedula_file' => 'nullable|image|max:2048',
             'client_name' => 'nullable|string|max:255',
             'client_cedula' => 'nullable|string|max:20',
@@ -80,6 +82,8 @@ class BillingRequestController extends Controller
             'user_id' => auth()->id(),
             'quantity' => $request->quantity,
             'price' => $request->price,
+            'tasa_bcv' => $request->tasa_bcv,
+            'fecha_tasa_bcv' => $request->fecha_tasa_bcv,
             'client_name' => $request->client_name ? strip_tags($request->client_name) : null,
             'client_cedula' => $request->client_cedula ? strip_tags($request->client_cedula) : null,
             'client_cedula_file' => $cedulaFilePath,
@@ -254,6 +258,8 @@ class BillingRequestController extends Controller
         $request->validate([
             'quantity' => 'required|integer|min:1',
             'price' => 'required|numeric',
+            'tasa_bcv' => 'nullable|numeric|min:0',
+            'fecha_tasa_bcv' => 'nullable|date',
             'client_name' => 'nullable|string|max:255',
             'client_cedula' => 'nullable|string|max:20',
             'client_phone' => 'nullable|string|max:30',
@@ -264,7 +270,7 @@ class BillingRequestController extends Controller
         ]);
 
         $billingRequest->update($request->only([
-            'quantity', 'price', 'client_name', 'client_cedula',
+            'quantity', 'price', 'tasa_bcv', 'fecha_tasa_bcv', 'client_name', 'client_cedula',
             'client_phone', 'client_address', 'client_email', 'observation'
         ]));
 
@@ -284,6 +290,56 @@ class BillingRequestController extends Controller
         }
 
         return redirect()->back()->with('success', 'Solicitud actualizada.');
+    }
+
+    /**
+     * Consulta la tasa oficial BCV registrada para una fecha dada (o la más cercana).
+     */
+    public function getRateByDate(Request $request)
+    {
+        $date = $request->input('date');
+        if (!$date) {
+            $latest = \App\Models\ExchangeRate::where('source', 'BCV')->latest()->first();
+            return response()->json([
+                'rate' => $latest ? (float) $latest->rate : 0,
+                'source' => 'latest'
+            ]);
+        }
+
+        // 1. Buscar en la BD local exactamente en ese día
+        $rateRecord = \App\Models\ExchangeRate::where('source', 'BCV')
+            ->whereDate('created_at', $date)
+            ->latest()
+            ->first();
+
+        if ($rateRecord) {
+            return response()->json([
+                'rate' => (float) $rateRecord->rate,
+                'source' => 'db_exact',
+                'date' => $date,
+            ]);
+        }
+
+        // 2. Si no hay exacta, buscar la más cercana hacia atrás
+        $nearestRecord = \App\Models\ExchangeRate::where('source', 'BCV')
+            ->whereDate('created_at', '<=', $date)
+            ->latest()
+            ->first();
+
+        if ($nearestRecord) {
+            return response()->json([
+                'rate' => (float) $nearestRecord->rate,
+                'source' => 'db_nearest',
+                'date' => $nearestRecord->created_at->format('Y-m-d'),
+            ]);
+        }
+
+        // 3. Fallback a la última conocida
+        $latest = \App\Models\ExchangeRate::where('source', 'BCV')->latest()->first();
+        return response()->json([
+            'rate' => $latest ? (float) $latest->rate : 0,
+            'source' => 'db_latest'
+        ]);
     }
 
     /**

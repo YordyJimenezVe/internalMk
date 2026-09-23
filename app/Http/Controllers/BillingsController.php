@@ -88,6 +88,7 @@ class BillingsController extends Controller
         $requestId = $request->input('request_id');
         $billing = Inventario::with('container')->findOrFail($id);
 
+        $requestTasa = null;
         if ($requestId) {
             $billingRequest = BillingRequest::find($requestId);
             if ($billingRequest) {
@@ -100,6 +101,9 @@ class BillingsController extends Controller
                 $billing->observation = $billingRequest->observation;
                 $billing->billing_request_id = $requestId;
                 $billing->client_cedula_url = $billingRequest->client_cedula_file ? asset('storage/' . $billingRequest->client_cedula_file) : null;
+                if ($billingRequest->tasa_bcv && (float) $billingRequest->tasa_bcv > 0) {
+                    $requestTasa = (float) $billingRequest->tasa_bcv;
+                }
             }
 
             // Remove the notification for the current user who is taking the request
@@ -158,6 +162,10 @@ class BillingsController extends Controller
             } catch (\Exception $e) {
                 // Si falla, mantenemos la $tasa previa (la última en DB) o 0 si no había nada
             }
+        }
+
+        if ($requestTasa && $requestTasa > 0) {
+            $tasa = $requestTasa;
         }
 
         // 1. Obtener Costo Base en USD

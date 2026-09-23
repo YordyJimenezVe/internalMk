@@ -147,6 +147,7 @@ Route::middleware([
 
     // Billing requests creation (open to store requests, e.g. for mechanics)
     Route::post('/billing-requests/store', 'App\Http\Controllers\BillingRequestController@store')->name('billing.requests.store');
+    Route::get('/api/exchange-rate/by-date', ['App\Http\Controllers\BillingRequestController', 'getRateByDate'])->name('exchange_rate.by_date');
 
     // Reports Access
     Route::group(['middleware' => ['check_permission:view reports']], function () {
