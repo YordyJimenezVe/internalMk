@@ -23,6 +23,16 @@ import { router } from '@inertiajs/vue3'
                                 <i class="fa-solid fa-bolt mr-2 text-amber-500"></i>Accesos Rápidos
                             </h3>
                             <div class="flex flex-col space-y-4">
+                                <button @click="downloadEstructuraCostos()" class="group bg-white dark:bg-gray-800 hover:bg-emerald-600 dark:hover:bg-emerald-600 text-gray-700 dark:text-gray-200 hover:text-white dark:hover:text-white font-bold py-4 px-6 rounded-xl border border-gray-100 dark:border-gray-700 transition-all flex items-center transform hover:scale-[1.02]">
+                                    <div class="p-2 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg mr-4 group-hover:bg-emerald-500 transition-colors">
+                                        <i class="fa-solid fa-file-excel text-emerald-600 dark:text-emerald-400 group-hover:text-white"></i>
+                                    </div>
+                                    <div class="text-left">
+                                        <div class="text-sm uppercase tracking-wider opacity-60">Excel Financiero</div>
+                                        Inventario con Estructura de Costos
+                                    </div>
+                                </button>
+
                                 <button @click="monthlyReport()" class="group bg-white dark:bg-gray-800 hover:bg-indigo-600 dark:hover:bg-indigo-600 text-gray-700 dark:text-gray-200 hover:text-white dark:hover:text-white font-bold py-4 px-6 rounded-xl border border-gray-100 dark:border-gray-700 transition-all flex items-center transform hover:scale-[1.02]">
                                     <div class="p-2 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg mr-4 group-hover:bg-indigo-500 transition-colors">
                                         <i class="fa-solid fa-book-bookmark text-indigo-600 dark:text-indigo-400 group-hover:text-white"></i>
@@ -33,9 +43,9 @@ import { router } from '@inertiajs/vue3'
                                     </div>
                                 </button>
 
-                                <button @click="bitacora()" class="group bg-white dark:bg-gray-800 hover:bg-emerald-600 dark:hover:bg-emerald-600 text-gray-700 dark:text-gray-200 hover:text-white dark:hover:text-white font-bold py-4 px-6 rounded-xl border border-gray-100 dark:border-gray-700 transition-all flex items-center transform hover:scale-[1.02]">
-                                    <div class="p-2 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg mr-4 group-hover:bg-emerald-500 transition-colors">
-                                        <i class="fa-solid fa-list-check text-emerald-600 dark:text-emerald-400 group-hover:text-white"></i>
+                                <button @click="bitacora()" class="group bg-white dark:bg-gray-800 hover:bg-blue-600 dark:hover:bg-blue-600 text-gray-700 dark:text-gray-200 hover:text-white dark:hover:text-white font-bold py-4 px-6 rounded-xl border border-gray-100 dark:border-gray-700 transition-all flex items-center transform hover:scale-[1.02]">
+                                    <div class="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg mr-4 group-hover:bg-blue-500 transition-colors">
+                                        <i class="fa-solid fa-list-check text-blue-600 dark:text-blue-400 group-hover:text-white"></i>
                                     </div>
                                     <div class="text-left">
                                         <div class="text-sm uppercase tracking-wider opacity-60">Movimientos</div>
@@ -82,6 +92,7 @@ import { router } from '@inertiajs/vue3'
                                         <i class="fa-solid fa-folder-open mr-1"></i>Tipo de Reporte
                                     </label>
                                     <select v-model="form.tipo" class="w-full bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-white border border-gray-200 dark:border-gray-600 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 outline-none transition-all">
+                                        <option value="estructura_costos">Inventario con Estructura de Costos</option>
                                         <option value="partidas">Inventario (Partidas)</option>
                                         <option value="marca_modelo">Inventario por Marca y Modelo</option>
                                         <option value="facturas">Ventas (Facturación)</option>
@@ -104,7 +115,7 @@ import { router } from '@inertiajs/vue3'
                                     </div>
                                 </div>
 
-                                <div v-if="form.tipo === 'partidas' || form.tipo === 'marca_modelo'">
+                                <div v-if="form.tipo === 'partidas' || form.tipo === 'marca_modelo' || form.tipo === 'estructura_costos'">
                                     <label class="block uppercase tracking-wide text-gray-700 dark:text-gray-300 text-xs font-bold mb-2">
                                         <i class="fa-solid fa-filter mr-1"></i>Estatus
                                     </label>
@@ -204,6 +215,13 @@ export default {
         }
     },
     methods: {
+        downloadEstructuraCostos() {
+            const url = route('reporteExcel', {
+                tipo: 'estructura_costos',
+                caso: 'general',
+            }) + '?status=ALL';
+            window.open(url, '_blank');
+        },
         monthlyReport() {
             router.visit(route('reports.monthly'));
         },

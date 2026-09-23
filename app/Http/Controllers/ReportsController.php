@@ -11,6 +11,7 @@ use App\Exports\BitacoraExports;
 use App\Exports\HistoryExports;
 use App\Exports\MaintenanceExports;
 use App\Exports\MarcaModeloExports;
+use App\Exports\EstructuraCostosExport;
 
 /**
  * Controlador para la exportación de Reportes y generación masiva de etiquetas.
@@ -127,7 +128,9 @@ class ReportsController extends Controller
         $endDate = $request->query('fecha_fin');
         $status = $request->query('status');
 
-        if ($tipo == 'marca_modelo' || $tipo == 'marca-modelo' || $tipo == 'marcamodelo') {
+        if ($tipo == 'estructura_costos' || $tipo == 'costos' || $tipo == 'estructura-costos') {
+            return Excel::download(new EstructuraCostosExport($caso, $termino, $startDate, $endDate, $status), 'inventario_estructura_costos.xlsx');
+        } else if ($tipo == 'marca_modelo' || $tipo == 'marca-modelo' || $tipo == 'marcamodelo') {
             return Excel::download(new MarcaModeloExports($caso, $termino, $startDate, $endDate, $status), 'inventario_marca_modelo.xlsx');
         } else if ($tipo == 'partidas' || $tipo == 'Inventarios' || $tipo == 'inventario') {
             return Excel::download(new PartidasExports($caso, $termino, $startDate, $endDate, $status), $tipo . '.xlsx');
@@ -167,7 +170,17 @@ class ReportsController extends Controller
 
         $export = null;
 
-        if ($tipo == 'marca_modelo' || $tipo == 'marca-modelo' || $tipo == 'marcamodelo') {
+        if ($tipo == 'estructura_costos' || $tipo == 'costos' || $tipo == 'estructura-costos') {
+            $export = new EstructuraCostosExport($caso, $termino, $startDate, $endDate, $status);
+            $data = $export->getCollection();
+            $pdfContent = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.estructura_costos', [
+                'partidas' => $data,
+                'isExcel' => false
+            ])
+                ->setPaper('a3', 'landscape')
+                ->output();
+            return response($pdfContent, 200, $headers);
+        } else if ($tipo == 'marca_modelo' || $tipo == 'marca-modelo' || $tipo == 'marcamodelo') {
             $export = new MarcaModeloExports($caso, $termino, $startDate, $endDate, $status);
             $data = $export->getGroupedData();
             $pdfContent = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.marca_modelo', [
