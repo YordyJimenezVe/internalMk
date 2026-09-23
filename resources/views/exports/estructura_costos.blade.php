@@ -182,19 +182,35 @@
                     <td style="{{ $currentRowStyle }}">{{ $partida->expediente ?? '-' }}</td>
                     <td style="{{ $currentRowStyle }}">{{ $containerCod }}</td>
                     <td style="{{ $currentRowStyle }}">{{ $fechaTasaStr }}</td>
-                    <td style="{{ $currentRowStyle }} font-weight: bold; color: #4338ca;">{{ number_format($partida->tasa_bcv_aplicada, 4, ',', '.') }}</td>
-                    <td style="{{ $currentRowStyle }} font-weight: bold; color: #0284c7;">$ {{ number_format($partida->costo_usd_calc, 2, ',', '.') }}</td>
-                    <td style="{{ $currentRowStyle }} font-weight: bold; color: #059669;">Bs. {{ number_format($partida->costo_bs_calc, 2, ',', '.') }}</td>
-                    <td style="{{ $currentRowStyle }}">Bs. {{ number_format($partida->prorrateo_bs_calc, 2, ',', '.') }}</td>
-                    <td style="{{ $currentRowStyle }}">Bs. {{ number_format($partida->costo_taller_bs_calc, 2, ',', '.') }}</td>
-                    <td style="{{ $currentRowStyle }} font-weight: bold;">Bs. {{ number_format($partida->costo_landed_bs_calc, 2, ',', '.') }}</td>
-                    <td style="{{ $currentRowStyle }} font-weight: bold;">{{ number_format($partida->utilidad_percent_calc, 2, ',', '.') }}%</td>
-                    <td style="{{ $currentRowStyle }} font-weight: bold; color: #1e1b4b;">Bs. {{ number_format($partida->base_imponible_bs_calc, 2, ',', '.') }}</td>
-                    <td style="{{ $currentRowStyle }}">$ {{ number_format($partida->base_imponible_usd_calc, 2, ',', '.') }}</td>
-                    <td style="{{ $currentRowStyle }}">Bs. {{ number_format($partida->iva_bs_calc, 2, ',', '.') }}</td>
-                    <td style="{{ $currentRowStyle }}">$ {{ number_format($partida->iva_usd_calc, 2, ',', '.') }}</td>
-                    <td style="{{ $currentRowStyle }} font-weight: bold; color: #059669;">Bs. {{ number_format($partida->precio_con_iva_bs_calc, 2, ',', '.') }}</td>
-                    <td style="{{ $currentRowStyle }} font-weight: bold; color: #4f46e5;">$ {{ number_format($partida->precio_venta_usd_calc, 2, ',', '.') }}</td>
+                    @if($isExcel)
+                        <td style="{{ $currentRowStyle }} font-weight: bold; color: #4338ca;">{{ number_format((float)$partida->tasa_bcv_aplicada, 4, '.', '') }}</td>
+                        <td style="{{ $currentRowStyle }} font-weight: bold; color: #0284c7;">{{ number_format((float)$partida->costo_usd_calc, 2, '.', '') }}</td>
+                        <td style="{{ $currentRowStyle }} font-weight: bold; color: #059669;">{{ number_format((float)$partida->costo_bs_calc, 2, '.', '') }}</td>
+                        <td style="{{ $currentRowStyle }}">{{ number_format((float)$partida->prorrateo_bs_calc, 2, '.', '') }}</td>
+                        <td style="{{ $currentRowStyle }}">{{ number_format((float)$partida->costo_taller_bs_calc, 2, '.', '') }}</td>
+                        <td style="{{ $currentRowStyle }} font-weight: bold;">{{ number_format((float)$partida->costo_landed_bs_calc, 2, '.', '') }}</td>
+                        <td style="{{ $currentRowStyle }} font-weight: bold;">{{ number_format((float)$partida->utilidad_percent_calc, 2, '.', '') }}</td>
+                        <td style="{{ $currentRowStyle }} font-weight: bold; color: #1e1b4b;">{{ number_format((float)$partida->base_imponible_bs_calc, 2, '.', '') }}</td>
+                        <td style="{{ $currentRowStyle }}">{{ number_format((float)$partida->base_imponible_usd_calc, 2, '.', '') }}</td>
+                        <td style="{{ $currentRowStyle }}">{{ number_format((float)$partida->iva_bs_calc, 2, '.', '') }}</td>
+                        <td style="{{ $currentRowStyle }}">{{ number_format((float)$partida->iva_usd_calc, 2, '.', '') }}</td>
+                        <td style="{{ $currentRowStyle }} font-weight: bold; color: #059669;">{{ number_format((float)$partida->precio_con_iva_bs_calc, 2, '.', '') }}</td>
+                        <td style="{{ $currentRowStyle }} font-weight: bold; color: #4f46e5;">{{ number_format((float)$partida->precio_venta_usd_calc, 2, '.', '') }}</td>
+                    @else
+                        <td style="{{ $currentRowStyle }} font-weight: bold; color: #4338ca;">{{ number_format($partida->tasa_bcv_aplicada, 4, ',', '.') }}</td>
+                        <td style="{{ $currentRowStyle }} font-weight: bold; color: #0284c7;">$ {{ number_format($partida->costo_usd_calc, 2, ',', '.') }}</td>
+                        <td style="{{ $currentRowStyle }} font-weight: bold; color: #059669;">Bs. {{ number_format($partida->costo_bs_calc, 2, ',', '.') }}</td>
+                        <td style="{{ $currentRowStyle }}">Bs. {{ number_format($partida->prorrateo_bs_calc, 2, ',', '.') }}</td>
+                        <td style="{{ $currentRowStyle }}">Bs. {{ number_format($partida->costo_taller_bs_calc, 2, ',', '.') }}</td>
+                        <td style="{{ $currentRowStyle }} font-weight: bold;">Bs. {{ number_format($partida->costo_landed_bs_calc, 2, ',', '.') }}</td>
+                        <td style="{{ $currentRowStyle }} font-weight: bold;">{{ number_format($partida->utilidad_percent_calc, 2, ',', '.') }}%</td>
+                        <td style="{{ $currentRowStyle }} font-weight: bold; color: #1e1b4b;">Bs. {{ number_format($partida->base_imponible_bs_calc, 2, ',', '.') }}</td>
+                        <td style="{{ $currentRowStyle }}">$ {{ number_format($partida->base_imponible_usd_calc, 2, ',', '.') }}</td>
+                        <td style="{{ $currentRowStyle }}">Bs. {{ number_format($partida->iva_bs_calc, 2, ',', '.') }}</td>
+                        <td style="{{ $currentRowStyle }}">$ {{ number_format($partida->iva_usd_calc, 2, ',', '.') }}</td>
+                        <td style="{{ $currentRowStyle }} font-weight: bold; color: #059669;">Bs. {{ number_format($partida->precio_con_iva_bs_calc, 2, ',', '.') }}</td>
+                        <td style="{{ $currentRowStyle }} font-weight: bold; color: #4f46e5;">$ {{ number_format($partida->precio_venta_usd_calc, 2, ',', '.') }}</td>
+                    @endif
                     <td style="{{ $currentRowStyle }} {{ $statusColor }} font-weight: bold;">{{ $partida->status }}</td>
                     <td style="{{ $currentRowStyle }} text-align: left;">{{ $partida->observation ?? '-' }}</td>
                 </tr>
@@ -218,10 +234,17 @@
         </tr>
         <tr>
             <td colspan="4" style="{{ $summaryValStyle }} color: #1e1b4b;">{{ $totalItems }} items</td>
-            <td colspan="5" style="{{ $summaryValStyle }} color: #059669;">Bs. {{ number_format($totalImportacionBs, 2, ',', '.') }}</td>
-            <td colspan="5" style="{{ $summaryValStyle }} color: #0284c7;">Bs. {{ number_format($totalLandedBs, 2, ',', '.') }}</td>
-            <td colspan="5" style="{{ $summaryValStyle }} color: #312e81;">Bs. {{ number_format($totalBaseImponibleBs, 2, ',', '.') }}</td>
-            <td colspan="5" style="{{ $summaryValStyle }} color: #4f46e5;">$ {{ number_format($totalPrecioVentaUsd, 2, ',', '.') }}</td>
+            @if($isExcel)
+                <td colspan="5" style="{{ $summaryValStyle }} color: #059669;">{{ number_format((float)$totalImportacionBs, 2, '.', '') }}</td>
+                <td colspan="5" style="{{ $summaryValStyle }} color: #0284c7;">{{ number_format((float)$totalLandedBs, 2, '.', '') }}</td>
+                <td colspan="5" style="{{ $summaryValStyle }} color: #312e81;">{{ number_format((float)$totalBaseImponibleBs, 2, '.', '') }}</td>
+                <td colspan="5" style="{{ $summaryValStyle }} color: #4f46e5;">{{ number_format((float)$totalPrecioVentaUsd, 2, '.', '') }}</td>
+            @else
+                <td colspan="5" style="{{ $summaryValStyle }} color: #059669;">Bs. {{ number_format($totalImportacionBs, 2, ',', '.') }}</td>
+                <td colspan="5" style="{{ $summaryValStyle }} color: #0284c7;">Bs. {{ number_format($totalLandedBs, 2, ',', '.') }}</td>
+                <td colspan="5" style="{{ $summaryValStyle }} color: #312e81;">Bs. {{ number_format($totalBaseImponibleBs, 2, ',', '.') }}</td>
+                <td colspan="5" style="{{ $summaryValStyle }} color: #4f46e5;">$ {{ number_format($totalPrecioVentaUsd, 2, ',', '.') }}</td>
+            @endif
         </tr>
     </table>
 </body>

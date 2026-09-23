@@ -177,6 +177,41 @@ class EstructuraCostosExport implements FromView, WithEvents, ShouldAutoSize, Wi
                 $sheet->getPageSetup()->setOrientation(\PhpOffice\PhpSpreadsheet\Worksheet\PageSetup::ORIENTATION_LANDSCAPE);
                 $sheet->getPageSetup()->setFitToWidth(1);
                 $sheet->getPageSetup()->setFitToHeight(0);
+
+                $maxRow = $sheet->getHighestRow();
+
+                // Enable AutoFilter on row 5
+                $sheet->setAutoFilter('A5:X5');
+
+                // Column J: TASA BCV (4 decimal places)
+                $sheet->getStyle('J6:J' . $maxRow)->getNumberFormat()->setFormatCode('#,##0.0000');
+
+                // USD Currency Columns: K, R, T, V
+                $usdFormat = '"$"#,##0.00';
+                $sheet->getStyle('K6:K' . $maxRow)->getNumberFormat()->setFormatCode($usdFormat);
+                $sheet->getStyle('R6:R' . $maxRow)->getNumberFormat()->setFormatCode($usdFormat);
+                $sheet->getStyle('T6:T' . $maxRow)->getNumberFormat()->setFormatCode($usdFormat);
+                $sheet->getStyle('V6:V' . $maxRow)->getNumberFormat()->setFormatCode($usdFormat);
+
+                // Bs Currency Columns: L, M, N, O, Q, S, U
+                $bsFormat = '"Bs. "#,##0.00';
+                $sheet->getStyle('L6:L' . $maxRow)->getNumberFormat()->setFormatCode($bsFormat);
+                $sheet->getStyle('M6:M' . $maxRow)->getNumberFormat()->setFormatCode($bsFormat);
+                $sheet->getStyle('N6:N' . $maxRow)->getNumberFormat()->setFormatCode($bsFormat);
+                $sheet->getStyle('O6:O' . $maxRow)->getNumberFormat()->setFormatCode($bsFormat);
+                $sheet->getStyle('Q6:Q' . $maxRow)->getNumberFormat()->setFormatCode($bsFormat);
+                $sheet->getStyle('S6:S' . $maxRow)->getNumberFormat()->setFormatCode($bsFormat);
+                $sheet->getStyle('U6:U' . $maxRow)->getNumberFormat()->setFormatCode($bsFormat);
+
+                // Percentage Column: P (% Utilidad)
+                $sheet->getStyle('P6:P' . $maxRow)->getNumberFormat()->setFormatCode('#,##0.00"%"');
+
+                // Summary Row totals formatting
+                $summaryValueRow = $maxRow;
+                $sheet->getStyle('E' . $summaryValueRow)->getNumberFormat()->setFormatCode($bsFormat);
+                $sheet->getStyle('J' . $summaryValueRow)->getNumberFormat()->setFormatCode($bsFormat);
+                $sheet->getStyle('O' . $summaryValueRow)->getNumberFormat()->setFormatCode($bsFormat);
+                $sheet->getStyle('T' . $summaryValueRow)->getNumberFormat()->setFormatCode($usdFormat);
             },
         ];
     }
