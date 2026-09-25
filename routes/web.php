@@ -156,6 +156,7 @@ Route::middleware([
         Route::get('/reports/monthly/data', 'App\Http\Controllers\MonthlyInventoryReportController@data')->name('reports.monthly.data');
         Route::get('/reports/monthly/pdf', 'App\Http\Controllers\MonthlyInventoryReportController@exportPdf')->name('reports.monthly.pdf');
         Route::get('/reports/monthly/excel', 'App\Http\Controllers\MonthlyInventoryReportController@exportExcel')->name('reports.monthly.excel');
+        Route::get('/reports/manual-template', 'App\Http\Controllers\ReportsController@exportManualTemplate')->name('reports.manual-template');
         Route::get('/report/reporteExcel/{tipo}/{caso}/{termino?}', 'App\Http\Controllers\ReportsController@exportExcel')->name('reporteExcel');
         Route::get('/report/reportePdf/{tipo}/{caso}/{termino?}', 'App\Http\Controllers\ReportsController@exportPdf')->name('reportePdf');
         Route::get('/report/print-labels/{tipo}', 'App\Http\Controllers\ReportsController@bulkPrintLabels')->name('printLabels');

@@ -270,4 +270,12 @@ class ReportsController extends Controller
             'Content-Disposition' => 'inline; filename="etiquetas-' . $tipo . '.pdf"'
         ]);
     }
+
+    /**
+     * Descarga la plantilla limpia en Excel para la toma manual de inventario.
+     */
+    public function exportManualTemplate()
+    {
+        return Excel::download(new \App\Exports\ManualInventoryTemplateExport(), 'Formato_Inventario_Manual.xlsx');
+    }
 }

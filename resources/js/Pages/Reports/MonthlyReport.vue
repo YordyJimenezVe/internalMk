@@ -300,6 +300,10 @@ const exportExcel = () => {
     window.open(url, '_blank');
 };
 
+const exportManualTemplate = () => {
+    window.open(route('reports.manual-template'), '_blank');
+};
+
 const goBack = () => {
     router.visit(route('reports.index'));
 };
@@ -409,6 +413,14 @@ const goBack = () => {
                                 class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-5 rounded-xl shadow-md shadow-emerald-100 dark:shadow-none transition-all flex items-center justify-center gap-2 text-sm"
                             >
                                 <i class="fa-solid fa-file-excel"></i> Excel (.xlsx)
+                            </button>
+
+                            <button 
+                                @click="exportManualTemplate"
+                                class="flex-1 sm:flex-none bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-5 rounded-xl shadow-md shadow-amber-100 dark:shadow-none transition-all flex items-center justify-center gap-2 text-sm"
+                                title="Descargar plantilla Excel limpia para conteo manual de inventario"
+                            >
+                                <i class="fa-solid fa-file-pen"></i> Formato Manual (.xlsx)
                             </button>
                         </div>
                     </div>

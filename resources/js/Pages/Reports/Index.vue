@@ -53,6 +53,16 @@ import { router } from '@inertiajs/vue3'
                                     </div>
                                 </button>
 
+                                <button @click="downloadManualTemplate()" class="group bg-white dark:bg-gray-800 hover:bg-amber-600 dark:hover:bg-amber-600 text-gray-700 dark:text-gray-200 hover:text-white dark:hover:text-white font-bold py-4 px-6 rounded-xl border border-gray-100 dark:border-gray-700 transition-all flex items-center transform hover:scale-[1.02]">
+                                    <div class="p-2 bg-amber-50 dark:bg-amber-900/30 rounded-lg mr-4 group-hover:bg-amber-500 transition-colors">
+                                        <i class="fa-solid fa-file-pen text-amber-600 dark:text-amber-400 group-hover:text-white"></i>
+                                    </div>
+                                    <div class="text-left">
+                                        <div class="text-sm uppercase tracking-wider opacity-60">Formato Excel Limpio</div>
+                                        Plantilla para Inventario Manual
+                                    </div>
+                                </button>
+
                                 <!-- Warranty Policy Section -->
                                 <div class="mt-6 border-t border-gray-200 dark:border-gray-700 pt-6">
                                     <h4 class="font-bold text-sm text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-2">
@@ -227,6 +237,9 @@ export default {
         },
         bitacora() {
              router.visit(route('bitacora.index'));
+        },
+        downloadManualTemplate() {
+            window.open(route('reports.manual-template'), '_blank');
         },
         viewWarrantyPDF() {
             if (this.selectedBillingId) {

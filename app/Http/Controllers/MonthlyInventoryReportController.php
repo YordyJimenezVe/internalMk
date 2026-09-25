@@ -418,6 +418,7 @@ class MonthlyInventoryReportController extends Controller
                 return strnatcasecmp($a['description'] ?? '', $b['description'] ?? '');
             });
         }
+        unset($bItems);
 
         // Ordenar Marcas
         $popularBrandsOrder = ['CHEVROLET', 'FORD', 'TOYOTA', 'JEEP', 'HYUNDAI', 'NISSAN', 'MITSUBISHI', 'DODGE', 'RAM', 'CHRYSLER', 'HONDA', 'MAZDA', 'ISUZU', 'CHERY', 'VOLKSWAGEN', 'CUMMINS', 'MACK', 'INTERNATIONAL', 'DAEWOO'];
@@ -443,13 +444,28 @@ class MonthlyInventoryReportController extends Controller
         $flatItemsList = [];
 
         foreach ($byBrand as $brandName => $bItems) {
+            if (empty($bItems)) {
+                continue;
+            }
+
+            $unidadesInicial = array_sum(array_column($bItems, 'unidades_inicial'));
+            $unidadesEntradas = array_sum(array_column($bItems, 'unidades_entradas'));
+            $unidadesSalidas = array_sum(array_column($bItems, 'unidades_salidas'));
+            $unidadesRetiros = array_sum(array_column($bItems, 'unidades_retiros'));
+            $unidadesAutoconsumo = array_sum(array_column($bItems, 'unidades_autoconsumo'));
+            $unidadesFinal = array_sum(array_column($bItems, 'unidades_final'));
+
+            if ($unidadesInicial == 0 && $unidadesEntradas == 0 && $unidadesSalidas == 0 && $unidadesRetiros == 0 && $unidadesAutoconsumo == 0 && $unidadesFinal == 0) {
+                continue;
+            }
+
             $brandTotales = [
-                'unidades_inicial' => array_sum(array_column($bItems, 'unidades_inicial')),
-                'unidades_entradas' => array_sum(array_column($bItems, 'unidades_entradas')),
-                'unidades_salidas' => array_sum(array_column($bItems, 'unidades_salidas')),
-                'unidades_retiros' => array_sum(array_column($bItems, 'unidades_retiros')),
-                'unidades_autoconsumo' => array_sum(array_column($bItems, 'unidades_autoconsumo')),
-                'unidades_final' => array_sum(array_column($bItems, 'unidades_final')),
+                'unidades_inicial' => $unidadesInicial,
+                'unidades_entradas' => $unidadesEntradas,
+                'unidades_salidas' => $unidadesSalidas,
+                'unidades_retiros' => $unidadesRetiros,
+                'unidades_autoconsumo' => $unidadesAutoconsumo,
+                'unidades_final' => $unidadesFinal,
                 'valores_inicial' => array_sum(array_column($bItems, 'valores_inicial')),
                 'valores_entradas' => array_sum(array_column($bItems, 'valores_entradas')),
                 'valores_salidas' => array_sum(array_column($bItems, 'valores_salidas')),
