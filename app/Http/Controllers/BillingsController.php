@@ -89,10 +89,12 @@ class BillingsController extends Controller
         $billing = Inventario::with('container')->findOrFail($id);
 
         $requestTasa = null;
+        $requestedPriceUsd = null;
         if ($requestId) {
             $billingRequest = BillingRequest::find($requestId);
             if ($billingRequest) {
-                $billing->price = $billingRequest->price;
+                $requestedPriceUsd = (float) $billingRequest->price;
+                $billing->price_sale = (string) $billingRequest->price;
                 $billing->client_name = $billingRequest->client_name;
                 $billing->client_cedula = $billingRequest->client_cedula;
                 $billing->client_phone = $billingRequest->client_phone;
@@ -169,42 +171,47 @@ class BillingsController extends Controller
             $tasa = $requestTasa;
         }
 
-        // 1. Obtener Costo Base en USD
-        $costoUsd = (float) ($billing->costo ?? 0);
-        if ($costoUsd <= 0 && (float) ($billing->costo_importacion_unitario ?? 0) > 0) {
-            $savedRate = (float) ($billing->tasa_bcv ?? ($billing->container->tasa_bcv ?? 0));
-            if ($savedRate > 0) {
-                $costoUsd = (float) $billing->costo_importacion_unitario / $savedRate;
-            } elseif ($tasa > 0) {
-                $costoUsd = (float) $billing->costo_importacion_unitario / $tasa;
-            }
-        }
-
-        // 2. Sumar la base imponible de repuestos/servicios de taller conciliados con FACTURA (en Bs.)
-        $mantenimientosFacturablesBs = 0;
-        foreach ($billing->maintenances as $maint) {
-            $mantenimientosFacturablesBs += (float) $maint->items()
-                ->where('document_type', 'FACTURA')
-                ->where('status', 'CONCILIADO')
-                ->sum('base_imponible');
-        }
-        $mantenimientosUsd = $tasa > 0 ? ($mantenimientosFacturablesBs / $tasa) : 0;
-
-        // 3. Evaluar Prorrateo de Gastos y Porcentaje de Utilidad
-        $prorrateoBs = (float) ($billing->prorrateo_gastos ?? 0);
-        $hasProrrateo = $prorrateoBs > 0;
-
-        if ($hasProrrateo) {
-            $prorrateoUsd = $tasa > 0 ? ($prorrateoBs / $tasa) : 0;
-            $costoLandedUsd = $costoUsd + $prorrateoUsd + $mantenimientosUsd;
-            $utilityPercentage = $billing->porcentaje_utilidad !== null 
-                ? (float) $billing->porcentaje_utilidad 
-                : (float) \App\Models\Setting::get('utility_percentage', 30);
-
-            $costoDeclarado = $costoLandedUsd * (1 + ($utilityPercentage / 100));
+        if ($requestedPriceUsd !== null && $requestedPriceUsd > 0) {
+            $costoDeclarado = $requestedPriceUsd;
+            $billing->price = number_format($costoDeclarado * $tasa, 2, '.', '');
         } else {
-            // Si NO tiene prorrateo asignado: solo se aplica el costo base USD + taller facturable en USD
-            $costoDeclarado = $costoUsd + $mantenimientosUsd;
+            // 1. Obtener Costo Base en USD
+            $costoUsd = (float) ($billing->costo ?? 0);
+            if ($costoUsd <= 0 && (float) ($billing->costo_importacion_unitario ?? 0) > 0) {
+                $savedRate = (float) ($billing->tasa_bcv ?? ($billing->container->tasa_bcv ?? 0));
+                if ($savedRate > 0) {
+                    $costoUsd = (float) $billing->costo_importacion_unitario / $savedRate;
+                } elseif ($tasa > 0) {
+                    $costoUsd = (float) $billing->costo_importacion_unitario / $tasa;
+                }
+            }
+
+            // 2. Sumar la base imponible de repuestos/servicios de taller conciliados con FACTURA (en Bs.)
+            $mantenimientosFacturablesBs = 0;
+            foreach ($billing->maintenances as $maint) {
+                $mantenimientosFacturablesBs += (float) $maint->items()
+                    ->where('document_type', 'FACTURA')
+                    ->where('status', 'CONCILIADO')
+                    ->sum('base_imponible');
+            }
+            $mantenimientosUsd = $tasa > 0 ? ($mantenimientosFacturablesBs / $tasa) : 0;
+
+            // 3. Evaluar Prorrateo de Gastos y Porcentaje de Utilidad
+            $prorrateoBs = (float) ($billing->prorrateo_gastos ?? 0);
+            $hasProrrateo = $prorrateoBs > 0;
+
+            if ($hasProrrateo) {
+                $prorrateoUsd = $tasa > 0 ? ($prorrateoBs / $tasa) : 0;
+                $costoLandedUsd = $costoUsd + $prorrateoUsd + $mantenimientosUsd;
+                $utilityPercentage = $billing->porcentaje_utilidad !== null 
+                    ? (float) $billing->porcentaje_utilidad 
+                    : (float) \App\Models\Setting::get('utility_percentage', 30);
+
+                $costoDeclarado = $costoLandedUsd * (1 + ($utilityPercentage / 100));
+            } else {
+                // Si NO tiene prorrateo asignado: solo se aplica el costo base USD + taller facturable en USD
+                $costoDeclarado = $costoUsd + $mantenimientosUsd;
+            }
         }
 
         return inertia('Bill/Create', [
