@@ -898,6 +898,7 @@ class InventarioController extends Controller
                       ->orWhere('inventarios.marca', 'like', "%{$search}%")
                       ->orWhere('inventarios.tipo', 'like', "%{$search}%")
                       ->orWhere('inventarios.serial', 'like', "%{$search}%")
+                      ->orWhere('inventarios.observation', 'like', "%{$search}%")
                       ->orWhere('inventarios.codInv', 'like', "%{$search}%");
             });
         }
