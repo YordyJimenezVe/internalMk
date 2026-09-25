@@ -88,6 +88,21 @@ const formatSerial = (serial, imageUrl = null) => {
                                         </span>
                                     </div>
                                 </div>
+
+                                <!-- Prominent Inventory Observation Card -->
+                                <div v-if="data.observation" class="mt-3 p-4 bg-amber-50 dark:bg-amber-900/30 rounded-2xl border border-amber-200 dark:border-amber-800/50 flex items-start gap-3 shadow-sm">
+                                    <div class="p-2 bg-amber-100 dark:bg-amber-800/50 rounded-xl text-amber-600 dark:text-amber-300 shrink-0">
+                                        <i class="fa-solid fa-comment-dots text-lg"></i>
+                                    </div>
+                                    <div class="space-y-0.5">
+                                        <span class="text-[10px] font-black text-amber-800 dark:text-amber-400 uppercase tracking-widest block">
+                                            Observación del Inventario / Asesor
+                                        </span>
+                                        <p class="text-xs font-black text-amber-950 dark:text-amber-200 uppercase leading-relaxed">
+                                            {{ data.observation }}
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -199,24 +214,19 @@ const formatSerial = (serial, imageUrl = null) => {
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div class="space-y-4">
                                     <div v-if="data.tipo && (data.tipo.toUpperCase().includes('MOTOR') || data.tipo.toUpperCase().includes('CAJA'))">
-                                        <template v-if="data.observation">
-                                            <input type="hidden" name="observaciones" :value="observaciones">
-                                        </template>
-                                        <template v-else>
-                                            <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="observaciones">Detalles de Despacho (Cómo sale)</label>
-                                            <select class="block w-full bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-sm" v-model="observaciones" name="observaciones" required>
-                                                <option value="" disabled>SELECCIONE UNA OPCIÓN</option>
-                                                <template v-if="data.tipo.toUpperCase().includes('MOTOR')">
-                                                    <option value="MOTOR COMPLETO">MOTOR COMPLETO</option>
-                                                    <option value="MOTOR 7/8">MOTOR 7/8</option>
-                                                    <option value="MOTOR 3/4">MOTOR 3/4</option>
-                                                </template>
-                                                <template v-else-if="data.tipo.toUpperCase().includes('CAJA')">
-                                                    <option value="CAJA COMPLETA">CAJA COMPLETA</option>
-                                                    <option value="CAJA SIN TURBINA">CAJA SIN TURBINA</option>
-                                                </template>
-                                            </select>
-                                        </template>
+                                        <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="observaciones">Detalles de Despacho (Cómo sale)</label>
+                                        <select class="block w-full bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-sm" v-model="observaciones" name="observaciones" required>
+                                            <option value="" disabled>SELECCIONE UNA OPCIÓN</option>
+                                            <template v-if="data.tipo.toUpperCase().includes('MOTOR')">
+                                                <option value="MOTOR COMPLETO">MOTOR COMPLETO</option>
+                                                <option value="MOTOR 7/8">MOTOR 7/8</option>
+                                                <option value="MOTOR 3/4">MOTOR 3/4</option>
+                                            </template>
+                                            <template v-else-if="data.tipo.toUpperCase().includes('CAJA')">
+                                                <option value="CAJA COMPLETA">CAJA COMPLETA</option>
+                                                <option value="CAJA SIN TURBINA">CAJA SIN TURBINA</option>
+                                            </template>
+                                        </select>
                                     </div>
                                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                         <div>
@@ -443,7 +453,15 @@ export default {
         this.clientAddress = this.data['client_address'] || '';
         this.clientEmail = this.data['client_email'] || '';
         this.partida = this.data.id;
-        this.observaciones = this.data['observation'] || '';
+        const validOptions = ['MOTOR COMPLETO', 'MOTOR 7/8', 'MOTOR 3/4', 'CAJA COMPLETA', 'CAJA SIN TURBINA'];
+        const obsUpper = (this.data['observation'] || '').trim().toUpperCase();
+        if (validOptions.includes(obsUpper)) {
+            this.observaciones = obsUpper;
+        } else if (this.data.tipo && validOptions.some(opt => this.data.tipo.toUpperCase().includes(opt.split(' ')[0]))) {
+            this.observaciones = this.data.tipo.toUpperCase();
+        } else {
+            this.observaciones = this.data.tipo || 'MOTOR 7/8';
+        }
 
         // Set current date and time
         const now = new Date();
