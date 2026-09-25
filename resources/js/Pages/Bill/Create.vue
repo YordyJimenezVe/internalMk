@@ -418,8 +418,8 @@ export default {
         if (this.data.price && parseFloat(this.data.price) > 0) {
             const storedBigBs = parseFloat(this.data.price);
             const rateFloat = parseFloat(this.valueDivisa) || 0;
-            const declaredUSD = this.data.price_sale || (rateFloat > 0 ? (storedBigBs / rateFloat).toFixed(2) : parseFloat(this.$page.props.costo_declarado || 0).toFixed(2));
-            this.priceDivisa = parseFloat(declaredUSD).toFixed(2);
+            const declaredUSD = rateFloat > 0 ? (storedBigBs / rateFloat).toFixed(2) : parseFloat(this.$page.props.costo_declarado || 0).toFixed(2);
+            this.priceDivisa = declaredUSD;
 
             const initialUSD = this.data.price_sale || this.$page.props.costo_declarado || declaredUSD;
             this.pagoDivisa = parseFloat(initialUSD).toFixed(2);
