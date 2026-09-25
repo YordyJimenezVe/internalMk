@@ -88,21 +88,6 @@ const formatSerial = (serial, imageUrl = null) => {
                                         </span>
                                     </div>
                                 </div>
-
-                                <!-- Prominent Inventory Observation Card -->
-                                <div v-if="data.observation" class="mt-3 p-4 bg-amber-50 dark:bg-amber-900/30 rounded-2xl border border-amber-200 dark:border-amber-800/50 flex items-start gap-3 shadow-sm">
-                                    <div class="p-2 bg-amber-100 dark:bg-amber-800/50 rounded-xl text-amber-600 dark:text-amber-300 shrink-0">
-                                        <i class="fa-solid fa-comment-dots text-lg"></i>
-                                    </div>
-                                    <div class="space-y-0.5">
-                                        <span class="text-[10px] font-black text-amber-800 dark:text-amber-400 uppercase tracking-widest block">
-                                            Observación del Inventario / Asesor
-                                        </span>
-                                        <p class="text-xs font-black text-amber-950 dark:text-amber-200 uppercase leading-relaxed">
-                                            {{ data.observation }}
-                                        </p>
-                                    </div>
-                                </div>
                             </div>
                         </div>
 
@@ -147,7 +132,7 @@ const formatSerial = (serial, imageUrl = null) => {
                             </div>
 
                             <!-- Payment Breakdown -->
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 p-8 bg-indigo-50/30 dark:bg-indigo-900/10 rounded-[2.5rem] border border-indigo-100/50 dark:border-indigo-500/10">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 p-8 bg-indigo-50/30 dark:bg-indigo-900/10 rounded-[2.5rem] border border-indigo-100/50 dark:border-indigo-500/10">
                                 <!-- Pago Bs -->
                                 <div>
                                     <label class="block text-xs font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-widest mb-3" for="bs">
@@ -170,20 +155,11 @@ const formatSerial = (serial, imageUrl = null) => {
                                     </div>
                                 </div>
 
-                                <!-- IGTF -->
-                                <div>
-                                    <label class="block text-xs font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-widest mb-3" for="igtf">
-                                        <i class="fa-solid fa-money-bill-wave mr-1"></i>IGTF (3%)
-                                    </label>
-                                    <div class="relative">
-                                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-400 font-bold">Bs.</span>
-                                        <input class="appearance-none block w-full bg-white dark:bg-gray-800 text-rose-500 border border-indigo-100 dark:border-indigo-800 rounded-2xl py-4 pl-12 pr-4 leading-tight font-black text-xl" name="igtf" type="text" v-model="igtf" readonly required>
-                                    </div>
-                                </div>
+                                <input type="hidden" name="igtf" value="0,00">
                             </div>
                             
                             <!-- Totals Banner -->
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+                            <div class="pt-4">
                                 <div class="bg-gradient-to-br from-indigo-500 to-purple-600 p-8 rounded-[2rem] text-white shadow-xl shadow-indigo-500/20">
                                     <span class="text-[10px] font-black uppercase tracking-[0.3em] opacity-80">Monto Total Facturado</span>
                                     <div class="text-4xl font-black mt-2 flex items-baseline gap-2">
@@ -194,13 +170,7 @@ const formatSerial = (serial, imageUrl = null) => {
                                         <span>{{ totalAmountUsd }} USD</span>
                                     </div>
                                     <input type="hidden" name="precio_total" v-model="totalAmount">
-                                </div>
-                                <div class="bg-gray-900 dark:bg-black p-8 rounded-[2rem] text-white shadow-xl">
-                                    <span class="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400">Total a Cancelar (incl. IGTF)</span>
-                                    <div class="text-4xl font-black mt-2 text-indigo-400 flex items-baseline gap-2">
-                                        {{ montoCancelado }} <span class="text-lg opacity-80">Bs</span>
-                                    </div>
-                                    <input type="hidden" name="monto_cancelado" v-model="montoCancelado">
+                                    <input type="hidden" name="monto_cancelado" v-model="totalAmount">
                                 </div>
                             </div>
                         </div>
@@ -530,23 +500,8 @@ export default {
             this.calculatePaymentDetails();
         },
         calculatePaymentDetails() {
-            if (!this.pagoDivisa) return;
-
-            const usdFloat = this.normalizeUSD(this.pagoDivisa);
-            const rateFloat = parseFloat(this.valueDivisa) || 0;
-
-            const usdCents = Math.round(usdFloat * 100);
-            const rateCents = Math.round(rateFloat * 100);
-
-            // 4. IGTF (3% del pago en USD convertido a Bs)
-            const scale10000 = usdCents * rateCents;
-            const igtfCents = Math.round((3 * scale10000) / 10000);
-            this.igtf = this.thousandsSeparator(String(igtfCents));
-
-            // 5. Monto Cancelado (Monto Total + IGTF)
-            const totalAmountCents = parseInt(String(this.totalAmount).replace(/[,.]/g, "")) || 0;
-            const totalCents = totalAmountCents + igtfCents;
-            this.montoCancelado = this.thousandsSeparator(String(totalCents));
+            this.igtf = '0,00';
+            this.montoCancelado = this.totalAmount;
         }
     }
 };
