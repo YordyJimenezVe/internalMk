@@ -36,6 +36,7 @@ class HandleInertiaRequests extends Middleware
                 'utilidad' => $request->session()->get('temp_utilidad'),
                 'fecha_tasa_bcv' => $request->session()->get('temp_fecha_tasa_bcv'),
             ],
+            'tasa_bcv_hoy' => (float) (\App\Models\ExchangeRate::where('source', 'BCV')->latest()->value('rate') ?? 0),
         ]);
     }
 }

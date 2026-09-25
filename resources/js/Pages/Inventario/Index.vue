@@ -157,16 +157,32 @@ const getBillingTotals = (row) => {
     }
     const costoTaller = parseFloat(row.costo_taller || 0) || 0;
     
-    let big = parseFloat(row.price || 0);
-    if (!big || big <= 0) {
-        big = baseCosto + costoTaller;
+    let bigBsOriginal = parseFloat(row.price || 0);
+    if (!bigBsOriginal || bigBsOriginal <= 0) {
+        bigBsOriginal = baseCosto + costoTaller;
     }
 
-    const total = big * 1.16;
+    const rateItem = parseFloat(row.tasa_bcv || row.container?.tasa_bcv || 0);
+    const rateToday = parseFloat(page.props.tasa_bcv_hoy || 0) || rateItem;
+
+    let bigBs = bigBsOriginal;
+    let bigUsd = 0;
+    if (rateItem > 0) {
+        bigUsd = bigBsOriginal / rateItem;
+    }
+
+    if (rateItem > 0 && rateToday > 0 && rateToday !== rateItem) {
+        bigBs = bigUsd * rateToday;
+    }
+
+    const totalBs = bigBs * 1.16;
+    const totalUsd = bigUsd > 0 ? (bigUsd * 1.16) : 0;
+
     return {
         hasCost: true,
-        bigBs: big.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-        totalBs: total.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        bigBs: bigBs.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        totalBs: totalBs.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+        totalUsd: totalUsd > 0 ? totalUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : null
     };
 };
 
@@ -356,6 +372,9 @@ const confirmDelete = () => {
                                 </span>
                                 <span class="font-black text-emerald-600 dark:text-emerald-400 font-mono">
                                     Total c/IVA: Bs. {{ getBillingTotals(row).totalBs }}
+                                </span>
+                                <span v-if="getBillingTotals(row).totalUsd" class="text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 font-mono">
+                                    ($ {{ getBillingTotals(row).totalUsd }} USD)
                                 </span>
                             </template>
                             <template v-else>
