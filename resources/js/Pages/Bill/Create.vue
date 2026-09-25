@@ -174,6 +174,10 @@ const formatSerial = (serial, imageUrl = null) => {
                                     <div class="text-4xl font-black mt-2 flex items-baseline gap-2">
                                         {{ totalAmount }} <span class="text-lg opacity-80">Bs</span>
                                     </div>
+                                    <div v-if="totalAmountUsd" class="text-sm font-black text-indigo-100 mt-1 flex items-center gap-1 opacity-90">
+                                        <i class="fa-solid fa-dollar-sign text-xs"></i>
+                                        <span>{{ totalAmountUsd }} USD</span>
+                                    </div>
                                     <input type="hidden" name="precio_total" v-model="totalAmount">
                                 </div>
                                 <div class="bg-gray-900 dark:bg-black p-8 rounded-[2rem] text-white shadow-xl">
@@ -375,6 +379,7 @@ export default {
             partida:'',
             big: '',
             totalAmount: '',
+            totalAmountUsd: '',
             clientName: '',
             clientCedula: '',
             clientPhone: '',
@@ -415,15 +420,16 @@ export default {
         this.valueDivisa = parseFloat(this.tasa_bcv).toFixed(2);
 
         // PRECIO DIVISA (USD) para la factura
-        let costoUsd = parseFloat(this.data.costo || 0);
-        const rateFloat = parseFloat(this.valueDivisa) || 0;
-        if (costoUsd <= 0 && parseFloat(this.data.costo_importacion_unitario || 0) > 0 && rateFloat > 0) {
-            costoUsd = parseFloat(this.data.costo_importacion_unitario) / rateFloat;
+        let declaredUSD = parseFloat(this.$page.props.costo_declarado || 0);
+        if (declaredUSD <= 0) {
+            let costoUsd = parseFloat(this.data.costo || 0);
+            const rateFloat = parseFloat(this.valueDivisa) || 0;
+            if (costoUsd <= 0 && parseFloat(this.data.costo_importacion_unitario || 0) > 0 && rateFloat > 0) {
+                costoUsd = parseFloat(this.data.costo_importacion_unitario) / rateFloat;
+            }
+            declaredUSD = costoUsd;
         }
-        if (costoUsd <= 0) {
-            costoUsd = parseFloat(this.$page.props.costo_declarado || 0);
-        }
-        this.priceDivisa = costoUsd > 0 ? costoUsd.toFixed(2) : '0.00';
+        this.priceDivisa = declaredUSD > 0 ? declaredUSD.toFixed(2) : '0.00';
 
         const initialUSD = this.data.price_sale || this.$page.props.costo_declarado || this.priceDivisa;
         this.pagoDivisa = parseFloat(initialUSD).toFixed(2);
@@ -500,6 +506,7 @@ export default {
             // 3. Monto Total Facturado (BIG + IVA)
             const generalCents = bigCents + ivaCents;
             this.totalAmount = this.thousandsSeparator(String(generalCents));
+            this.totalAmountUsd = (usdFloat * 1.16).toFixed(2);
 
             // Recalculamos los detalles del pago ya que cambió el total facturado
             this.calculatePaymentDetails();
