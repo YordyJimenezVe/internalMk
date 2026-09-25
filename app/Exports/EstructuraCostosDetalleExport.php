@@ -49,11 +49,8 @@ class EstructuraCostosDetalleExport implements FromView, WithEvents, ShouldAutoS
 
         $query = Inventario::with('container', 'bill', 'maintenances');
 
-        // Status Filtering
-        if ($this->status === 'DISPONIBLE') {
-            $query->where('status', '!=', 'VENDIDO')
-                ->whereDoesntHave('bill');
-        } elseif ($this->status === 'VENDIDO') {
+        // Status Filtering: Por defecto solo se incluye inventario disponible (excluye VENDIDO)
+        if ($this->status === 'VENDIDO') {
             $query->where(function ($q) {
                 $q->where('status', 'VENDIDO')->orHas('bill');
             });
@@ -65,6 +62,10 @@ class EstructuraCostosDetalleExport implements FromView, WithEvents, ShouldAutoS
             $query->where('status', 'INOPERATIVO-DESARMADO');
         } elseif ($this->status === 'USO INTERNO') {
             $query->where('status', 'USO INTERNO');
+        } else {
+            // Por defecto (DISPONIBLE, ALL o sin especificar): Solo lo DISPONIBLE (NO VENDIDO)
+            $query->where('status', '!=', 'VENDIDO')
+                ->whereDoesntHave('bill');
         }
 
         // Date Filtering

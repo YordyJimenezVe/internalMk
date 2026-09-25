@@ -219,7 +219,7 @@ export default {
             const url = route('reporteExcel', {
                 tipo: 'estructura_costos',
                 caso: 'general',
-            }) + '?status=ALL';
+            }) + '?status=DISPONIBLE';
             window.open(url, '_blank');
         },
         monthlyReport() {
