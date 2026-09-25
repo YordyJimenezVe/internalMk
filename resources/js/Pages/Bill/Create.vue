@@ -418,10 +418,18 @@ export default {
         if (this.data.price && parseFloat(this.data.price) > 0) {
             const storedBigBs = parseFloat(this.data.price);
             const rateFloat = parseFloat(this.valueDivisa) || 0;
-            const declaredUSD = rateFloat > 0 ? (storedBigBs / rateFloat).toFixed(2) : parseFloat(this.$page.props.costo_declarado || 0).toFixed(2);
-            this.priceDivisa = declaredUSD;
 
-            const initialUSD = this.data.price_sale || this.$page.props.costo_declarado || declaredUSD;
+            // PRECIO DIVISA muestra el costo de importación en USD
+            let costoUsd = parseFloat(this.data.costo || 0);
+            if (costoUsd <= 0 && parseFloat(this.data.costo_importacion_unitario || 0) > 0 && rateFloat > 0) {
+                costoUsd = parseFloat(this.data.costo_importacion_unitario) / rateFloat;
+            }
+            if (costoUsd <= 0) {
+                costoUsd = rateFloat > 0 ? (storedBigBs / rateFloat) : parseFloat(this.$page.props.costo_declarado || 0);
+            }
+            this.priceDivisa = costoUsd.toFixed(2);
+
+            const initialUSD = this.data.price_sale || this.$page.props.costo_declarado || this.priceDivisa;
             this.pagoDivisa = parseFloat(initialUSD).toFixed(2);
 
             this.big = this.thousandsSeparator(storedBigBs.toFixed(2));
