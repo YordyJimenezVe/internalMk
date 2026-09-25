@@ -167,10 +167,6 @@ class BillingsController extends Controller
             }
         }
 
-        if ($requestTasa && $requestTasa > 0) {
-            $tasa = $requestTasa;
-        }
-
         // 1. Obtener Costo Base en USD
         $costoUsd = (float) ($billing->costo ?? 0);
         if ($costoUsd <= 0 && (float) ($billing->costo_importacion_unitario ?? 0) > 0) {

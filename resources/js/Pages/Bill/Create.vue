@@ -414,40 +414,22 @@ export default {
         // Convertimos a número, redondeamos a 2 decimales y aseguramos que sea string para tus regex
         this.valueDivisa = parseFloat(this.tasa_bcv).toFixed(2);
 
-        // Si el ítem ya tiene su Base Imponible oficial registrada en Bs en la BD (data.price), la usamos directamente para evitar los 0.03 Bs de desfase por redondeo
-        if (this.data.price && parseFloat(this.data.price) > 0) {
-            const storedBigBs = parseFloat(this.data.price);
-            const rateFloat = parseFloat(this.valueDivisa) || 0;
-
-            // PRECIO DIVISA muestra el costo de importación en USD
-            let costoUsd = parseFloat(this.data.costo || 0);
-            if (costoUsd <= 0 && parseFloat(this.data.costo_importacion_unitario || 0) > 0 && rateFloat > 0) {
-                costoUsd = parseFloat(this.data.costo_importacion_unitario) / rateFloat;
-            }
-            if (costoUsd <= 0) {
-                costoUsd = rateFloat > 0 ? (storedBigBs / rateFloat) : parseFloat(this.$page.props.costo_declarado || 0);
-            }
-            this.priceDivisa = costoUsd.toFixed(2);
-
-            const initialUSD = this.data.price_sale || this.$page.props.costo_declarado || this.priceDivisa;
-            this.pagoDivisa = parseFloat(initialUSD).toFixed(2);
-
-            this.big = this.thousandsSeparator(storedBigBs.toFixed(2));
-            const ivaVal = Math.round(storedBigBs * 16) / 100;
-            this.iva = this.thousandsSeparator(ivaVal.toFixed(2));
-            const totalVal = storedBigBs + ivaVal;
-            this.totalAmount = this.thousandsSeparator(totalVal.toFixed(2));
-
-            this.calculatePaymentDetails();
-        } else {
-            const declaredUSD = parseFloat(this.$page.props.costo_declarado || 0).toFixed(2);
-            this.priceDivisa = declaredUSD;
-            const initialUSD = this.data.price_sale || declaredUSD;
-            this.pagoDivisa = parseFloat(initialUSD).toFixed(2);
-
-            // Realizar cálculos iniciales
-            this.calculateInvoiceDetails();
+        // PRECIO DIVISA (USD) para la factura
+        let costoUsd = parseFloat(this.data.costo || 0);
+        const rateFloat = parseFloat(this.valueDivisa) || 0;
+        if (costoUsd <= 0 && parseFloat(this.data.costo_importacion_unitario || 0) > 0 && rateFloat > 0) {
+            costoUsd = parseFloat(this.data.costo_importacion_unitario) / rateFloat;
         }
+        if (costoUsd <= 0) {
+            costoUsd = parseFloat(this.$page.props.costo_declarado || 0);
+        }
+        this.priceDivisa = costoUsd > 0 ? costoUsd.toFixed(2) : '0.00';
+
+        const initialUSD = this.data.price_sale || this.$page.props.costo_declarado || this.priceDivisa;
+        this.pagoDivisa = parseFloat(initialUSD).toFixed(2);
+
+        // Realizar todos los cálculos a la TASA BCV DEL DÍA DE HOY
+        this.calculateInvoiceDetails();
 
         this.clientName = this.data['client_name'] || '';
         this.clientCedula = this.data['client_cedula'] || '';
