@@ -238,9 +238,9 @@ const formatSerial = (serial, imageUrl = null) => {
                                         <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="client_address">Dirección</label>
                                         <input class="appearance-none block w-full bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 transition-all font-bold" name="client_address" type="text" v-model="clientAddress" placeholder="Dirección del cliente">
                                     </div>
-                                    <div v-if="data.observation && !(data.tipo && (data.tipo.toUpperCase().includes('MOTOR') || data.tipo.toUpperCase().includes('CAJA')))" class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-100 dark:border-amber-900/30">
-                                        <label class="block text-[10px] font-black text-amber-850 dark:text-amber-400 uppercase tracking-widest mb-1 flex items-center gap-1">
-                                            <i class="fa-solid fa-comment-dots text-amber-500"></i> Observación del Asesor
+                                    <div v-if="data.observation" class="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-100 dark:border-amber-900/30">
+                                        <label class="block text-[10px] font-black text-amber-800 dark:text-amber-400 uppercase tracking-widest mb-1 flex items-center gap-1">
+                                            <i class="fa-solid fa-comment-dots text-amber-500"></i> Observación del Inventario / Asesor
                                         </label>
                                         <p class="text-xs text-amber-700 dark:text-amber-300 font-bold uppercase">{{ data.observation }}</p>
                                     </div>
@@ -414,16 +414,32 @@ export default {
         // Convertimos a número, redondeamos a 2 decimales y aseguramos que sea string para tus regex
         this.valueDivisa = parseFloat(this.tasa_bcv).toFixed(2);
 
-        // El precio sugerido de facturación (costo_declarado) se asigna a priceDivisa
-        const declaredUSD = parseFloat(this.$page.props.costo_declarado || 0).toFixed(2);
-        this.priceDivisa = declaredUSD;
+        // Si el ítem ya tiene su Base Imponible oficial registrada en Bs en la BD (data.price), la usamos directamente para evitar los 0.03 Bs de desfase por redondeo
+        if (this.data.price && parseFloat(this.data.price) > 0) {
+            const storedBigBs = parseFloat(this.data.price);
+            const rateFloat = parseFloat(this.valueDivisa) || 0;
+            const declaredUSD = rateFloat > 0 ? (storedBigBs / rateFloat).toFixed(2) : parseFloat(this.$page.props.costo_declarado || 0).toFixed(2);
+            this.priceDivisa = declaredUSD;
 
-        // El pago real en divisa por el cual se vende el motor (ej: $3000) se asigna a pagoDivisa
-        const initialUSD = this.data['price'] || this.$page.props.costo_declarado || 0;
-        this.pagoDivisa = parseFloat(initialUSD).toFixed(2);
+            const initialUSD = this.data.price_sale || this.$page.props.costo_declarado || declaredUSD;
+            this.pagoDivisa = parseFloat(initialUSD).toFixed(2);
 
-        // Realizar cálculos iniciales
-        this.calculateInvoiceDetails();
+            this.big = this.thousandsSeparator(storedBigBs.toFixed(2));
+            const ivaVal = Math.round(storedBigBs * 16) / 100;
+            this.iva = this.thousandsSeparator(ivaVal.toFixed(2));
+            const totalVal = storedBigBs + ivaVal;
+            this.totalAmount = this.thousandsSeparator(totalVal.toFixed(2));
+
+            this.calculatePaymentDetails();
+        } else {
+            const declaredUSD = parseFloat(this.$page.props.costo_declarado || 0).toFixed(2);
+            this.priceDivisa = declaredUSD;
+            const initialUSD = this.data['price'] || this.$page.props.costo_declarado || 0;
+            this.pagoDivisa = parseFloat(initialUSD).toFixed(2);
+
+            // Realizar cálculos iniciales
+            this.calculateInvoiceDetails();
+        }
 
         this.clientName = this.data['client_name'] || '';
         this.clientCedula = this.data['client_cedula'] || '';
