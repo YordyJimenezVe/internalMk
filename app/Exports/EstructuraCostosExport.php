@@ -100,8 +100,9 @@ class EstructuraCostosExport implements FromView, WithEvents, ShouldAutoSize, Wi
 
         // Calculate exact cost structure fields for each item
         return $items->map(function ($item) use ($officialTasa) {
+            $itemTasa = ((float)($item->tasa_bcv ?? 0) > 0) ? (float)$item->tasa_bcv : null;
             $containerTasa = ($item->container && (float)$item->container->tasa_bcv > 0) ? (float)$item->container->tasa_bcv : null;
-            $tasa = $containerTasa ?? ((float)$item->tasa_bcv > 0 ? (float)$item->tasa_bcv : $officialTasa);
+            $tasa = $itemTasa ?? ($containerTasa ?? $officialTasa);
 
             $costoBs = (float) ($item->costo_importacion_unitario ?? 0);
             $costoUsd = (float) ($item->costo ?? ($tasa > 0 && $costoBs > 0 ? round($costoBs / $tasa, 2) : 0));

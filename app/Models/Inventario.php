@@ -59,6 +59,7 @@ class Inventario extends Model
         'costo_importacion_unitario',
         'prorrateo_gastos',
         'porcentaje_utilidad',
+        'tasa_bcv',
         'fecha_tasa_bcv',
         'origen',
         'observation',

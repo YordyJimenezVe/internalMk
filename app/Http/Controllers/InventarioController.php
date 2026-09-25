@@ -319,9 +319,9 @@ class InventarioController extends Controller
 
         $latestRate = \App\Models\ExchangeRate::where('source', 'BCV')->latest()->first();
         $officialTasa = $latestRate ? (float) $latestRate->rate : 0;
-        $tempTasa = session('temp_tasa_bcv');
+        $itemTasa = ($data->tasa_bcv && (float)$data->tasa_bcv > 0) ? (float) $data->tasa_bcv : null;
         $containerTasa = ($data->container && $data->container->tasa_bcv > 0) ? (float) $data->container->tasa_bcv : null;
-        $tasaBCV = $containerTasa ?? ($tempTasa ? (float) $tempTasa : $officialTasa);
+        $tasaBCV = $itemTasa ?? ($containerTasa ?? ($tempTasa ? (float) $tempTasa : $officialTasa));
 
         return inertia('Inventario/Show', [
             'inventario' => $data,
@@ -377,8 +377,9 @@ class InventarioController extends Controller
         $tempTasa = session('temp_tasa_bcv');
         $tempUtilidad = session('temp_utilidad');
 
+        $itemTasa = ($data && $data->tasa_bcv && (float)$data->tasa_bcv > 0) ? (float) $data->tasa_bcv : null;
         $containerTasa = ($data && $data->container && $data->container->tasa_bcv > 0) ? (float) $data->container->tasa_bcv : null;
-        $tasaBCV = $containerTasa ?? ($tempTasa ? (float) $tempTasa : $officialTasa);
+        $tasaBCV = $itemTasa ?? ($containerTasa ?? ($tempTasa ? (float) $tempTasa : $officialTasa));
         $utilityPercentage = $tempUtilidad !== null 
             ? (float) $tempUtilidad 
             : (($data && $data->porcentaje_utilidad !== null) ? (float) $data->porcentaje_utilidad : (float) \App\Models\Setting::get('utility_percentage', 30));
