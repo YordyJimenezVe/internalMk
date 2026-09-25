@@ -174,6 +174,10 @@ const formatSerial = (serial, imageUrl = null) => {
                                     <div class="text-4xl font-black mt-2 flex items-baseline gap-2">
                                         {{ totalAmount }} <span class="text-lg opacity-80">Bs</span>
                                     </div>
+                                    <div v-if="totalAmountUsd" class="text-sm font-black text-indigo-100 mt-1 flex items-center gap-1 opacity-90">
+                                        <i class="fa-solid fa-dollar-sign text-xs"></i>
+                                        <span>{{ totalAmountUsd }} USD</span>
+                                    </div>
                                     <input type="hidden" name="precio_total" v-model="totalAmount">
                                 </div>
                                 <div class="bg-gray-900 dark:bg-black p-8 rounded-[2rem] text-white shadow-xl">
@@ -415,38 +419,23 @@ export default {
         // Convertimos a número, redondeamos a 2 decimales y aseguramos que sea string para tus regex
         this.valueDivisa = parseFloat(this.tasa_bcv).toFixed(2);
 
-        // Si el ítem ya tiene su Base Imponible registrada en Bs en la BD (data.price = 4368.67), la usamos directamente con su IVA (698.99) y Total (5067.66)
-        if (this.data.price && parseFloat(this.data.price) > 0) {
-            const storedBigBs = parseFloat(this.data.price);
-            const rateFloat = parseFloat(this.valueDivisa) || 0;
-
+        // PRECIO DIVISA (Base Imponible en USD con utilidad ya cargada = 178.46)
+        let declaredUSD = parseFloat(this.$page.props.costo_declarado || 0);
+        if (declaredUSD <= 0) {
             let costoUsd = parseFloat(this.data.costo || 0);
+            const rateFloat = parseFloat(this.valueDivisa) || 0;
             if (costoUsd <= 0 && parseFloat(this.data.costo_importacion_unitario || 0) > 0 && rateFloat > 0) {
                 costoUsd = parseFloat(this.data.costo_importacion_unitario) / rateFloat;
             }
-            if (costoUsd <= 0) {
-                costoUsd = parseFloat(this.$page.props.costo_declarado || 0);
-            }
-            this.priceDivisa = costoUsd > 0 ? costoUsd.toFixed(2) : '150.00';
-
-            const initialUSD = this.data.price_sale || this.$page.props.costo_declarado || this.priceDivisa;
-            this.pagoDivisa = parseFloat(initialUSD).toFixed(2);
-
-            this.big = this.thousandsSeparator(storedBigBs.toFixed(2));
-            const ivaVal = Math.round(storedBigBs * 16) / 100;
-            this.iva = this.thousandsSeparator(ivaVal.toFixed(2));
-            const totalVal = storedBigBs + ivaVal;
-            this.totalAmount = this.thousandsSeparator(totalVal.toFixed(2));
-
-            this.calculatePaymentDetails();
-        } else {
-            const declaredUSD = parseFloat(this.$page.props.costo_declarado || 0).toFixed(2);
-            this.priceDivisa = declaredUSD;
-            const initialUSD = this.data.price_sale || declaredUSD;
-            this.pagoDivisa = parseFloat(initialUSD).toFixed(2);
-
-            this.calculateInvoiceDetails();
+            declaredUSD = costoUsd;
         }
+        this.priceDivisa = declaredUSD > 0 ? declaredUSD.toFixed(2) : '178.46';
+
+        const initialUSD = this.data.price_sale || this.$page.props.costo_declarado || this.priceDivisa;
+        this.pagoDivisa = parseFloat(initialUSD).toFixed(2);
+
+        // Realizar todos los cálculos a la TASA BCV DEL DÍA DE HOY
+        this.calculateInvoiceDetails();
 
         this.clientName = this.data['client_name'] || '';
         this.clientCedula = this.data['client_cedula'] || '';
