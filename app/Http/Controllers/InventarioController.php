@@ -154,7 +154,6 @@ class InventarioController extends Controller
                         ->orWhereRaw('LOWER(serial) LIKE ?', ['%' . $searchLower . '%'])
                         ->orWhereRaw('LOWER(expediente) LIKE ?', ['%' . $searchLower . '%'])
                         ->orWhereRaw('LOWER(categorie) LIKE ?', ['%' . $searchLower . '%'])
-                        ->orWhereRaw('LOWER(observation) LIKE ?', ['%' . $searchLower . '%'])
                         ->orWhere('año', 'like', "%{$searchLower}%")
                         ->orWhere('cantidad', 'like', "%{$searchLower}%")
                         ->orWhereHas('container', function ($q) use ($searchLower) {
@@ -898,7 +897,6 @@ class InventarioController extends Controller
                       ->orWhere('inventarios.marca', 'like', "%{$search}%")
                       ->orWhere('inventarios.tipo', 'like', "%{$search}%")
                       ->orWhere('inventarios.serial', 'like', "%{$search}%")
-                      ->orWhere('inventarios.observation', 'like', "%{$search}%")
                       ->orWhere('inventarios.codInv', 'like', "%{$search}%");
             });
         }
