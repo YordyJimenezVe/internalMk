@@ -4,19 +4,18 @@ namespace App\Exports;
 
 use Maatwebsite\Excel\Concerns\FromView;
 use Illuminate\Contracts\View\View;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithTitle;
+use Maatwebsite\Excel\Concerns\WithPreCalculateFormulas;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
-use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
-class MonthlyInventoryExport implements FromView, WithEvents, WithColumnWidths, WithTitle
+class MonthlyInventoryExport implements FromView, WithEvents, WithColumnWidths, WithTitle, WithPreCalculateFormulas
 {
     protected $data;
 
@@ -41,21 +40,20 @@ class MonthlyInventoryExport implements FromView, WithEvents, WithColumnWidths, 
     public function columnWidths(): array
     {
         return [
-            'A' => 14, // Marca
-            'B' => 18, // Tipo de Producto
-            'C' => 20, // Modelo
-            'D' => 11, // Unid Inicial
-            'E' => 12, // Unid Entradas
-            'F' => 11, // Unid Salidas
-            'G' => 11, // Unid Retiros
-            'H' => 13, // Unid Autoconsumo
-            'I' => 11, // Unid Final
-            'J' => 15, // Val Inicial
-            'K' => 15, // Val Entradas
-            'L' => 15, // Val Salidas
-            'M' => 15, // Val Retiros
-            'N' => 16, // Val Autoconsumo
-            'O' => 18, // Val Final
+            'A' => 18, // CÓDIGO
+            'B' => 36, // DESCRIPCIÓN
+            'C' => 11, // Unid Inicial
+            'D' => 12, // Unid Entradas
+            'E' => 11, // Unid Salidas
+            'F' => 11, // Unid Retiros
+            'G' => 13, // Unid Autoconsumo
+            'H' => 12, // Unid Final
+            'I' => 16, // Val Inicial
+            'J' => 16, // Val Entradas
+            'K' => 16, // Val Salidas
+            'L' => 16, // Val Retiros
+            'M' => 16, // Val Autoconsumo
+            'N' => 18, // Val Final
         ];
     }
 
@@ -72,91 +70,90 @@ class MonthlyInventoryExport implements FromView, WithEvents, WithColumnWidths, 
                 $sheet->getHeaderFooter()->setEvenFooter('&L&"Arial,Bold" FIRMA &R&"Arial,Bold" SELLO');
 
                 $highestRow = $sheet->getHighestRow();
-                $highestColumn = 'O';
+                $highestColumn = 'N';
 
-                // Fusionar celdas del encabezado superior de la empresa (Filas 1 a 3)
-                $sheet->mergeCells('A1:I1');
-                $sheet->mergeCells('J1:O1');
-                $sheet->mergeCells('A2:I2');
-                $sheet->mergeCells('J2:O2');
-                $sheet->mergeCells('A3:I3');
-                $sheet->mergeCells('J3:O3');
+                // Fusionar celdas del encabezado oficial centrado (Filas 1 a 4)
+                $sheet->mergeCells("A1:{$highestColumn}1");
+                $sheet->mergeCells("A2:{$highestColumn}2");
+                $sheet->mergeCells("A3:{$highestColumn}3");
+                $sheet->mergeCells("A4:{$highestColumn}4");
 
                 // Estilos de los títulos principales del reporte
                 $sheet->getStyle('A1')->getFont()->setSize(14)->setBold(true)->setColor(new Color('0F172A'));
-                $sheet->getStyle('A2')->getFont()->setSize(11)->setBold(true)->setColor(new Color('475569'));
+                $sheet->getStyle('A2')->getFont()->setSize(10)->setBold(true)->setColor(new Color('334155'));
+                $sheet->getStyle('A3')->getFont()->setSize(10)->setBold(true)->setColor(new Color('334155'));
+                $sheet->getStyle('A4')->getFont()->setSize(11)->setBold(true)->setColor(new Color('475569'));
 
-                // Alineación a la derecha para la caja RIF / Fecha / Tasa
-                $sheet->getStyle('J1:O3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-                $sheet->getStyle('J1:O3')->getFont()->setBold(true);
+                $sheet->getStyle("A1:{$highestColumn}4")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
                 // Alturas de filas iniciales
                 $sheet->getRowDimension(1)->setRowHeight(24);
                 $sheet->getRowDimension(2)->setRowHeight(20);
-                $sheet->getRowDimension(3)->setRowHeight(18);
-                $sheet->getRowDimension(4)->setRowHeight(10); // Fila separadora vacía
-                $sheet->getRowDimension(5)->setRowHeight(24); // Cabecera tabla
-                $sheet->getRowDimension(6)->setRowHeight(20); // Subcabecera tabla
+                $sheet->getRowDimension(3)->setRowHeight(20);
+                $sheet->getRowDimension(4)->setRowHeight(22);
+                $sheet->getRowDimension(5)->setRowHeight(10); // Fila separadora vacía
+                $sheet->getRowDimension(6)->setRowHeight(24); // Cabecera tabla
+                $sheet->getRowDimension(7)->setRowHeight(20); // Subcabecera tabla
 
-                // Estilos para la cabecera principal de la tabla (Fila 5)
-                // A5:C6 para Marca, Modelo, Producto
-                $sheet->getStyle('A5:C6')->getFill()
+                // Estilos para la cabecera principal de la tabla (Fila 6)
+                // A6:B7 para CÓDIGO y DESCRIPCIÓN
+                $sheet->getStyle('A6:B7')->getFill()
                     ->setFillType(Fill::FILL_SOLID)
                     ->getStartColor()->setARGB('1E293B');
-                $sheet->getStyle('A5:C6')->getFont()->setColor(new Color('FFFFFF'))->setBold(true);
-                $sheet->getStyle('A5:C6')->getAlignment()
+                $sheet->getStyle('A6:B7')->getFont()->setColor(new Color('FFFFFF'))->setBold(true);
+                $sheet->getStyle('A6:B7')->getAlignment()
                     ->setHorizontal(Alignment::HORIZONTAL_CENTER)
                     ->setVertical(Alignment::VERTICAL_CENTER);
 
-                // D5:I5 (Unidades Físicas) - Azul
-                $sheet->getStyle('D5:I5')->getFill()
+                // C6:H6 (Unidades Físicas) - Azul
+                $sheet->getStyle('C6:H6')->getFill()
                     ->setFillType(Fill::FILL_SOLID)
                     ->getStartColor()->setARGB('0284C7');
-                $sheet->getStyle('D5:I5')->getFont()->setColor(new Color('FFFFFF'))->setBold(true)->setSize(11);
-                $sheet->getStyle('D5:I5')->getAlignment()
+                $sheet->getStyle('C6:H6')->getFont()->setColor(new Color('FFFFFF'))->setBold(true)->setSize(11);
+                $sheet->getStyle('C6:H6')->getAlignment()
                     ->setHorizontal(Alignment::HORIZONTAL_CENTER)
                     ->setVertical(Alignment::VERTICAL_CENTER);
 
-                // J5:O5 (Valores Bolívares) - Verde
-                $sheet->getStyle('J5:O5')->getFill()
+                // I6:N6 (Valores Bolívares) - Verde
+                $sheet->getStyle('I6:N6')->getFill()
                     ->setFillType(Fill::FILL_SOLID)
                     ->getStartColor()->setARGB('15803D');
-                $sheet->getStyle('J5:O5')->getFont()->setColor(new Color('FFFFFF'))->setBold(true)->setSize(11);
-                $sheet->getStyle('J5:O5')->getAlignment()
+                $sheet->getStyle('I6:N6')->getFont()->setColor(new Color('FFFFFF'))->setBold(true)->setSize(11);
+                $sheet->getStyle('I6:N6')->getAlignment()
                     ->setHorizontal(Alignment::HORIZONTAL_CENTER)
                     ->setVertical(Alignment::VERTICAL_CENTER);
 
-                // Estilos para subcabeceras (Fila 6)
-                $sheet->getStyle('D6:I6')->getFill()
+                // Estilos para subcabeceras (Fila 7)
+                $sheet->getStyle('C7:H7')->getFill()
                     ->setFillType(Fill::FILL_SOLID)
                     ->getStartColor()->setARGB('E0F2FE');
-                $sheet->getStyle('D6:I6')->getFont()->setColor(new Color('0369A1'))->setBold(true);
-                $sheet->getStyle('D6:I6')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle('C7:H7')->getFont()->setColor(new Color('0369A1'))->setBold(true);
+                $sheet->getStyle('C7:H7')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-                $sheet->getStyle('J6:O6')->getFill()
+                $sheet->getStyle('I7:N7')->getFill()
                     ->setFillType(Fill::FILL_SOLID)
                     ->getStartColor()->setARGB('DCFCE7');
-                $sheet->getStyle('J6:O6')->getFont()->setColor(new Color('15803D'))->setBold(true);
-                $sheet->getStyle('J6:O6')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle('I7:N7')->getFont()->setColor(new Color('15803D'))->setBold(true);
+                $sheet->getStyle('I7:N7')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
                 // Ajuste de alineación vertical y wrap text para datos
-                if ($highestRow >= 7) {
-                    $sheet->getStyle("A7:{$highestColumn}{$highestRow}")
+                if ($highestRow >= 8) {
+                    $sheet->getStyle("A8:{$highestColumn}{$highestRow}")
                         ->getAlignment()
                         ->setVertical(Alignment::VERTICAL_TOP)
                         ->setWrapText(true);
 
-                    // Formato numérico general en Excel
-                    $sheet->getStyle("D7:I{$highestRow}")
+                    // Formato numérico en Excel con supresión de ceros (#,##0;-#,##0;;@ y #,##0.00;-#,##0.00;;@)
+                    $sheet->getStyle("C8:H{$highestRow}")
                         ->getNumberFormat()
-                        ->setFormatCode('#,##0');
+                        ->setFormatCode('#,##0;-#,##0;;@');
 
-                    $sheet->getStyle("J7:O{$highestRow}")
+                    $sheet->getStyle("I8:N{$highestRow}")
                         ->getNumberFormat()
-                        ->setFormatCode('#,##0.00');
+                        ->setFormatCode('#,##0.00;-#,##0.00;;@');
 
-                    // Recorrer filas para estilizar Secciones de Marca y Subtotales
-                    for ($r = 7; $r < $highestRow; $r++) {
+                    // Recorrer filas para estilizar Secciones de Marca, Subtotales, Totales y Firmas
+                    for ($r = 8; $r <= $highestRow; $r++) {
                         $cellVal = (string) $sheet->getCell("A{$r}")->getValue();
 
                         if (str_starts_with(trim($cellVal), 'MARCA:')) {
@@ -173,16 +170,42 @@ class MonthlyInventoryExport implements FromView, WithEvents, WithColumnWidths, 
                                 ->setVertical(Alignment::VERTICAL_CENTER);
                             $sheet->getRowDimension($r)->setRowHeight(24);
                         } elseif (str_starts_with(trim($cellVal), 'SUBTOTAL')) {
-                            $sheet->mergeCells("A{$r}:C{$r}");
+                            $sheet->mergeCells("A{$r}:B{$r}");
                             $sheet->getStyle("A{$r}:{$highestColumn}{$r}")->getFill()
                                 ->setFillType(Fill::FILL_SOLID)
                                 ->getStartColor()->setARGB('E2E8F0');
                             $sheet->getStyle("A{$r}:{$highestColumn}{$r}")->getFont()
                                 ->setColor(new Color('0F172A'))
                                 ->setBold(true);
-                            $sheet->getStyle("A{$r}:C{$r}")->getAlignment()
+                            $sheet->getStyle("A{$r}:B{$r}")->getAlignment()
                                 ->setHorizontal(Alignment::HORIZONTAL_RIGHT);
                             $sheet->getRowDimension($r)->setRowHeight(20);
+                        } elseif (str_starts_with(trim($cellVal), 'TOTALES GENERALES')) {
+                            $sheet->mergeCells("A{$r}:B{$r}");
+                            $sheet->getStyle("A{$r}:{$highestColumn}{$r}")->getFill()
+                                ->setFillType(Fill::FILL_SOLID)
+                                ->getStartColor()->setARGB('0F172A');
+                            $sheet->getStyle("A{$r}:{$highestColumn}{$r}")->getFont()
+                                ->setColor(new Color('FFFFFF'))
+                                ->setBold(true)
+                                ->setSize(10);
+                            $sheet->getStyle("A{$r}:B{$r}")->getAlignment()
+                                ->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                            $sheet->getRowDimension($r)->setRowHeight(22);
+
+                            // Bordes delgados para la cuadrícula completa de la tabla (desde cabecera A6 hasta fila de Totales Generales)
+                            $sheet->getStyle("A6:{$highestColumn}{$r}")
+                                ->getBorders()
+                                ->getAllBorders()
+                                ->setBorderStyle(Border::BORDER_THIN)
+                                ->setColor(new Color('CBD5E1'));
+                        } elseif (str_starts_with(trim($cellVal), 'FIRMA')) {
+                            $sheet->mergeCells("A{$r}:F{$r}");
+                            $sheet->mergeCells("I{$r}:N{$r}");
+                            $sheet->getStyle("A{$r}:{$highestColumn}{$r}")->getFont()->setBold(true)->setSize(10);
+                            $sheet->getStyle("A{$r}:F{$r}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                            $sheet->getStyle("I{$r}:N{$r}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                            $sheet->getRowDimension($r)->setRowHeight(28);
                         } else {
                             if ($r % 2 === 0) {
                                 $sheet->getStyle("A{$r}:{$highestColumn}{$r}")->getFill()
@@ -191,30 +214,6 @@ class MonthlyInventoryExport implements FromView, WithEvents, WithColumnWidths, 
                             }
                         }
                     }
-
-                    // Bordes delgados para la cuadrícula
-                    $sheet->getStyle("A5:{$highestColumn}{$highestRow}")
-                        ->getBorders()
-                        ->getAllBorders()
-                        ->setBorderStyle(Border::BORDER_THIN)
-                        ->setColor(new Color('CBD5E1'));
-
-                    // Estilo de la Fila de Totales Generales (Última fila)
-                    $sheet->getStyle("A{$highestRow}:{$highestColumn}{$highestRow}")
-                        ->getFill()
-                        ->setFillType(Fill::FILL_SOLID)
-                        ->getStartColor()->setARGB('0F172A');
-
-                    $sheet->getStyle("A{$highestRow}:{$highestColumn}{$highestRow}")
-                        ->getFont()
-                        ->setColor(new Color('FFFFFF'))
-                        ->setBold(true)
-                        ->setSize(10);
-
-                    $sheet->mergeCells("A{$highestRow}:C{$highestRow}");
-                    $sheet->getStyle("A{$highestRow}:C{$highestRow}")
-                        ->getAlignment()
-                        ->setHorizontal(Alignment::HORIZONTAL_CENTER);
                 }
             },
         ];

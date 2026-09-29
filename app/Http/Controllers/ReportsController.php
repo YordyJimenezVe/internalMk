@@ -274,8 +274,8 @@ class ReportsController extends Controller
     /**
      * Descarga la plantilla limpia en Excel para la toma manual de inventario.
      */
-    public function exportManualTemplate()
+    public function exportManualTemplate(\Illuminate\Http\Request $request)
     {
-        return Excel::download(new \App\Exports\ManualInventoryTemplateExport(), 'Formato_Inventario_Manual.xlsx');
+        return app(\App\Http\Controllers\MonthlyInventoryReportController::class)->exportManualTemplate($request);
     }
 }

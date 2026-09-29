@@ -1,27 +1,30 @@
 services:
-  # PHP Service
+  # PHP Application (Laravel + Composer + Node)
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    image: laravel-app
+      args:
+        user: www-data
+        uid: 1000
+    image: internalmk-app
     container_name: internalmk-app
     restart: unless-stopped
-    tty: true
-    environment:
-      SERVICE_NAME: app
-      SERVICE_TAGS: dev
+    working_dir: /var/www
     volumes:
       - .:/var/www
+      - ./docker/php/custom.ini:/usr/local/etc/php/conf.d/custom.ini:ro
     networks:
-      - app-network
+      - internalmk-network
+    depends_on:
+      db:
+        condition: service_healthy
 
-  # MySQL Service
+  # MariaDB Database
   db:
     image: mariadb:10.4
     container_name: internalmk-db
     restart: unless-stopped
-    tty: true
     ports:
       - "3314:3306"
     environment:
@@ -31,23 +34,29 @@ services:
       MYSQL_USER: user
     volumes:
       - db-data:/var/lib/mysql
+      - ./maikelca_inventary.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
     networks:
-      - app-network
+      - internalmk-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
 
-  # Nginx Service
+  # Nginx Webserver
   webserver:
     image: nginx:alpine
     container_name: internalmk-webserver
     restart: unless-stopped
-    tty: true
     ports:
       - "8096:80"
-      - "4446:443"
     volumes:
       - .:/var/www
-      - ./docker/nginx/conf.d/:/etc/nginx/conf.d/
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
     networks:
-      - app-network
+      - internalmk-network
+    depends_on:
+      - app
 
   # Redis Service
   redis:
@@ -55,12 +64,17 @@ services:
     container_name: internalmk-redis
     restart: unless-stopped
     networks:
-      - app-network
+      - internalmk-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
 
 networks:
-  app-network:
+  internalmk-network:
     driver: bridge
 
 volumes:
   db-data:
-
+    driver: local

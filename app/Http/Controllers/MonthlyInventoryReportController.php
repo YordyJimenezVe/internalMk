@@ -124,57 +124,144 @@ class MonthlyInventoryReportController extends Controller
     }
 
     /**
-     * Normaliza el Tipo de producto y el Modelo para agrupar por Tipo + Marca + Modelo Base.
+     * Exporta el formato manual limpio para registro y conteo de inventario (.xlsx SENIAT).
+     */
+    public function exportManualTemplate(Request $request)
+    {
+        ini_set('memory_limit', '512M');
+        set_time_limit(120);
+
+        $startMonth = (int) $request->input('start_month', $request->input('month', date('n')));
+        $endMonth = (int) $request->input('end_month', $startMonth);
+        if ($endMonth < $startMonth) {
+            $endMonth = $startMonth;
+        }
+
+        $year = (int) $request->input('year', date('Y'));
+        $groupingMode = $request->input('grouping_mode', 'base');
+
+        $reportData = $this->calculateReportData($startMonth, $endMonth, $year, $groupingMode);
+        $periodSlug = str_replace(' ', '_', $reportData['periodName']);
+        $prefix = ($startMonth === $endMonth) ? 'Formato_Manual_Inventario_Mensual' : 'Formato_Manual_Inventario_Periodo';
+
+        return Excel::download(
+            new \App\Exports\ManualInventoryTemplateExport($reportData),
+            "{$prefix}_{$periodSlug}_{$year}.xlsx"
+        );
+    }
+
+    /**
+     * Normaliza el Tipo de producto y el Modelo para agrupar por Tipo + Marca + Modelo Base,
+     * generando un CÓDIGO único (ej: MTR-CH-53L, CAJ-CH-AVEO-1.6) y una DESCRIPCIÓN clara (ej: Motor Completo Chevrolet 5.3L).
      */
     private function normalizeModelInfo(string $tipo, string $marca, string $modelo, bool $useBaseModel = true): array
     {
         $tipoClean = mb_strtoupper(trim($tipo));
         $marcaClean = mb_strtoupper(trim($marca));
-        $modeloClean = mb_strtoupper(trim($modelo));
+        if (empty($marcaClean)) {
+            $marcaClean = 'OTRAS MARCAS';
+        }
+        $modeloClean = trim($modelo);
 
-        // Normalizar Tipo (MOTOR 7/8, MOTOR 3/4, MOTOR COMPLETO, CAJA, CÁMARA, AUTOPARTE)
+        // 1. Tipo Prefix & Label
         if (strpos($tipoClean, '7/8') !== false) {
-            $tipoClean = 'MOTOR 7/8';
+            $tipoPrefix = 'M78';
+            $tipoLabel = 'Motor 7/8';
         } elseif (strpos($tipoClean, '3/4') !== false) {
-            $tipoClean = 'MOTOR 3/4';
+            $tipoPrefix = 'M34';
+            $tipoLabel = 'Motor 3/4';
+        } elseif (strpos($tipoClean, '5/8') !== false) {
+            $tipoPrefix = 'M58';
+            $tipoLabel = 'Motor 5/8';
         } elseif (strpos($tipoClean, 'COMPLETO') !== false || strpos($tipoClean, '4/4') !== false) {
-            $tipoClean = 'MOTOR COMPLETO';
+            $tipoPrefix = 'MTR';
+            $tipoLabel = 'Motor Completo';
         } elseif (strpos($tipoClean, 'CAJA') !== false) {
-            $tipoClean = 'CAJA';
+            $tipoPrefix = 'CAJ';
+            $tipoLabel = 'Caja';
         } elseif (strpos($tipoClean, 'CÁMARA') !== false || strpos($tipoClean, 'CAMARA') !== false) {
-            $tipoClean = 'CÁMARA';
+            $tipoPrefix = 'CAM';
+            $tipoLabel = 'Cámara';
+        } elseif (strpos($tipoClean, 'AUTOPARTE') !== false) {
+            $tipoPrefix = 'AUT';
+            $tipoLabel = 'Autoparte';
+        } else {
+            $tipoPrefix = 'MTR';
+            $tipoLabel = !empty($tipoClean) ? ucwords(mb_strtolower($tipoClean)) : 'Motor';
         }
 
+        // 2. Brand Code & Label
+        $brandMap = [
+            'CHEVROLET' => 'CH', 'FORD' => 'FD', 'TOYOTA' => 'TY', 'JEEP' => 'JEP',
+            'DODGE' => 'DOD', 'NISSAN' => 'NIS', 'MITSUBISHI' => 'MIT', 'HYUNDAI' => 'HYU',
+            'HONDA' => 'HON', 'MAZDA' => 'MAZ', 'ISUZU' => 'ISZ', 'VOLKSWAGEN' => 'VW',
+            'CHRYSLER' => 'CHR', 'RAM' => 'RAM', 'CUMMINS' => 'CUM', 'MACK' => 'MCK',
+            'INTERNATIONAL' => 'INT', 'CHERY' => 'CHE', 'DAEWOO' => 'DAE', 'FIAT' => 'FIA',
+            'SUZUKI' => 'SUZ', 'RENAULT' => 'REN', 'PEUGEOT' => 'PEU', 'BMW' => 'BMW',
+            'MERCEDES' => 'MB',
+        ];
+        $brandCode = $brandMap[$marcaClean] ?? (strlen($marcaClean) <= 4 ? $marcaClean : substr($marcaClean, 0, 3));
+        $brandLabel = ucwords(mb_strtolower($marcaClean));
+
+        // 3. Normalizar Modelo si agrupamos por modelo base
         if ($useBaseModel && !empty($modeloClean)) {
-            if (preg_match('/\b(\d+\.\d+)\s*L?\b/i', $modeloClean, $matches)) {
-                $displacement = $matches[1] . 'L';
+            $modeloClean = preg_replace('/\b(L83|L86|IV GEN|NEW GEN|OLD GEN|GEN 4|GEN 5|GEN III|III GEN|TA|TP|LS4|LS)\b/i', '', $modeloClean);
+            $modeloClean = trim(preg_replace('/\s+/', ' ', $modeloClean));
+        }
 
-                // Limpiar etiquetas secundarias de variantes (L83, L86, IV GEN, NEW GEN, TA, TP, V8, LS4, etc.)
-                $baseName = preg_replace('/\b(\d+\.\d+)\s*L?\b/i', '', $modeloClean);
-                $baseName = preg_replace('/\b(L83|L86|IV GEN|NEW GEN|OLD GEN|GEN 4|GEN 5|GEN III|III GEN|TA|TP|V8|LS4|V6|LS)\b/i', '', $baseName);
-                $baseName = trim(preg_replace('/\s+/', ' ', $baseName));
+        // 4. Construir Código Único Estructurado (ej: MTR-CH-53L, CAJ-CH-AVEO-1.6)
+        $modAscii = strtr($modeloClean, [
+            'Á'=>'A','É'=>'E','Í'=>'I','Ó'=>'O','Ú'=>'U','Ñ'=>'N',
+            'á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u','ñ'=>'n'
+        ]);
 
-                if (!empty($baseName)) {
-                    $modeloClean = $baseName . ' ' . $displacement;
+        $parts = preg_split('/[\s\/\-]+/', $modAscii, -1, PREG_SPLIT_NO_EMPTY);
+        $codeParts = [];
+        foreach ($parts as $p) {
+            if (preg_match('/^(\d+)\.(\d+)L?$/i', $p, $matches)) {
+                if (count($parts) === 1) {
+                    $codeParts[] = $matches[1] . $matches[2] . 'L'; // Ej: 5.3L -> 53L
                 } else {
-                    $modeloClean = $displacement;
+                    $codeParts[] = $matches[1] . '.' . $matches[2]; // Ej: AVEO 1.6L -> AVEO-1.6
                 }
             } else {
-                $modeloClean = preg_replace('/\b(L83|L86|IV GEN|NEW GEN|OLD GEN|GEN 4|GEN 5|GEN III|III GEN|TA|TP|V8|LS4|V6|LS)\b/i', '', $modeloClean);
-                $modeloClean = trim(preg_replace('/\s+/', ' ', $modeloClean));
+                $cleanPart = preg_replace('/[^A-Z0-9]/i', '', $p);
+                if (!empty($cleanPart)) {
+                    $codeParts[] = $cleanPart;
+                }
             }
         }
+        $modCode = implode('-', $codeParts) ?: 'GEN';
 
-        $codeParts = array_filter([$marcaClean, $modeloClean]);
-        $code = !empty($codeParts) ? implode(' ', $codeParts) : ($tipoClean ?: 'PRODUCTO');
+        if (str_starts_with($modCode, $brandCode . '-')) {
+            $code = "{$tipoPrefix}-{$modCode}";
+        } else {
+            $code = "{$tipoPrefix}-{$brandCode}-{$modCode}";
+        }
+        $code = preg_replace('/-+/', '-', trim($code, '-'));
 
-        $description = $tipoClean ?: 'PRODUCTO GENERAL';
+        // 5. Construir Descripción Amigable (ej: Motor Completo Chevrolet 5.3L)
+        $displayModel = ucwords(mb_strtolower($modeloClean));
+        $displayModel = preg_replace_callback('/\b(\d+\.\d+)l\b/i', function($m) {
+            return strtoupper($m[1]) . 'L';
+        }, $displayModel);
+        $displayModel = preg_replace_callback('/\b(v6|v8|v10|v12|2wd|4wd|4x4|4x2|l83|l86|ls|ls4|kj|kk|hemi)\b/i', function($m) {
+            return strtoupper($m[1]);
+        }, $displayModel);
+
+        if (stripos($displayModel, $brandLabel) !== false) {
+            $description = "{$tipoLabel} {$displayModel}";
+        } else {
+            $description = "{$tipoLabel} {$brandLabel} {$displayModel}";
+        }
+        $description = trim(preg_replace('/\s+/', ' ', $description));
 
         return [
-            'marca' => $marcaClean ?: 'OTRAS MARCAS',
+            'marca' => $marcaClean,
             'modelo' => $modeloClean ?: 'N/A',
             'code' => $code,
             'description' => $description,
+            'tipo_normalized' => $tipoLabel,
         ];
     }
 
@@ -208,7 +295,7 @@ class MonthlyInventoryReportController extends Controller
     /**
      * Calcula los saldos de inventario para cualquier rango de meses (Desde - Hasta).
      */
-    private function calculateReportData(int $startMonth, int $endMonth, int $year, string $groupingMode = 'base'): array
+    public function calculateReportData(int $startMonth, int $endMonth, int $year, string $groupingMode = 'base'): array
     {
         if ($startMonth === $endMonth) {
             $periodName = $this->getMonthName($startMonth);
@@ -226,8 +313,8 @@ class MonthlyInventoryReportController extends Controller
         $exchangeRate = $exchangeRateObj ? (float) $exchangeRateObj->rate : 1.0;
 
         // Datos de la empresa
-        $companyName = Setting::where('key', 'company_name')->value('value') ?? 'INTERNAL MAIKEL CARS, C.A.';
-        $companyRif = Setting::where('key', 'company_rif')->value('value') ?? 'J-50000000-0';
+        $companyName = Setting::where('key', 'company_name')->value('value') ?? 'Maikel Cars, C.A.';
+        $companyRif = Setting::where('key', 'company_rif')->value('value') ?? 'J-305652481';
 
         // Obtener todos los inventarios con sus relaciones
         $inventarios = Inventario::with(['container', 'bill', 'maintenances'])->get();
@@ -322,8 +409,8 @@ class MonthlyInventoryReportController extends Controller
                 continue;
             }
 
-            // Clave única de agrupación por Marca + Tipo + Modelo
-            $groupKey = $marca . '||' . $description . '||' . $modeloClean;
+            // Clave única de agrupación por Marca + Código Único
+            $groupKey = $marca . '||' . $code;
 
             if (!isset($groupedItems[$groupKey])) {
                 $groupedItems[$groupKey] = [
@@ -405,15 +492,15 @@ class MonthlyInventoryReportController extends Controller
             $byBrand[$b][] = $gItem;
         }
 
-        // Ordenar los ítems de cada marca
+        // Ordenar los ítems de cada marca por tipo, código y descripción
         foreach ($byBrand as $bName => &$bItems) {
             usort($bItems, function ($a, $b) {
                 if ($a['type_priority'] !== $b['type_priority']) {
                     return $a['type_priority'] <=> $b['type_priority'];
                 }
-                $modelCmp = strnatcasecmp($a['modelo'] ?? '', $b['modelo'] ?? '');
-                if ($modelCmp !== 0) {
-                    return $modelCmp;
+                $codeCmp = strnatcasecmp($a['code'] ?? '', $b['code'] ?? '');
+                if ($codeCmp !== 0) {
+                    return $codeCmp;
                 }
                 return strnatcasecmp($a['description'] ?? '', $b['description'] ?? '');
             });

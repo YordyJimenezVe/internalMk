@@ -25,3 +25,5 @@ docker/mysql/data/
 /scratch/
 .config/
 .lesshst
+.npm/
+.composer/cache/
