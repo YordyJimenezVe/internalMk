@@ -246,8 +246,16 @@ class MonthlyInventoryReportController extends Controller
         $mod = preg_replace('/\b' . preg_quote($marcaClean, '/') . '\b/i', ' ', $mod);
         $mod = trim(preg_replace('/\s+/', ' ', $mod));
 
-        // Determinar sufijo del código (buscando que el código total tenga de 5 a 6 caracteres)
-        if (preg_match('/^(\d{3,4})$/', $mod, $m)) {
+        // Determinar sufijo del código (buscando que el código total tenga de 5 a 6 caracteres, o casos específicos de cilindros)
+        $modWithoutBrand = trim(preg_replace('/\b' . preg_quote($marcaClean, '/') . '\b/i', ' ', $modeloClean));
+        if (preg_match('/^(\d)\s*(CIL|CILINDROS)$/i', $modWithoutBrand, $cm)) {
+            // Caso específico para motores identificados solo por cilindros (ej: Fiat 4 Cilindros -> FT4C, Nissan 4 Cil -> NS4C, Ford 4 Cil -> FD4C)
+            if (stripos($marcaClean, 'SIN MARCA') === false) {
+                $suffix = $cm[1] . 'C';
+            } else {
+                $suffix = '000';
+            }
+        } elseif (preg_match('/^(\d{3,4})$/', $mod, $m)) {
             // Bloque numérico directo (ej: 454 -> CH454, 350 -> CH350, 305 -> CH305, etc.)
             $suffix = $m[1];
         } elseif (preg_match('/^(\d)$/', $mod, $m)) {
