@@ -232,10 +232,10 @@ class MonthlyInventoryReportController extends Controller
 
         // Eliminar palabras secundarias que no forman parte del código base
         $noisePatterns = [
-            '/\b(VORTEC|PREPARADO|REY CAMION|REY CAMIÓN|4 CADENAS|DIESEL|GASOLINA)\b/i',
+            '/\b(PREPARADO|DIESEL|GASOLINA)\b/i',
             '/\b(IV GEN|III GEN|IV GENERACION|IV GENERACIÓN|III GENERACION|III GENERACIÓN|NEW GEN|OLD GEN|1RA GEN|2DA GEN|GEN 4|GEN 5|GEN III)\b/i',
             '/\b(L83|L86|LS4|LS3|LS|TA|TP|2WD|4WD|4X4|4X2|EGR|CON EGR|SIN EGR|TBI|VVT-I|2VVTI|VVTI|DUAL|SIN|CON|FULL|INYECCION|INYECCIÓN|HOUSING|PARA|MAQUINARIA)\b/i',
-            '/\b(2V|3V|4V|6C|8B|16B|4 CIL|6 CIL|8 CIL|6 CILINDROS|4 CILINDROS|5 CILINDROS|3 CILINDROS|CILINDROS|CIL)\b/i',
+            '/\b(4 CIL|6 CIL|8 CIL|6 CILINDROS|4 CILINDROS|5 CILINDROS|3 CILINDROS|CILINDROS|CIL)\b/i',
             '/\b(V6|V8|V10|V12)\b/i',
         ];
         foreach ($noisePatterns as $pattern) {
@@ -246,57 +246,73 @@ class MonthlyInventoryReportController extends Controller
         $mod = preg_replace('/\b' . preg_quote($marcaClean, '/') . '\b/i', ' ', $mod);
         $mod = trim(preg_replace('/\s+/', ' ', $mod));
 
-        // Determinar sufijo del código
-        if (preg_match('/^(\d+)\.(\d+)\s*L?$/i', $mod, $m)) {
-            $suffix = $m[1] . $m[2]; // Ej: 4.3 -> 43, 5.4 -> 54, 5.3 -> 53
-        } elseif (preg_match('/^(\d{2})\s*L$/i', $mod, $m)) {
-            $suffix = $m[1]; // Ej: 53L -> 53, 60L -> 60, 62L -> 62
-        } elseif (preg_match('/^(\d{3,4})$/', $mod, $m)) {
-            $suffix = $m[1]; // Ej: 350, 454, 305, 300, 302, 3116 (sin vehículo adicional, ej: CH454)
+        // Determinar sufijo del código (buscando que el código total tenga de 5 a 6 caracteres)
+        if (preg_match('/^(\d{3,4})$/', $mod, $m)) {
+            // Bloque numérico directo (ej: 454 -> CH454, 350 -> CH350, 305 -> CH305, etc.)
+            $suffix = $m[1];
         } elseif (preg_match('/^(\d)$/', $mod, $m)) {
-            $suffix = $m[1]; // Ej: Mazda 3 -> 3, Mazda 6 -> 6
+            // Mazda 3 -> MZMA3 (5 caracteres)
+            $suffix = 'MA' . $m[1];
+        } elseif (preg_match('/(\d+)\.(\d+)/', $mod, $dm)) {
+            $disp = $dm[1] . $dm[2]; // Ej: 1.6 -> 16, 2.5 -> 25, 4.2 -> 42, 4.3 -> 43, 5.3 -> 53
+            // Dividir lo que está antes y después de la cilindrada
+            $parts = preg_split('/(\d+)\.(\d+)\s*L?/i', $mod);
+            $before = trim($parts[0] ?? '');
+            $after = trim($parts[1] ?? '');
+
+            // 1. Si hay nombre de vehículo ANTES de la cilindrada (ej: AVEO 1.6L -> AV16, MALIBU 2.5 -> MA25, TRAILBLAZER 4.2L -> TR42, VITARA 1.6L -> VI16)
+            if (preg_match('/\b([A-Z]{2,})\b/i', $before, $wm)) {
+                $suffix = substr(strtoupper($wm[1]), 0, 2) . $disp; // Ej: CHAV16, CHMA25, CHTR42, CHVI16
+            } elseif (preg_match('/^(\d)\b/', $before, $nm)) {
+                // Ej: Mazda 6 2.3L -> 623 (MZ623)
+                $suffix = $nm[1] . $disp;
+            } elseif (preg_match('/\b([A-Z])\w*\s+([A-Z])\w*\b/', $after, $twm)) {
+                // 2a. Si hay 2 palabras descriptoras DESPUÉS (ej: 6.0L REY CAMION -> 60RC -> CH60RC)
+                $suffix = $disp . strtoupper($twm[1] . $twm[2]);
+            } elseif (preg_match('/\b([A-Z0-9]{2,})\b/i', $after, $desc)) {
+                // 2b. Si hay descriptor DESPUÉS de la cilindrada (ej: 4.3L VORTEC -> 43VO -> CH43VO, 5.4L 3V -> 543V -> FD543V, 3.7L KJ -> 37KJ -> JP37KJ)
+                $word = strtoupper($desc[1]);
+                $descCode = substr($word, 0, 2);
+                $suffix = $disp . $descCode;
+            } else {
+                // 3. Cilindrada pura sin vehículo ni descriptor (ej: 5.3L -> 53L -> CH53L, 6.0L -> 60L -> CH60L, 2.0L -> 20L -> FD20L)
+                $suffix = $disp . 'L';
+            }
         } else {
-            if (preg_match('/(\d+)\.(\d+)/', $mod, $dm)) {
-                $disp = $dm[1] . $dm[2]; // Ej: 1.6 -> 16, 2.5 -> 25, 4.2 -> 42
-                // Buscar si hay nombre de modelo/vehículo en el resto
-                $rest = trim(preg_replace('/(\d+)\.(\d+)\s*L?/i', ' ', $mod));
+            // Código con dígito (ej: 2ZR, 1ZZ, QR25, MR18, C7, 4BT, DT466, J18)
+            if (preg_match('/\b([A-Z]{0,2}\d[A-Z0-9]{0,4})\b/i', $mod, $em)) {
+                $codePart = preg_replace('/[^A-Z0-9]/', '', $em[1]);
+                $rest = trim(preg_replace('/\b' . preg_quote($em[1], '/') . '\b/i', ' ', $mod));
                 if (preg_match('/\b([A-Z]{2,})\b/i', $rest, $wm)) {
-                    $prefixModel = substr(strtoupper($wm[1]), 0, 2);
-                    $suffix = $prefixModel . $disp; // Ej: AVEO 1.6L -> AV16 (CHAV16), MALIBU 2.5 -> MA25 (CHMA25), TRAILBLAZER 4.2L -> TR42 (CHTR42), VITARA 1.6L -> VI16 (CHVI16)
-                } elseif (preg_match('/^(\d)\b/', $rest, $nm)) {
-                    $suffix = $nm[1] . $disp; // Ej: Mazda 6 2.3L -> 623
+                    // Hay nombre de vehículo + código (ej: VITARA J18 -> V + J18 = VJ18 -> CHVJ18)
+                    $availChars = max(1, 4 - strlen($codePart));
+                    $prefixModel = substr(strtoupper($wm[1]), 0, $availChars);
+                    $suffix = $prefixModel . $codePart;
                 } else {
-                    $suffix = $disp; // Sin nombre adicional: queda sólo la cilindrada (ej: 5.3L -> 53)
+                    $suffix = $codePart;
+                    if (strlen($suffix) == 2) {
+                        $suffix = $suffix . '0';
+                    }
                 }
             } else {
-                // Código con dígito (ej: 2ZR, 1ZZ, QR25, MR18, C7, 4BT, DT466, J18)
-                if (preg_match('/\b([A-Z]{0,2}\d[A-Z0-9]{0,4})\b/i', $mod, $em)) {
-                    $codePart = preg_replace('/[^A-Z0-9]/', '', $em[1]);
-                    $rest = trim(preg_replace('/\b' . preg_quote($em[1], '/') . '\b/i', ' ', $mod));
-                    if (preg_match('/\b([A-Z]{2,})\b/i', $rest, $wm)) {
-                        // Hay nombre de vehículo + código (ej: VITARA J18 -> V + J18 = VJ18 -> CHVJ18)
-                        $availChars = max(1, 4 - strlen($codePart));
-                        $prefixModel = substr(strtoupper($wm[1]), 0, $availChars);
-                        $suffix = $prefixModel . $codePart;
-                    } else {
-                        $suffix = $codePart;
-                    }
-                } else {
-                    // Nombre de vehículo solo (ej: MALIBU -> MA, CAPTIVA -> CA, CRUZE -> CR, RAM -> RA, VITARA -> VI)
-                    $cleanWords = preg_replace('/[^A-Z]/', '', $mod);
-                    $suffix = substr($cleanWords, 0, 2);
+                // Nombre de vehículo solo (ej: MALIBU -> MAL -> CHMAL, CAPTIVA -> CAP -> CHCAP, CRUZE -> CRU -> CHCRU, RAM -> RAM -> DGRAM)
+                // Se toman 3 caracteres para garantizar 5 letras con la marca (2 + 3 = 5)
+                $cleanWords = preg_replace('/[^A-Z]/', '', $mod);
+                $suffix = substr($cleanWords, 0, 3);
+                if (strlen($suffix) < 3) {
+                    $suffix = str_pad($suffix, 3, 'X');
                 }
             }
         }
 
         if (empty($suffix)) {
-            $suffix = 'GE';
+            $suffix = 'GEN';
         }
 
-        // Limitar sufijo del modelo a máximo 4 caracteres (ej: AV16, MA25, TR42, VJ18, G4KE, 454)
+        // Limitar sufijo del modelo a máximo 4 caracteres (ej: AV16, MA25, TR42, 43VO, 53L, VJ18, G4KE, 454)
         $suffix = substr($suffix, 0, 4);
 
-        // Código compacto sin prefijo de producto (ej: CHAV16, CHMA25, CHTR42, CH454, CHVJ18)
+        // Código compacto sin prefijo de producto (5 a 6 caracteres, ej: CH43VO, CH53L, CHAV16, CHMA25, CHTR42, CH454, CHVJ18)
         $code = "{$brandCode}{$suffix}";
 
         // 5. Construir Descripción Amigable (ej: Motor Completo Ford 5.4L 3v, Motor Completo Chevrolet 4.3L Vortec 262)
