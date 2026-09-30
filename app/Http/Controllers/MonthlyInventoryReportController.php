@@ -296,23 +296,23 @@ class MonthlyInventoryReportController extends Controller
                 }
             } else {
                 // Nombre de vehículo solo (ej: MALIBU -> MAL -> CHMAL, CAPTIVA -> CAP -> CHCAP, CRUZE -> CRU -> CHCRU, RAM -> RAM -> DGRAM)
-                // Se toman 3 caracteres para garantizar 5 letras con la marca (2 + 3 = 5)
+                // Se toman 3 caracteres para garantizar 5 letras con la marca (2 + 3 = 5). Relleno con '0' (ej: S/M -> SM0 -> MBSM0, vacío -> 000 -> SI000)
                 $cleanWords = preg_replace('/[^A-Z]/', '', $mod);
                 $suffix = substr($cleanWords, 0, 3);
                 if (strlen($suffix) < 3) {
-                    $suffix = str_pad($suffix, 3, 'X');
+                    $suffix = str_pad($suffix, 3, '0');
                 }
             }
         }
 
-        if (empty($suffix)) {
-            $suffix = 'GEN';
+        if ($suffix === '' || $suffix === null) {
+            $suffix = '000';
         }
 
         // Limitar sufijo del modelo a máximo 4 caracteres (ej: AV16, MA25, TR42, 43VO, 53L, VJ18, G4KE, 454)
         $suffix = substr($suffix, 0, 4);
 
-        // Código compacto sin prefijo de producto (5 a 6 caracteres, ej: CH43VO, CH53L, CHAV16, CHMA25, CHTR42, CH454, CHVJ18)
+        // Código compacto sin prefijo de producto (5 a 6 caracteres, ej: CH43VO, CH53L, CHAV16, CHMA25, CHTR42, CH454, CHVJ18, SI000, MBSM0)
         $code = "{$brandCode}{$suffix}";
 
         // 5. Construir Descripción Amigable (ej: Motor Completo Ford 5.4L 3v, Motor Completo Chevrolet 4.3L Vortec 262)
