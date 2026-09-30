@@ -268,6 +268,9 @@ class MonthlyInventoryReportController extends Controller
             $suffix = 'GE';
         }
 
+        // Limitar sufijo del modelo a máximo 3 caracteres (ej: G4KE -> G4K, resultando en MTJPG4K)
+        $suffix = substr($suffix, 0, 3);
+
         $code = "{$tipoPrefix}{$brandCode}{$suffix}";
 
         // 5. Construir Descripción Amigable (ej: Motor Completo Ford 5.4L 3v, Motor Completo Chevrolet 4.3L Vortec 262)
