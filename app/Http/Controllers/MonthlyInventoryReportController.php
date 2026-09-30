@@ -164,19 +164,7 @@ class MonthlyInventoryReportController extends Controller
         $modeloClean = trim($modelo);
 
         // 1. Tipo Prefix (2 caracteres) & Label
-        if (strpos($tipoClean, '7/8') !== false) {
-            $tipoPrefix = 'M7';
-            $tipoLabel = 'Motor 7/8';
-        } elseif (strpos($tipoClean, '3/4') !== false) {
-            $tipoPrefix = 'M3';
-            $tipoLabel = 'Motor 3/4';
-        } elseif (strpos($tipoClean, '5/8') !== false) {
-            $tipoPrefix = 'M5';
-            $tipoLabel = 'Motor 5/8';
-        } elseif (strpos($tipoClean, 'COMPLETO') !== false || strpos($tipoClean, '4/4') !== false) {
-            $tipoPrefix = 'MT';
-            $tipoLabel = 'Motor Completo';
-        } elseif (strpos($tipoClean, 'CAJA') !== false) {
+        if (strpos($tipoClean, 'CAJA') !== false) {
             $tipoPrefix = 'CJ';
             $tipoLabel = 'Caja';
         } elseif (strpos($tipoClean, 'CÁMARA') !== false || strpos($tipoClean, 'CAMARA') !== false) {
@@ -186,8 +174,19 @@ class MonthlyInventoryReportController extends Controller
             $tipoPrefix = 'AP';
             $tipoLabel = 'Autoparte';
         } else {
+            // Todo lo que sea motor (7/8, 3/4, 5/8, Completo, etc.) inicia por MT
             $tipoPrefix = 'MT';
-            $tipoLabel = !empty($tipoClean) ? ucwords(mb_strtolower($tipoClean)) : 'Motor';
+            if (strpos($tipoClean, '7/8') !== false) {
+                $tipoLabel = 'Motor 7/8';
+            } elseif (strpos($tipoClean, '3/4') !== false) {
+                $tipoLabel = 'Motor 3/4';
+            } elseif (strpos($tipoClean, '5/8') !== false) {
+                $tipoLabel = 'Motor 5/8';
+            } elseif (strpos($tipoClean, 'COMPLETO') !== false || strpos($tipoClean, '4/4') !== false) {
+                $tipoLabel = 'Motor Completo';
+            } else {
+                $tipoLabel = !empty($tipoClean) ? ucwords(mb_strtolower($tipoClean)) : 'Motor';
+            }
         }
 
         // 2. Brand Code (2 caracteres) & Label
@@ -213,7 +212,7 @@ class MonthlyInventoryReportController extends Controller
             $modeloClean = trim(preg_replace('/\s+/', ' ', $modeloClean));
         }
 
-        // 4. Construir Código Compacto Alfanumérico (ej: MTCH43, MTFD54, MTCH53, MTCHAVEO16, MTCH454)
+        // 4. Construir Código Compacto Alfanumérico (ej: MTCH43, MTFD54, MTCH53, MTCHMA, MTCH454)
         $mod = mb_strtoupper(trim($modeloClean));
         $mod = strtr($mod, [
             'Á'=>'A','É'=>'E','Í'=>'I','Ó'=>'O','Ú'=>'U','Ñ'=>'N',
@@ -248,23 +247,25 @@ class MonthlyInventoryReportController extends Controller
             $suffix = $m[1]; // Ej: 53L -> 53, 60L -> 60, 62L -> 62
         } elseif (preg_match('/^(\d{3})$/', $mod, $m)) {
             $suffix = $m[1]; // Ej: 350, 454, 305, 300, 302
+        } elseif (preg_match('/^(\d)$/', $mod, $m)) {
+            $suffix = $m[1]; // Ej: Mazda 3 -> 3, Mazda 6 -> 6
         } else {
             if (preg_match('/(\d+)\.(\d+)/', $mod, $dm)) {
-                $disp = $dm[1] . $dm[2];
-                $textOnly = trim(preg_replace('/(\d+)\.(\d+)L?/i', '', $mod));
-                $textOnly = preg_replace('/[^A-Z0-9]/', '', $textOnly);
-                if (empty($textOnly) || in_array($textOnly, ['L', 'FE'])) {
-                    $suffix = $disp;
-                } else {
-                    $suffix = $textOnly . $disp; // Ej: AVEO 1.6L -> AVEO16, EXPLORER 3.5L -> EXPLORER35
-                }
+                $suffix = $dm[1] . $dm[2]; // Ej: RANGER 2.3L -> 23, COROLLA 1.6L -> 16, MALIBU 2.5 -> 25
             } else {
-                $suffix = preg_replace('/[^A-Z0-9]/', '', $mod);
+                // Código con dígito (ej: 2ZR, 1ZZ, QR25, MR18, C7, 4BT, DT466)
+                if (preg_match('/\b([A-Z]{0,2}\d[A-Z0-9]{0,4})\b/i', $mod, $em)) {
+                    $suffix = preg_replace('/[^A-Z0-9]/', '', $em[1]);
+                } else {
+                    // Nombre de vehículo (ej: MALIBU -> MA, CAPTIVA -> CA, CRUZE -> CR, RAM -> RA)
+                    $cleanWords = preg_replace('/[^A-Z]/', '', $mod);
+                    $suffix = substr($cleanWords, 0, 2);
+                }
             }
         }
 
         if (empty($suffix)) {
-            $suffix = 'GEN';
+            $suffix = 'GE';
         }
 
         $code = "{$tipoPrefix}{$brandCode}{$suffix}";
