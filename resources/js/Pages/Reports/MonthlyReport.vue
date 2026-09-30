@@ -9,6 +9,7 @@ const props = defineProps({
     initialEndMonth: Number,
     initialYear: Number,
     initialGroupingMode: String,
+    initialProductType: String,
     reportData: Object,
 });
 
@@ -16,6 +17,7 @@ const selectedStartMonth = ref(props.initialStartMonth || new Date().getMonth() 
 const selectedEndMonth = ref(props.initialEndMonth || selectedStartMonth.value);
 const selectedYear = ref(props.initialYear || new Date().getFullYear());
 const selectedGroupingMode = ref(props.initialGroupingMode || 'base');
+const selectedProductType = ref(props.initialProductType || 'all');
 const searchQuery = ref('');
 const isLoading = ref(false);
 const currentReportData = ref(props.reportData);
@@ -85,6 +87,7 @@ const fetchReportData = async () => {
                 end_month: selectedEndMonth.value,
                 year: selectedYear.value,
                 grouping_mode: selectedGroupingMode.value,
+                product_type: selectedProductType.value,
             }
         });
         currentReportData.value = response.data;
@@ -286,6 +289,7 @@ const exportPdf = () => {
         end_month: selectedEndMonth.value,
         year: selectedYear.value,
         grouping_mode: selectedGroupingMode.value,
+        product_type: selectedProductType.value,
     });
     window.open(url, '_blank');
 };
@@ -296,6 +300,7 @@ const exportExcel = () => {
         end_month: selectedEndMonth.value,
         year: selectedYear.value,
         grouping_mode: selectedGroupingMode.value,
+        product_type: selectedProductType.value,
     });
     window.open(url, '_blank');
 };
@@ -306,6 +311,7 @@ const exportManualTemplate = () => {
         end_month: selectedEndMonth.value,
         year: selectedYear.value,
         grouping_mode: selectedGroupingMode.value,
+        product_type: selectedProductType.value,
     });
     window.open(url, '_blank');
 };
@@ -401,6 +407,24 @@ const goBack = () => {
                                 >
                                     <option value="base">Por Modelo General (Ej: CHEVROLET 5.3L)</option>
                                     <option value="exact">Por Modelo Exacto (Con variantes L83, IV GEN)</option>
+                                </select>
+                            </div>
+
+                            <!-- Selector de Tipo de Producto -->
+                            <div>
+                                <label class="block text-xs uppercase font-bold text-gray-500 dark:text-gray-400 mb-1">
+                                    <i class="fa-solid fa-boxes-stacked mr-1 text-indigo-500"></i>Tipo de Producto
+                                </label>
+                                <select 
+                                    v-model="selectedProductType" 
+                                    @change="fetchReportData"
+                                    class="bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-semibold text-sm rounded-xl border border-gray-200 dark:border-gray-600 py-2.5 px-4 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                                >
+                                    <option value="all">Todos los Productos</option>
+                                    <option value="motores">Motores</option>
+                                    <option value="cajas">Cajas</option>
+                                    <option value="camaras">Cámaras</option>
+                                    <option value="accesorios">Accesorios</option>
                                 </select>
                             </div>
                         </div>

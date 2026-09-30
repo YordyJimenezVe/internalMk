@@ -28,14 +28,16 @@ class MonthlyInventoryReportController extends Controller
 
         $year = (int) $request->input('year', date('Y'));
         $groupingMode = $request->input('grouping_mode', 'base');
+        $productType = $request->input('product_type', 'all');
 
-        $reportData = $this->calculateReportData($startMonth, $endMonth, $year, $groupingMode);
+        $reportData = $this->calculateReportData($startMonth, $endMonth, $year, $groupingMode, $productType);
 
         return inertia('Reports/MonthlyReport', [
             'initialStartMonth' => $startMonth,
             'initialEndMonth' => $endMonth,
             'initialYear' => $year,
             'initialGroupingMode' => $groupingMode,
+            'initialProductType' => $productType,
             'reportData' => $reportData,
         ]);
     }
@@ -53,8 +55,9 @@ class MonthlyInventoryReportController extends Controller
 
         $year = (int) $request->input('year', date('Y'));
         $groupingMode = $request->input('grouping_mode', 'base');
+        $productType = $request->input('product_type', 'all');
 
-        $reportData = $this->calculateReportData($startMonth, $endMonth, $year, $groupingMode);
+        $reportData = $this->calculateReportData($startMonth, $endMonth, $year, $groupingMode, $productType);
 
         return response()->json($reportData);
     }
@@ -75,8 +78,9 @@ class MonthlyInventoryReportController extends Controller
 
         $year = (int) $request->input('year', date('Y'));
         $groupingMode = $request->input('grouping_mode', 'base');
+        $productType = $request->input('product_type', 'all');
 
-        $reportData = $this->calculateReportData($startMonth, $endMonth, $year, $groupingMode);
+        $reportData = $this->calculateReportData($startMonth, $endMonth, $year, $groupingMode, $productType);
 
         $pdf = Pdf::loadView('reports.monthly_inventory', $reportData)
             ->setPaper('letter', 'landscape')
@@ -112,8 +116,9 @@ class MonthlyInventoryReportController extends Controller
 
         $year = (int) $request->input('year', date('Y'));
         $groupingMode = $request->input('grouping_mode', 'base');
+        $productType = $request->input('product_type', 'all');
 
-        $reportData = $this->calculateReportData($startMonth, $endMonth, $year, $groupingMode);
+        $reportData = $this->calculateReportData($startMonth, $endMonth, $year, $groupingMode, $productType);
         $periodSlug = str_replace(' ', '_', $reportData['periodName']);
         $prefix = ($startMonth === $endMonth) ? 'Reporte_Inventario_Mensual' : 'Reporte_Inventario_Periodo';
 
@@ -139,8 +144,9 @@ class MonthlyInventoryReportController extends Controller
 
         $year = (int) $request->input('year', date('Y'));
         $groupingMode = $request->input('grouping_mode', 'base');
+        $productType = $request->input('product_type', 'all');
 
-        $reportData = $this->calculateReportData($startMonth, $endMonth, $year, $groupingMode);
+        $reportData = $this->calculateReportData($startMonth, $endMonth, $year, $groupingMode, $productType);
         $periodSlug = str_replace(' ', '_', $reportData['periodName']);
         $prefix = ($startMonth === $endMonth) ? 'Formato_Manual_Inventario_Mensual' : 'Formato_Manual_Inventario_Periodo';
 
@@ -268,10 +274,11 @@ class MonthlyInventoryReportController extends Controller
             $suffix = 'GE';
         }
 
-        // Limitar sufijo del modelo a máximo 3 caracteres (ej: G4KE -> G4K, resultando en MTJPG4K)
+        // Limitar sufijo del modelo a máximo 3 caracteres (ej: G4KE -> G4K, resultando en JPG4K)
         $suffix = substr($suffix, 0, 3);
 
-        $code = "{$tipoPrefix}{$brandCode}{$suffix}";
+        // Código compacto sin prefijo de producto (ej: CH16, FD54, CHMA, JPG4K)
+        $code = "{$brandCode}{$suffix}";
 
         // 5. Construir Descripción Amigable (ej: Motor Completo Ford 5.4L 3v, Motor Completo Chevrolet 4.3L Vortec 262)
         $displayModel = ucwords(mb_strtolower($modeloClean));
@@ -330,7 +337,7 @@ class MonthlyInventoryReportController extends Controller
     /**
      * Calcula los saldos de inventario para cualquier rango de meses (Desde - Hasta).
      */
-    public function calculateReportData(int $startMonth, int $endMonth, int $year, string $groupingMode = 'base'): array
+    public function calculateReportData(int $startMonth, int $endMonth, int $year, string $groupingMode = 'base', string $productType = 'all'): array
     {
         if ($startMonth === $endMonth) {
             $periodName = $this->getMonthName($startMonth);
@@ -359,6 +366,25 @@ class MonthlyInventoryReportController extends Controller
 
         foreach ($inventarios as $item) {
             $tipo = trim($item->tipo ?? '');
+
+            // Filtrar por Tipo de Producto si no es 'all'
+            if ($productType !== 'all') {
+                $tipoUpper = mb_strtoupper($tipo);
+                if (strpos($tipoUpper, 'CAJA') !== false || strpos($tipoUpper, 'TRANSMIS') !== false) {
+                    $itemCategory = 'cajas';
+                } elseif (strpos($tipoUpper, 'CAMARA') !== false || strpos($tipoUpper, 'CÁMARA') !== false) {
+                    $itemCategory = 'camaras';
+                } elseif (strpos($tipoUpper, 'ACCESORIO') !== false || strpos($tipoUpper, 'AUTOPARTE') !== false || strpos($tipoUpper, 'REPUESTO') !== false) {
+                    $itemCategory = 'accesorios';
+                } else {
+                    $itemCategory = 'motores';
+                }
+
+                if ($productType !== $itemCategory) {
+                    continue;
+                }
+            }
+
             $marca = mb_strtoupper(trim($item->marca ?? 'OTRAS MARCAS'));
             if (empty($marca)) {
                 $marca = 'OTRAS MARCAS';
@@ -633,6 +659,7 @@ class MonthlyInventoryReportController extends Controller
             'reportTitle' => $reportTitle,
             'year' => $year,
             'groupingMode' => $groupingMode,
+            'productType' => $productType,
             'exchangeRate' => $exchangeRate,
             'brands' => $brandsData,
             'items' => $flatItemsList,
