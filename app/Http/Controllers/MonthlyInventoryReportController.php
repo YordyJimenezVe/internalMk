@@ -152,7 +152,7 @@ class MonthlyInventoryReportController extends Controller
 
     /**
      * Normaliza el Tipo de producto y el Modelo para agrupar por Tipo + Marca + Modelo Base,
-     * generando un CÓDIGO único (ej: MTR-CH-53L, CAJ-CH-AVEO-1.6) y una DESCRIPCIÓN clara (ej: Motor Completo Chevrolet 5.3L).
+     * generando un CÓDIGO compacto alfanumérico (ej: MTCH43, MTFD54, MTCH53, MTCHAVEO16) y una DESCRIPCIÓN clara (ej: Motor Completo Ford 5.4L 3v, Motor Completo Chevrolet 4.3L Vortec 262).
      */
     private function normalizeModelInfo(string $tipo, string $marca, string $modelo, bool $useBaseModel = true): array
     {
@@ -163,88 +163,119 @@ class MonthlyInventoryReportController extends Controller
         }
         $modeloClean = trim($modelo);
 
-        // 1. Tipo Prefix & Label
+        // 1. Tipo Prefix (2 caracteres) & Label
         if (strpos($tipoClean, '7/8') !== false) {
-            $tipoPrefix = 'M78';
+            $tipoPrefix = 'M7';
             $tipoLabel = 'Motor 7/8';
         } elseif (strpos($tipoClean, '3/4') !== false) {
-            $tipoPrefix = 'M34';
+            $tipoPrefix = 'M3';
             $tipoLabel = 'Motor 3/4';
         } elseif (strpos($tipoClean, '5/8') !== false) {
-            $tipoPrefix = 'M58';
+            $tipoPrefix = 'M5';
             $tipoLabel = 'Motor 5/8';
         } elseif (strpos($tipoClean, 'COMPLETO') !== false || strpos($tipoClean, '4/4') !== false) {
-            $tipoPrefix = 'MTR';
+            $tipoPrefix = 'MT';
             $tipoLabel = 'Motor Completo';
         } elseif (strpos($tipoClean, 'CAJA') !== false) {
-            $tipoPrefix = 'CAJ';
+            $tipoPrefix = 'CJ';
             $tipoLabel = 'Caja';
         } elseif (strpos($tipoClean, 'CÁMARA') !== false || strpos($tipoClean, 'CAMARA') !== false) {
-            $tipoPrefix = 'CAM';
+            $tipoPrefix = 'CM';
             $tipoLabel = 'Cámara';
         } elseif (strpos($tipoClean, 'AUTOPARTE') !== false) {
-            $tipoPrefix = 'AUT';
+            $tipoPrefix = 'AP';
             $tipoLabel = 'Autoparte';
         } else {
-            $tipoPrefix = 'MTR';
+            $tipoPrefix = 'MT';
             $tipoLabel = !empty($tipoClean) ? ucwords(mb_strtolower($tipoClean)) : 'Motor';
         }
 
-        // 2. Brand Code & Label
+        // 2. Brand Code (2 caracteres) & Label
         $brandMap = [
-            'CHEVROLET' => 'CH', 'FORD' => 'FD', 'TOYOTA' => 'TY', 'JEEP' => 'JEP',
-            'DODGE' => 'DOD', 'NISSAN' => 'NIS', 'MITSUBISHI' => 'MIT', 'HYUNDAI' => 'HYU',
-            'HONDA' => 'HON', 'MAZDA' => 'MAZ', 'ISUZU' => 'ISZ', 'VOLKSWAGEN' => 'VW',
-            'CHRYSLER' => 'CHR', 'RAM' => 'RAM', 'CUMMINS' => 'CUM', 'MACK' => 'MCK',
-            'INTERNATIONAL' => 'INT', 'CHERY' => 'CHE', 'DAEWOO' => 'DAE', 'FIAT' => 'FIA',
-            'SUZUKI' => 'SUZ', 'RENAULT' => 'REN', 'PEUGEOT' => 'PEU', 'BMW' => 'BMW',
-            'MERCEDES' => 'MB',
+            'CHEVROLET' => 'CH', 'FORD' => 'FD', 'TOYOTA' => 'TY', 'JEEP' => 'JP',
+            'DODGE' => 'DG', 'NISSAN' => 'NS', 'MITSUBISHI' => 'MB', 'HYUNDAI' => 'HY',
+            'HYUNDAI/KIA' => 'HY', 'KIA' => 'KA', 'HONDA' => 'HN', 'MAZDA' => 'MZ',
+            'ISUZU' => 'IS', 'VOLKSWAGEN' => 'VW', 'CHRYSLER' => 'CR', 'RAM' => 'RM',
+            'CUMMINS' => 'CU', 'MACK' => 'MK', 'INTERNATIONAL' => 'IN', 'CHERY' => 'CY',
+            'DAEWOO' => 'DW', 'FIAT' => 'FT', 'SUZUKI' => 'SZ', 'RENAULT' => 'RN',
+            'PEUGEOT' => 'PG', 'BMW' => 'BM', 'MERCEDES' => 'MB', 'MERCEDES-BENZ' => 'MB',
+            'CARIBE' => 'CB', 'CATERPILLAR' => 'CT', 'MINI' => 'MN'
         ];
-        $brandCode = $brandMap[$marcaClean] ?? (strlen($marcaClean) <= 4 ? $marcaClean : substr($marcaClean, 0, 3));
+        $brandCode = $brandMap[$marcaClean] ?? substr(preg_replace('/[^A-Z]/', '', $marcaClean), 0, 2);
+        if (empty($brandCode)) {
+            $brandCode = 'OT';
+        }
         $brandLabel = ucwords(mb_strtolower($marcaClean));
 
         // 3. Normalizar Modelo si agrupamos por modelo base
         if ($useBaseModel && !empty($modeloClean)) {
-            $modeloClean = preg_replace('/\b(L83|L86|IV GEN|NEW GEN|OLD GEN|GEN 4|GEN 5|GEN III|III GEN|TA|TP|LS4|LS)\b/i', '', $modeloClean);
+            $modeloClean = preg_replace('/\b(L83|L86|IV GENERACION|IV GENERACIÓN|IV GEN|NEW GEN|OLD GEN|GEN 4|GEN 5|GEN III|III GEN|TA|TP|LS4|LS)\b/i', '', $modeloClean);
             $modeloClean = trim(preg_replace('/\s+/', ' ', $modeloClean));
         }
 
-        // 4. Construir Código Único Estructurado (ej: MTR-CH-53L, CAJ-CH-AVEO-1.6)
-        $modAscii = strtr($modeloClean, [
+        // 4. Construir Código Compacto Alfanumérico (ej: MTCH43, MTFD54, MTCH53, MTCHAVEO16, MTCH454)
+        $mod = mb_strtoupper(trim($modeloClean));
+        $mod = strtr($mod, [
             'Á'=>'A','É'=>'E','Í'=>'I','Ó'=>'O','Ú'=>'U','Ñ'=>'N',
             'á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u','ñ'=>'n'
         ]);
 
-        $parts = preg_split('/[\s\/\-]+/', $modAscii, -1, PREG_SPLIT_NO_EMPTY);
-        $codeParts = [];
-        foreach ($parts as $p) {
-            if (preg_match('/^(\d+)\.(\d+)L?$/i', $p, $matches)) {
-                if (count($parts) === 1) {
-                    $codeParts[] = $matches[1] . $matches[2] . 'L'; // Ej: 5.3L -> 53L
+        // Si tiene cilindrada en litros (ej: 4.3), eliminar pulgadas cúbicas secundarias como 262
+        if (preg_match('/(\d+)\.(\d+)/', $mod)) {
+            $mod = preg_replace('/\b(262|350|305|302|454|366)\b/', '', $mod);
+        }
+
+        // Eliminar palabras secundarias que no forman parte del código base
+        $noisePatterns = [
+            '/\b(VORTEC|PREPARADO|REY CAMION|REY CAMIÓN|4 CADENAS|DIESEL|GASOLINA)\b/i',
+            '/\b(IV GEN|III GEN|IV GENERACION|IV GENERACIÓN|III GENERACION|III GENERACIÓN|NEW GEN|OLD GEN|1RA GEN|2DA GEN|GEN 4|GEN 5|GEN III)\b/i',
+            '/\b(L83|L86|LS4|LS3|LS|TA|TP|2WD|4WD|4X4|4X2|EGR|CON EGR|SIN EGR|TBI|VVT-I|2VVTI|VVTI)\b/i',
+            '/\b(2V|3V|4V|6C|8B|4 CIL|6 CIL|8 CIL|6 CILINDROS|4 CILINDROS|5 CILINDROS|CILINDROS|CIL)\b/i',
+            '/\b(V6|V8|V10|V12)\b/i',
+        ];
+        foreach ($noisePatterns as $pattern) {
+            $mod = preg_replace($pattern, ' ', $mod);
+        }
+
+        // Remover marca si está repetida en el modelo
+        $mod = preg_replace('/\b' . preg_quote($marcaClean, '/') . '\b/i', ' ', $mod);
+        $mod = trim(preg_replace('/\s+/', ' ', $mod));
+
+        // Determinar sufijo del código
+        if (preg_match('/^(\d+)\.(\d+)L?$/i', $mod, $m)) {
+            $suffix = $m[1] . $m[2]; // Ej: 4.3 -> 43, 5.4 -> 54
+        } elseif (preg_match('/^(\d{2})L$/i', $mod, $m)) {
+            $suffix = $m[1]; // Ej: 53L -> 53, 60L -> 60, 62L -> 62
+        } elseif (preg_match('/^(\d{3})$/', $mod, $m)) {
+            $suffix = $m[1]; // Ej: 350, 454, 305, 300, 302
+        } else {
+            if (preg_match('/(\d+)\.(\d+)/', $mod, $dm)) {
+                $disp = $dm[1] . $dm[2];
+                $textOnly = trim(preg_replace('/(\d+)\.(\d+)L?/i', '', $mod));
+                $textOnly = preg_replace('/[^A-Z0-9]/', '', $textOnly);
+                if (empty($textOnly) || in_array($textOnly, ['L', 'FE'])) {
+                    $suffix = $disp;
                 } else {
-                    $codeParts[] = $matches[1] . '.' . $matches[2]; // Ej: AVEO 1.6L -> AVEO-1.6
+                    $suffix = $textOnly . $disp; // Ej: AVEO 1.6L -> AVEO16, EXPLORER 3.5L -> EXPLORER35
                 }
             } else {
-                $cleanPart = preg_replace('/[^A-Z0-9]/i', '', $p);
-                if (!empty($cleanPart)) {
-                    $codeParts[] = $cleanPart;
-                }
+                $suffix = preg_replace('/[^A-Z0-9]/', '', $mod);
             }
         }
-        $modCode = implode('-', $codeParts) ?: 'GEN';
 
-        if (str_starts_with($modCode, $brandCode . '-')) {
-            $code = "{$tipoPrefix}-{$modCode}";
-        } else {
-            $code = "{$tipoPrefix}-{$brandCode}-{$modCode}";
+        if (empty($suffix)) {
+            $suffix = 'GEN';
         }
-        $code = preg_replace('/-+/', '-', trim($code, '-'));
 
-        // 5. Construir Descripción Amigable (ej: Motor Completo Chevrolet 5.3L)
+        $code = "{$tipoPrefix}{$brandCode}{$suffix}";
+
+        // 5. Construir Descripción Amigable (ej: Motor Completo Ford 5.4L 3v, Motor Completo Chevrolet 4.3L Vortec 262)
         $displayModel = ucwords(mb_strtolower($modeloClean));
         $displayModel = preg_replace_callback('/\b(\d+\.\d+)l\b/i', function($m) {
             return strtoupper($m[1]) . 'L';
         }, $displayModel);
+        $displayModel = preg_replace('/\b(\d)(\d)l\b/i', '$1.$2L', $displayModel);
+        $displayModel = preg_replace('/\b(\d+\.\d+)(?!\s*L\b)/i', '$1L', $displayModel);
         $displayModel = preg_replace_callback('/\b(v6|v8|v10|v12|2wd|4wd|4x4|4x2|l83|l86|ls|ls4|kj|kk|hemi)\b/i', function($m) {
             return strtoupper($m[1]);
         }, $displayModel);
@@ -409,8 +440,8 @@ class MonthlyInventoryReportController extends Controller
                 continue;
             }
 
-            // Clave única de agrupación por Marca + Código Único
-            $groupKey = $marca . '||' . $code;
+            // Clave única de agrupación por Marca + Código + Descripción
+            $groupKey = $marca . '||' . $code . '||' . $description;
 
             if (!isset($groupedItems[$groupKey])) {
                 $groupedItems[$groupKey] = [
