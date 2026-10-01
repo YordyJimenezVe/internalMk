@@ -379,9 +379,10 @@ class InventarioController extends Controller
         $itemTasa = ($data && $data->tasa_bcv && (float)$data->tasa_bcv > 0) ? (float) $data->tasa_bcv : null;
         $containerTasa = ($data && $data->container && $data->container->tasa_bcv > 0) ? (float) $data->container->tasa_bcv : null;
         $tasaBCV = $itemTasa ?? ($containerTasa ?? ($tempTasa ? (float) $tempTasa : $officialTasa));
+        $containerUtilidad = ($data && $data->container && $data->container->porcentaje_utilidad !== null) ? (float) $data->container->porcentaje_utilidad : null;
         $utilityPercentage = $tempUtilidad !== null 
             ? (float) $tempUtilidad 
-            : (($data && $data->porcentaje_utilidad !== null) ? (float) $data->porcentaje_utilidad : (float) \App\Models\Setting::get('utility_percentage', 30));
+            : (($data && $data->porcentaje_utilidad !== null) ? (float) $data->porcentaje_utilidad : ($containerUtilidad ?? (float) \App\Models\Setting::get('utility_percentage', 30)));
 
         return inertia('Inventario/Edit', [
             'inventario' => $data,

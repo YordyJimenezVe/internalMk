@@ -46,11 +46,14 @@ onMounted(() => {
 
 const isAutoparte = computed(() => form.tipo === 'AUTOPARTE');
 
-// Watch container to auto-fill expediente
+// Watch container to auto-fill expediente and fecha
 watch(() => form.container_id, (newVal) => {
     const container = props.containers.find(c => c.id == newVal);
     if (container) {
         form.expediente = container.expediente;
+        if (container.fecha) {
+            form.fecha_tasa_bcv = container.fecha;
+        }
     }
 });
 

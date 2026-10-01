@@ -26,6 +26,8 @@ const isContador = computed(() => {
            spatieRoles.includes('administrador');
 });
 
+const initialContainer = props.containers?.find(c => c.id == props.inventario?.container_id) || props.inventario?.container;
+
 const form = useForm({
     id: props.inventario.id,
     container_id: props.inventario.container_id || '',
@@ -36,17 +38,19 @@ const form = useForm({
     serial: props.inventario.serial || '',
     año: props.inventario.año || '',
     codInv: props.inventario.codInv || '',
-    expediente: props.inventario.expediente || '',
+    expediente: props.inventario.expediente || initialContainer?.expediente || '',
     categorie: props.inventario.categorie || '',
     cantidad: props.inventario.cantidad || '',
     price: props.inventario.price || '',
     price_sale: props.inventario.price_sale || '',
     costo: props.inventario.costo || '',
     costo_importacion_unitario: props.inventario.costo_importacion_unitario || '',
-    prorrateo_gastos: props.inventario.prorrateo_gastos || '',
-    porcentaje_utilidad: props.inventario.porcentaje_utilidad || props.utility_percentage || 10,
-    tasa_bcv: props.tasa_bcv || '',
-    fecha_tasa_bcv: props.inventario.fecha_tasa_bcv || page.props.temp_settings?.fecha_tasa_bcv || '',
+    prorrateo_gastos: (props.inventario.prorrateo_gastos !== null && props.inventario.prorrateo_gastos !== undefined && props.inventario.prorrateo_gastos !== '') 
+        ? props.inventario.prorrateo_gastos 
+        : (initialContainer?.prorrateo_gastos !== null && initialContainer?.prorrateo_gastos !== undefined ? initialContainer.prorrateo_gastos : ''),
+    porcentaje_utilidad: props.inventario.porcentaje_utilidad ?? initialContainer?.porcentaje_utilidad ?? props.utility_percentage ?? 20,
+    tasa_bcv: props.inventario.tasa_bcv ?? initialContainer?.tasa_bcv ?? props.tasa_bcv ?? '',
+    fecha_tasa_bcv: props.inventario.fecha_tasa_bcv || initialContainer?.fecha || page.props.temp_settings?.fecha_tasa_bcv || '',
     condicion: props.inventario.condicion || 'APLICA',
     status: props.inventario.status || 'DISPONIBLE',
     observation: props.inventario.observation || '',
@@ -79,17 +83,58 @@ const handleSerialFileChange = (e) => {
 
 const isAutoparte = computed(() => form.tipo === 'AUTOPARTE');
 
-// Watch container to auto-fill expediente
-watch(() => form.container_id, (newVal) => {
-    const container = props.containers.find(c => c.id == newVal);
-    if (container) {
-        form.expediente = container.expediente;
-    }
-});
-
 // Currency & Conversion Logic
 const costoUsd = ref(props.inventario?.costo || '');
-const activeTasaBcv = ref(props.tasa_bcv || '');
+const activeTasaBcv = ref(props.inventario?.tasa_bcv || initialContainer?.tasa_bcv || props.tasa_bcv || '');
+const utilityPercent = ref(props.inventario?.porcentaje_utilidad ?? initialContainer?.porcentaje_utilidad ?? props.utility_percentage ?? 20);
+
+// Watch container to auto-fill details from selected container
+watch(() => form.container_id, (newVal) => {
+    if (!newVal) return;
+    const container = props.containers.find(c => c.id == newVal);
+    if (!container) return;
+
+    // 1. Auto-fill expediente
+    form.expediente = container.expediente || '';
+
+    // 2. Auto-fill fecha tasa BCV
+    if (container.fecha) {
+        form.fecha_tasa_bcv = container.fecha;
+    }
+
+    // 3. Auto-fill tasa BCV
+    if (container.tasa_bcv !== null && container.tasa_bcv !== undefined && container.tasa_bcv !== '') {
+        activeTasaBcv.value = container.tasa_bcv.toString();
+        form.tasa_bcv = activeTasaBcv.value;
+    }
+
+    // 4. Auto-fill prorrateo gastos
+    if (container.prorrateo_gastos !== null && container.prorrateo_gastos !== undefined && container.prorrateo_gastos !== '') {
+        form.prorrateo_gastos = container.prorrateo_gastos.toString();
+    }
+
+    // 5. Auto-fill % utilidad
+    if (container.porcentaje_utilidad !== null && container.porcentaje_utilidad !== undefined && container.porcentaje_utilidad !== '') {
+        utilityPercent.value = parseFloat(container.porcentaje_utilidad);
+        form.porcentaje_utilidad = utilityPercent.value;
+    }
+
+    // 6. Recalculate cost conversion with new container rate
+    const rate = getRate();
+    const usdVal = parseLocaleFloat(costoUsd.value);
+    const bsVal = parseLocaleFloat(form.costo_importacion_unitario);
+
+    if (!isNaN(usdVal) && usdVal > 0 && rate > 0) {
+        form.costo_importacion_unitario = (usdVal * rate).toFixed(2);
+        form.costo = usdVal.toFixed(2);
+    } else if (!isNaN(bsVal) && bsVal > 0 && rate > 0) {
+        costoUsd.value = (bsVal / rate).toFixed(2);
+        form.costo = costoUsd.value;
+    }
+
+    // 7. Update calculated base price and commercial sale price
+    updateCalculatedPrice();
+});
 
 const parseLocaleFloat = (val) => {
     if (val === null || val === undefined) return NaN;
@@ -126,11 +171,9 @@ const parseLocaleFloat = (val) => {
     return isNaN(parsed) ? NaN : parsed;
 };
 
-const utilityPercent = ref(props.inventario?.porcentaje_utilidad ?? props.utility_percentage ?? 10);
-
 const getRate = () => {
     const r = parseLocaleFloat(activeTasaBcv.value);
-    return (!isNaN(r) && r > 0) ? r : (props.tasa_bcv || 0);
+    return (!isNaN(r) && r > 0) ? r : (parseFloat(props.tasa_bcv) || 0);
 };
 
 const updateCalculatedPrice = () => {
@@ -196,7 +239,11 @@ const initCostoUsd = () => {
     }
     form.costo = costoUsd.value;
     form.tasa_bcv = activeTasaBcv.value;
-    updateCalculatedPrice();
+    
+    // Only calculate price if price or price_sale are not yet set
+    if (!form.price || !form.price_sale || parseFloat(form.price) === 0 || parseFloat(form.price_sale) === 0) {
+        updateCalculatedPrice();
+    }
 };
 
 const onUsdChange = () => {
@@ -236,6 +283,7 @@ const submit = () => {
     form.serial = form.serial?.toUpperCase();
     form.costo = costoUsd.value;
     form.tasa_bcv = activeTasaBcv.value;
+    form.porcentaje_utilidad = utilityPercent.value;
     form.post(route('updateInventario', props.inventario.id));
 };
 

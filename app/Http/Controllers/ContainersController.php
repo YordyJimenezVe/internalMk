@@ -149,6 +149,55 @@ class ContainersController extends Controller
         $container->fill($request->all());
         $container->save();
 
+        if ($container->expediente) {
+            $items = \App\Models\Inventario::where('expediente', $container->expediente)->get();
+            if ($items->count() > 0) {
+                $rate = ($container->tasa_bcv !== null && (float) $container->tasa_bcv > 0) ? (float) $container->tasa_bcv : null;
+                $prorrateo = $container->prorrateo_gastos !== null ? (float) $container->prorrateo_gastos : null;
+                $utilidad = $container->porcentaje_utilidad !== null ? (float) $container->porcentaje_utilidad : null;
+
+                foreach ($items as $item) {
+                    $updateData = [
+                        'container_id' => $container->id,
+                        'expediente' => $container->expediente,
+                    ];
+                    if ($prorrateo !== null) $updateData['prorrateo_gastos'] = $prorrateo;
+                    if ($utilidad !== null) $updateData['porcentaje_utilidad'] = $utilidad;
+                    if ($container->fecha) $updateData['fecha_tasa_bcv'] = $container->fecha;
+                    if ($rate && $rate > 0) $updateData['tasa_bcv'] = $rate;
+
+                    $itemProrrateo = isset($updateData['prorrateo_gastos']) ? $updateData['prorrateo_gastos'] : (float) ($item->prorrateo_gastos ?? 0);
+                    $itemUtilidad = isset($updateData['porcentaje_utilidad']) ? $updateData['porcentaje_utilidad'] : (float) ($item->porcentaje_utilidad ?? 20);
+                    $costoBs = (float) ($item->costo_importacion_unitario ?? 0);
+                    $costoUsd = (float) ($item->costo ?? 0);
+
+                    if ($rate && $rate > 0) {
+                        if ($costoBs > 0) {
+                            $costoUsd = round($costoBs / $rate, 2);
+                            $updateData['costo'] = $costoUsd;
+                        } elseif ($costoUsd > 0) {
+                            $costoBs = round($costoUsd * $rate, 2);
+                            $updateData['costo_importacion_unitario'] = $costoBs;
+                        }
+                    }
+
+                    if ($costoBs > 0) {
+                        $costoTaller = (float) ($item->costo_taller ?? 0);
+                        $landedBs = $costoBs + $itemProrrateo + $costoTaller;
+                        $baseImponibleBs = round($landedBs * (1 + ($itemUtilidad / 100)), 2);
+                        $updateData['price'] = $baseImponibleBs;
+
+                        if ($rate && $rate > 0) {
+                            $precioConIvaBs = $baseImponibleBs * 1.16;
+                            $updateData['price_sale'] = round($precioConIvaBs / $rate, 2);
+                        }
+                    }
+
+                    \App\Models\Inventario::where('id', $item->id)->update($updateData);
+                }
+            }
+        }
+
         return redirect()->route('container');
     }
 
@@ -282,8 +331,8 @@ class ContainersController extends Controller
         $container->fill($request->all());
         $container->save();
 
-        // Propagate tasa_bcv, prorrateo_gastos, and porcentaje_utilidad to all associated inventario items
-        $rate = $container->tasa_bcv ? (float) $container->tasa_bcv : null;
+        // Propagate fecha, tasa_bcv, prorrateo_gastos, and porcentaje_utilidad to all associated inventario items
+        $rate = ($container->tasa_bcv !== null && (float) $container->tasa_bcv > 0) ? (float) $container->tasa_bcv : null;
         $prorrateo = $container->prorrateo_gastos !== null ? (float) $container->prorrateo_gastos : null;
         $utilidad = $container->porcentaje_utilidad !== null ? (float) $container->porcentaje_utilidad : null;
 
@@ -296,11 +345,17 @@ class ContainersController extends Controller
         foreach ($items as $item) {
             $updateData = [];
 
-            if ($prorrateo !== null && $prorrateo > 0) {
+            // Always synchronize container and expediente link
+            $updateData['container_id'] = $container->id;
+            if ($container->expediente) {
+                $updateData['expediente'] = $container->expediente;
+            }
+
+            if ($prorrateo !== null) {
                 $updateData['prorrateo_gastos'] = $prorrateo;
             }
 
-            if ($utilidad !== null && $utilidad > 0) {
+            if ($utilidad !== null) {
                 $updateData['porcentaje_utilidad'] = $utilidad;
             }
 
@@ -308,23 +363,33 @@ class ContainersController extends Controller
                 $updateData['fecha_tasa_bcv'] = $container->fecha;
             }
 
+            if ($rate && $rate > 0) {
+                $updateData['tasa_bcv'] = $rate;
+            }
+
             $itemProrrateo = isset($updateData['prorrateo_gastos']) ? $updateData['prorrateo_gastos'] : (float) ($item->prorrateo_gastos ?? 0);
             $itemUtilidad = isset($updateData['porcentaje_utilidad']) ? $updateData['porcentaje_utilidad'] : (float) ($item->porcentaje_utilidad ?? 20);
             $costoBs = (float) ($item->costo_importacion_unitario ?? 0);
+            $costoUsd = (float) ($item->costo ?? 0);
 
             if ($rate && $rate > 0) {
                 if ($costoBs > 0) {
-                    $updateData['costo'] = round($costoBs / $rate, 2);
+                    $costoUsd = round($costoBs / $rate, 2);
+                    $updateData['costo'] = $costoUsd;
+                } elseif ($costoUsd > 0) {
+                    $costoBs = round($costoUsd * $rate, 2);
+                    $updateData['costo_importacion_unitario'] = $costoBs;
                 }
             }
 
             if ($costoBs > 0) {
-                $landedBs = $costoBs + $itemProrrateo;
+                $costoTaller = (float) ($item->costo_taller ?? 0);
+                $landedBs = $costoBs + $itemProrrateo + $costoTaller;
                 $baseImponibleBs = round($landedBs * (1 + ($itemUtilidad / 100)), 2);
                 $updateData['price'] = $baseImponibleBs;
 
                 if ($rate && $rate > 0) {
-                    $precioConIvaBs = $landedBs * (1 + ($itemUtilidad / 100)) * 1.16;
+                    $precioConIvaBs = $baseImponibleBs * 1.16;
                     $updateData['price_sale'] = round($precioConIvaBs / $rate, 2);
                 }
             }
