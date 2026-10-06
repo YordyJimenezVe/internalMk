@@ -232,7 +232,7 @@ class BillingRequestController extends Controller
             // Collect IDs
             $createdBillingIds[] = $newBill->id;
 
-            $tipo = strtoupper($partida->tipo ?? '');
+            $tipo = strtoupper($newBill->tipo_item ?? ($partida->tipo ?? ''));
             if (str_contains($tipo, 'MOTOR')) {
                 $createdWarrantyIds[] = $newBill->id;
             }

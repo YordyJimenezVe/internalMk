@@ -60,7 +60,7 @@ class BillingsController extends Controller
      */
     public function index()
     {
-        $billings = Billing::with(['partida', 'inventario', 'partidas', 'inventarios'])
+        $billings = Billing::with(['partida', 'inventario', 'partidas', 'inventarios', 'billingRequests'])
             ->orderBy('id', 'desc')
             ->get();
         return inertia('Bill/Index', [
@@ -335,7 +335,7 @@ class BillingsController extends Controller
 
         $redirect = redirect()->route('billing')->with('success', 'Factura registrada con éxito.')->with('billing_ids', [$partida->id]);
         
-        $tipo = strtoupper($inventario->tipo ?? '');
+        $tipo = strtoupper($partida->tipo_item ?? ($inventario->tipo ?? ''));
         if (str_contains($tipo, 'MOTOR')) {
             $redirect = $redirect->with('warranty_ids', [$partida->id]);
         }
@@ -539,9 +539,9 @@ class BillingsController extends Controller
      */
     public function warrantyPdf($id)
     {
-        $bill = Billing::with('partida')->findOrFail($id);
+        $bill = Billing::with(['partida', 'billingRequests'])->findOrFail($id);
 
-        $tipo = strtoupper($bill->partida->tipo ?? '');
+        $tipo = strtoupper($bill->tipo_item ?? ($bill->partida->tipo ?? ''));
         if (!str_contains($tipo, 'MOTOR')) {
             return redirect()->back()->with('error', 'La póliza de garantía solo aplica para motores.');
         }

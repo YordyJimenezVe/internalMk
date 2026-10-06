@@ -135,6 +135,8 @@
         $fechaInicio = date('d/m/Y', strtotime($bill->fecha));
         $fechaFin = date('d/m/Y', strtotime($bill->fecha . ' + 90 days'));
         
+        $tipoMotor = strtoupper($bill->tipo_item ?? ($bill->partida->tipo ?? 'MOTOR'));
+
         $serial = trim($bill->partida->serial ?? '');
         $hasNoSerial = empty($serial) || in_array(strtoupper($serial), ['S/N', 'SIN SERIAL', 'NO POSEE', 'N/A']);
         if ($hasNoSerial) {
@@ -236,7 +238,7 @@
                     </tr>
                     <tr>
                         <td class="info-label">TIPO DE MOTOR:</td>
-                        <td class="info-value">{{ strtoupper($bill->partida->tipo ?? 'MOTOR') }} {{ strtoupper($bill->partida->marca ?? '') }} {{ strtoupper($bill->partida->modelo ?? '') }} (AÑO: {{ $bill->partida->año ?? 'N/A' }})</td>
+                        <td class="info-value">{{ $tipoMotor }} {{ strtoupper($bill->partida->marca ?? '') }} {{ strtoupper($bill->partida->modelo ?? '') }} (AÑO: {{ $bill->partida->año ?? 'N/A' }})</td>
                     </tr>
                     <tr>
                         <td class="info-label">SERIAL:</td>

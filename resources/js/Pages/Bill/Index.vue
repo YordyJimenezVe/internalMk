@@ -265,7 +265,7 @@ const filteredFacturas = computed(() => {
             const itemFields = [
                 item.marca,
                 item.modelo,
-                item.tipo,
+                factura.tipo_item || item.tipo,
                 item.codInv
             ];
 
@@ -285,7 +285,7 @@ const filteredFacturas = computed(() => {
         // 3. Product Type Filter
         if (productTypeFilter.value !== 'ALL') {
             const item = getItem(factura);
-            const itemTipo = String(item.tipo || '').toUpperCase().trim();
+            const itemTipo = String(factura.tipo_item || item.tipo || '').toUpperCase().trim();
             if (itemTipo !== productTypeFilter.value) return false;
         }
 
@@ -786,8 +786,8 @@ const exportPdf = () => {
                                     </td>
                                     <td class="px-6 py-6">
                                         <div class="space-y-1">
-                                            <div class="text-xs font-black text-gray-700 dark:text-gray-300 uppercase truncate max-w-[200px]" v-if="getItem(factura).tipo">
-                                                {{ getItem(factura).tipo }} {{ getItem(factura).marca }} {{ getItem(factura).modelo }}
+                                            <div class="text-xs font-black text-gray-700 dark:text-gray-300 uppercase truncate max-w-[200px]" v-if="factura.tipo_item || getItem(factura).tipo">
+                                                {{ factura.tipo_item || getItem(factura).tipo }} {{ getItem(factura).marca }} {{ getItem(factura).modelo }}
                                             </div>
                                             <label class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-700 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tighter">
                                                 <i class="fa-solid fa-barcode text-[8px]"></i>
@@ -826,7 +826,7 @@ const exportPdf = () => {
                                             <a :href="route('billing.pdf', { id: factura.id })" target="_blank" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-indigo-500 hover:shadow-xl hover:shadow-indigo-500/20 transition-all transform hover:scale-110 active:scale-95" title="Ver Detalle">
                                                 <i class="fa-solid fa-eye text-sm"></i>
                                             </a>
-                                            <a v-if="getItem(factura).tipo && String(getItem(factura).tipo).toUpperCase().includes('MOTOR')" :href="route('billing.warranty', { id: factura.id })" target="_blank" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-amber-500 hover:shadow-xl hover:shadow-amber-500/20 transition-all transform hover:scale-110 active:scale-95" title="Póliza de Garantía">
+                                            <a v-if="(factura.tipo_item && String(factura.tipo_item).toUpperCase().includes('MOTOR')) || (getItem(factura).tipo && String(getItem(factura).tipo).toUpperCase().includes('MOTOR'))" :href="route('billing.warranty', { id: factura.id })" target="_blank" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-amber-500 hover:shadow-xl hover:shadow-amber-500/20 transition-all transform hover:scale-110 active:scale-95" title="Póliza de Garantía">
                                                 <i class="fa-solid fa-shield-halved text-sm"></i>
                                             </a>
                                             <Link v-if="!isReadOnly && factura.status !== 'ANULADA'" :href="route('editBilling', { id: factura.id })" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-blue-500 hover:shadow-xl hover:shadow-blue-500/20 transition-all transform hover:scale-110 active:scale-95" title="Editar">

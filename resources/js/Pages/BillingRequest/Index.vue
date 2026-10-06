@@ -192,6 +192,14 @@ const getDisplayType = (req) => {
     if (dispatchDetails.includes(obs)) {
         return obs;
     }
+    for (const detail of dispatchDetails) {
+        if (obs.includes(detail)) {
+            return detail;
+        }
+    }
+    if (obs === 'COMPLETO' || obs.includes('COMPLETO')) return 'MOTOR COMPLETO';
+    if (obs === '7/8' || obs.includes('7/8')) return 'MOTOR 7/8';
+    if (obs === '3/4' || obs.includes('3/4')) return 'MOTOR 3/4';
     return item.tipo;
 };
 

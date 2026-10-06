@@ -425,8 +425,15 @@ export default {
         this.partida = this.data.id;
         const validOptions = ['MOTOR COMPLETO', 'MOTOR 7/8', 'MOTOR 3/4', 'CAJA COMPLETA', 'CAJA SIN TURBINA'];
         const obsUpper = (this.data['observation'] || '').trim().toUpperCase();
-        if (validOptions.includes(obsUpper)) {
-            this.observaciones = obsUpper;
+        const matched = validOptions.find(opt => obsUpper === opt || obsUpper.includes(opt));
+        if (matched) {
+            this.observaciones = matched;
+        } else if (obsUpper.includes('COMPLETO')) {
+            this.observaciones = 'MOTOR COMPLETO';
+        } else if (obsUpper.includes('7/8')) {
+            this.observaciones = 'MOTOR 7/8';
+        } else if (obsUpper.includes('3/4')) {
+            this.observaciones = 'MOTOR 3/4';
         } else if (this.data.tipo && validOptions.some(opt => this.data.tipo.toUpperCase().includes(opt.split(' ')[0]))) {
             this.observaciones = this.data.tipo.toUpperCase();
         } else {
