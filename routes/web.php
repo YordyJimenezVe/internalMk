@@ -138,6 +138,7 @@ Route::middleware([
         Route::delete('/billing/delete/{id}', 'App\Http\Controllers\BillingsController@destroy')->name('deleteBilling');
         Route::get('/billing/return/{id}', 'App\Http\Controllers\BillingsController@return')->name('returnBilling');
         Route::post('/billing/returnSubmit/{id}', 'App\Http\Controllers\BillingsController@returnSubmit')->name('billing.returnSubmit');
+        Route::get('/billing/check-item/{id}', 'App\Http\Controllers\BillingsController@checkItem')->name('billing.checkItem');
 
         Route::post('/billing-requests/process', 'App\Http\Controllers\BillingRequestController@process')->name('billing.requests.process');
         Route::put('/billing-requests/update/{id}', 'App\Http\Controllers\BillingRequestController@update')->name('billing.requests.update');

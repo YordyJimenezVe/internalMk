@@ -422,14 +422,57 @@ class BillingsController extends Controller
      */
     public function return(Billing $partida, $id)
     {
-        $data = Billing::findOrFail($id);
+        $data = Billing::with(['partida.container'])->findOrFail($id);
+
+        $availableItems = Inventario::where('status', 'DISPONIBLE')
+            ->where('id', '!=', $data->partida_id)
+            ->select('id', 'codInv', 'tipo', 'marca', 'modelo', 'serial', 'año', 'price')
+            ->orderBy('id', 'desc')
+            ->get();
+
         return inertia('Bill/Return', [
             'bill' => $data,
+            'availableItems' => $availableItems,
         ]);
     }
 
     /**
-     * Procesa la solicitud de devolución (Total, Temporal/Garantía o Desincorporación),
+     * Consulta y valida el estatus de un ítem de inventario por su ID para operaciones de cambio.
+     *
+     * @param  int  $id  Identificador único del ítem en inventario.
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function checkItem(int $id)
+    {
+        $item = Inventario::with('container')->find($id);
+
+        if (!$item) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se encontró ningún elemento con el ID especificado (#' . $id . ').',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'item' => [
+                'id' => $item->id,
+                'codInv' => $item->codInv,
+                'tipo' => $item->tipo,
+                'marca' => $item->marca,
+                'modelo' => $item->modelo,
+                'serial' => $item->serial,
+                'año' => $item->año,
+                'status' => $item->status,
+                'price' => $item->price,
+                'expediente' => $item->expediente ?? ($item->container ? $item->container->expediente : null),
+                'is_available' => $item->status === 'DISPONIBLE',
+            ],
+        ]);
+    }
+
+    /**
+     * Procesa la solicitud de devolución (Total, Temporal/Garantía, Desincorporación o Cambio de Ítem),
      * actualizando el inventario, generando la nota de crédito (ReverseBill) y auditando la bitácora.
      *
      * @param  \Illuminate\Http\Request  $request  Petición HTTP con los datos de nota de crédito.
@@ -442,7 +485,33 @@ class BillingsController extends Controller
         $returnType = $request->input('return_type', 'TOTAL');
         $inventario = $billing->partida;
 
-        // 1. Determine new status for inventory
+        // Validar tipo de devolución
+        if (!in_array($returnType, ['TOTAL', 'TEMPORAL', 'DESINCORPORACION', 'CAMBIO'])) {
+            return back()->withErrors(['return_type' => 'Tipo de devolución no válido.']);
+        }
+
+        // Si es CAMBIO, validar el nuevo ítem entrante
+        $newItem = null;
+        if ($returnType === 'CAMBIO') {
+            $request->validate([
+                'nuevo_partida_id' => 'required|integer|exists:inventarios,id',
+            ], [
+                'nuevo_partida_id.required' => 'Debe ingresar o seleccionar el ID del nuevo elemento (motor, caja, cámara, etc.).',
+                'nuevo_partida_id.exists' => 'El elemento indicado con ese ID no existe en el inventario.',
+            ]);
+
+            $nuevoPartidaId = (int) $request->input('nuevo_partida_id');
+            if ($inventario && $nuevoPartidaId === (int) $inventario->id) {
+                return back()->withErrors(['nuevo_partida_id' => 'El nuevo elemento no puede ser el mismo elemento actual de la factura.']);
+            }
+
+            $newItem = Inventario::findOrFail($nuevoPartidaId);
+            if ($newItem->status !== 'DISPONIBLE') {
+                return back()->withErrors(['nuevo_partida_id' => "El elemento #{$newItem->id} ({$newItem->tipo} {$newItem->marca}) no está DISPONIBLE (Estatus actual: {$newItem->status})."]);
+            }
+        }
+
+        // 1. Determinar nuevo estado para el inventario saliente
         $newStatus = 'DISPONIBLE';
         $actionVerb = 'DEVOLUCIÓN TOTAL';
 
@@ -452,29 +521,45 @@ class BillingsController extends Controller
         } elseif ($returnType === 'DESINCORPORACION') {
             $newStatus = 'DESINCORPORADO';
             $actionVerb = 'DESINCORPORACIÓN';
+        } elseif ($returnType === 'CAMBIO') {
+            $oldItemDisposition = $request->input('old_item_status', 'GARANTIA');
+            $newStatus = in_array($oldItemDisposition, ['DISPONIBLE', 'DESINCORPORADO']) ? $oldItemDisposition : 'GARANTIA';
+            $actionVerb = 'CAMBIO DE PRODUCTO';
         }
 
-        // 2. Update Inventario
+        // 2. Actualizar Inventario (Ítem actual/saliente)
         if ($inventario) {
             $inventario->update(['status' => $newStatus]);
 
-            // If it is a temporal return, automatically create a maintenance ticket
-            if ($returnType === 'TEMPORAL') {
+            // Si es TEMPORAL o CAMBIO con destino a GARANTÍA, generar ticket de mantenimiento/revisión técnica
+            if ($returnType === 'TEMPORAL' || ($returnType === 'CAMBIO' && $newStatus === 'GARANTIA')) {
+                $maintDesc = $returnType === 'CAMBIO'
+                    ? "CAMBIO DE PRODUCTO / GARANTÍA. FACTURA ORIGINAL: #" . ($billing->numero_factura ?? 'S/N') . ". REEMPLAZADO POR NUEVO ÍTEM #{$newItem->id} ({$newItem->tipo} {$newItem->marca} {$newItem->modelo})"
+                    : 'DEVOLUCIÓN TEMPORAL POR GARANTÍA. FACTURA ORIGINAL: #' . ($billing->numero_factura ?? 'S/N');
+
                 \App\Models\Maintenance::create([
                     'fecha' => now()->format('Y-m-d'),
-                    'descripcion' => 'DEVOLUCIÓN TEMPORAL POR GARANTÍA. FACTURA ORIGINAL: #' . ($billing->numero_factura ?? 'S/N'),
+                    'descripcion' => $maintDesc,
                     'tipo' => 'GARANTÍA',
                     'status' => 'EN ESPERA',
                     'partida_id' => $inventario->id,
                     'cedula_mecanico' => 0,
                     'nombre_mecanico' => 'POR',
                     'apellido_mecanico' => 'ASIGNAR',
-                    'observaciones' => 'Creado automáticamente tras devolución temporal de la factura #' . ($billing->numero_factura ?? 'S/N') . '.',
+                    'observaciones' => 'Creado automáticamente tras ' . strtolower($actionVerb) . ' de la factura #' . ($billing->numero_factura ?? 'S/N') . '.',
                 ]);
             }
         }
 
-        // 3. Register Reverse Bill
+        // 3. Si es CAMBIO, actualizar nuevo elemento entrante a VENDIDO
+        if ($returnType === 'CAMBIO' && $newItem) {
+            $newItem->update([
+                'status' => 'VENDIDO',
+                'price_sale' => $billing->total ?? $newItem->price,
+            ]);
+        }
+
+        // 4. Registrar Reverse Bill (Nota de Crédito)
         ReverseBill::create([
             'users_id' => Auth::user()->id,
             'numero_factura' => $request->input('numero_factura') ?? $billing->numero_factura ?? 'S/N',
@@ -483,10 +568,17 @@ class BillingsController extends Controller
             'numero_factura_afect' => $request->input('numero_factura_afect') ?? $billing->numero_factura_afect ?? $billing->numero_factura ?? 'S/N',
         ]);
 
-        // 4. Bitácora Entry
-        $descLog = mb_strtoupper("{$actionVerb} DE FACTURA: {$billing->numero_factura}. " .
-            "NOTA CRÉDITO: " . $request->input('numero_nota_credito') . ". " .
-            "ESTADO DE ITEM (#{$inventario->id}): {$newStatus}");
+        // 5. Entrada en Bitácora
+        if ($returnType === 'CAMBIO') {
+            $descLog = mb_strtoupper("{$actionVerb} EN FACTURA: {$billing->numero_factura}. " .
+                "ÍTEM ANTERIOR (#" . ($inventario ? $inventario->id : 'N/A') . "): " . ($inventario ? "{$inventario->tipo} {$inventario->marca} {$inventario->modelo} SERIAL: {$inventario->serial}" : 'N/A') . " (PASÓ A: {$newStatus}) -> " .
+                "NUEVO ÍTEM (#{$newItem->id}): {$newItem->tipo} {$newItem->marca} {$newItem->modelo} SERIAL: {$newItem->serial} (PASÓ A: VENDIDO). " .
+                "NOTA CRÉDITO: " . ($request->input('numero_nota_credito') ?? 'S/N'));
+        } else {
+            $descLog = mb_strtoupper("{$actionVerb} DE FACTURA: {$billing->numero_factura}. " .
+                "NOTA CRÉDITO: " . ($request->input('numero_nota_credito') ?? 'S/N') . ". " .
+                "ESTADO DE ITEM (#" . ($inventario ? $inventario->id : 'N/A') . "): {$newStatus}");
+        }
 
         Bitacora::create([
             'users_id' => Auth::user()->id,
@@ -494,24 +586,68 @@ class BillingsController extends Controller
             'description' => $descLog,
         ]);
 
-        // 5. Mark Billing as ANULADA (This automatically discounts from dashboard sales while keeping the history)
-        if ($returnType !== 'TEMPORAL') {
+        // 6. Actualizar Factura
+        if ($returnType === 'CAMBIO') {
+            // En CAMBIO, la factura se mantiene activa y se actualiza el partida_id con el nuevo ítem
+            $motivoCambio = $request->input('motivo_cambio') ? " | MOTIVO: " . trim($request->input('motivo_cambio')) : '';
+            $obsLog = "CAMBIO DE ARTÍCULO [" . now()->format('d/m/Y H:i') . "]: ÍTEM ANTERIOR #" . ($inventario ? $inventario->id . " ({$inventario->tipo} {$inventario->marca} {$inventario->modelo} SERIAL: {$inventario->serial})" : 'N/A') .
+                " REEMPLAZADO POR NUEVO ÍTEM #{$newItem->id} ({$newItem->tipo} {$newItem->marca} {$newItem->modelo} SERIAL: {$newItem->serial}). NC: " . ($request->input('numero_nota_credito') ?? 'S/N') . $motivoCambio;
+
+            $billing->update([
+                'fecha' => $request->input('fecha_cambio') ?? now()->format('Y-m-d'),
+                'hora' => now()->format('H:i:s'),
+                'partida_id' => $newItem->id,
+                'numero_nota_credito' => $request->input('numero_nota_credito') ?? $billing->numero_nota_credito,
+                'numero_factura_afect' => $request->input('numero_factura_afect') ?? $billing->numero_factura_afect ?? $billing->numero_factura,
+                'observaciones' => trim(($billing->observaciones ? $billing->observaciones . " 
+---
+ " : "") . $obsLog),
+            ]);
+        } elseif ($returnType !== 'TEMPORAL') {
+            // TOTAL o DESINCORPORACION anulan la factura
             $billing->update(['status' => 'ANULADA']);
         }
 
-        // Notify via Telegram Group
-        $itemName = $inventario ? "{$inventario->marca} {$inventario->modelo}" : 'Ítem';
-        $notaCredito = $request->input('numero_nota_credito') ?? 'S/N';
-        $telegramMessage = "⚠️ <b>Registro de Devolución</b>\n\n"
-            . "⚙️ <b>Tipo:</b> {$actionVerb}\n"
-            . "📄 <b>Factura Afectada:</b> #{$billing->numero_factura}\n"
-            . "🧾 <b>Nota de Crédito:</b> #{$notaCredito}\n"
-            . "📦 <b>Motor:</b> {$itemName}\n"
-            . "👤 <b>Procesado por:</b> " . Auth::user()->name;
+        // 7. Notificación vía Telegram
+        if ($returnType === 'CAMBIO') {
+            $oldName = $inventario ? "{$inventario->tipo} {$inventario->marca} {$inventario->modelo} (ID: #{$inventario->id}, Serial: {$inventario->serial})" : 'Ítem Anterior';
+            $newName = "{$newItem->tipo} {$newItem->marca} {$newItem->modelo} (ID: #{$newItem->id}, Serial: {$newItem->serial})";
+            $notaCredito = $request->input('numero_nota_credito') ?? 'S/N';
+            $telegramMessage = "🔄 <b>Cambio de Ítem en Factura</b>
+
+"
+                . "📄 <b>Factura:</b> #{$billing->numero_factura}
+"
+                . "🧾 <b>Nota de Crédito:</b> #" . ($request->input('numero_nota_credito') ?? 'S/N') . "
+"
+                . "🔴 <b>Ítem Saliente:</b> {$oldName}
+"
+                . "🟢 <b>Nuevo Ítem Asignado:</b> {$newName}
+"
+                . "📦 <b>Estatus Ítem Saliente:</b> {$newStatus}
+"
+                . "👤 <b>Procesado por:</b> " . Auth::user()->name;
+        } else {
+            $itemName = $inventario ? "{$inventario->marca} {$inventario->modelo}" : 'Ítem';
+            $notaCredito = $request->input('numero_nota_credito') ?? 'S/N';
+            $telegramMessage = "⚠️ <b>Registro de Devolución</b>
+
+"
+                . "⚙️ <b>Tipo:</b> {$actionVerb}
+"
+                . "📄 <b>Factura Afectada:</b> #{$billing->numero_factura}
+"
+                . "🧾 <b>Nota de Crédito:</b> #{$notaCredito}
+"
+                . "📦 <b>Motor/Ítem:</b> {$itemName}
+"
+                . "👤 <b>Procesado por:</b> " . Auth::user()->name;
+        }
         \App\Services\TelegramService::sendMessage($telegramMessage);
 
         return redirect()->route('billing')->with('success', "{$actionVerb} procesada con éxito.");
     }
+
 
     /**
      * Genera y transmite el PDF de la factura utilizando DomPDF.
