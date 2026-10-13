@@ -445,17 +445,27 @@ class MonthlyInventoryReportController extends Controller
 
             // Determinar costo / valor base en USD por unidad
             $costUsd = 0.0;
-            if ($item->costo_importacion_unitario && (float) $item->costo_importacion_unitario > 0) {
+            if ($item->costo && (float) $item->costo > 0) {
+                // Costo directo FOB / importación en USD por unidad
+                $costUsd = (float) $item->costo;
+            } elseif ($item->price_sale && (float) $item->price_sale > 0) {
+                // Precio referencial en USD si no hay costo directo
+                $costUsd = (float) $item->price_sale;
+            } elseif ($item->costo_importacion_unitario && (float) $item->costo_importacion_unitario > 0) {
+                // Si solo existe costo histórico en Bs, convertirlo a USD usando la tasa de origen o la actual
                 $rawVal = (float) $item->costo_importacion_unitario;
-                $costUsd = ($rawVal > 5000 && $exchangeRate > 0) ? ($rawVal / $exchangeRate) : $rawVal;
-            } elseif ($item->costo && (float) $item->costo > 0) {
-                $rawVal = (float) $item->costo;
-                $costUsd = ($rawVal > 5000 && $exchangeRate > 0) ? ($rawVal / $exchangeRate) : $rawVal;
+                $savedRate = (float) ($item->tasa_bcv ?? ($item->container->tasa_bcv ?? 0));
+                if ($savedRate > 0) {
+                    $costUsd = $rawVal / $savedRate;
+                } elseif ($exchangeRate > 0) {
+                    $costUsd = ($rawVal > 1000) ? ($rawVal / $exchangeRate) : $rawVal;
+                } else {
+                    $costUsd = $rawVal;
+                }
             } elseif ($item->price && (float) $item->price > 0) {
-                $rawVal = (float) $item->price;
-                $costUsd = ($rawVal > 5000 && $exchangeRate > 0) ? ($rawVal / $exchangeRate) : $rawVal;
+                $rawPrice = (float) $item->price;
+                $costUsd = ($rawPrice > 1000 && $exchangeRate > 0) ? ($rawPrice / $exchangeRate) : $rawPrice;
             }
-
             // Determinar la fecha real de ingreso / llegada
             $entryDate = null;
             if ($item->container) {
