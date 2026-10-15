@@ -351,8 +351,13 @@ class ContainersController extends Controller
                 $updateData['expediente'] = $container->expediente;
             }
 
+            $isCamara = str_contains(strtolower($item->tipo), 'cámara') || str_contains(strtolower($item->tipo), 'camara') || (bool) ($item->is_camara ?? false);
+
             if ($prorrateo !== null) {
-                $updateData['prorrateo_gastos'] = $prorrateo;
+                // Proteger cámaras para no sobreescribir su prorrateo específico con el prorrateo general de motores del contenedor
+                if (!$isCamara) {
+                    $updateData['prorrateo_gastos'] = $prorrateo;
+                }
             }
 
             if ($utilidad !== null) {

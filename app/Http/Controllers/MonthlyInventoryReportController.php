@@ -595,6 +595,7 @@ class MonthlyInventoryReportController extends Controller
             $gItem['containers_str'] = implode("\n", $cList);
             unset($gItem['containers_map']);
         }
+        unset($gItem);
 
         // Agrupar por Marca
         $byBrand = [];
