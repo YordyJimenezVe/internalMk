@@ -14,12 +14,14 @@ class Billing extends Model
 
     protected $appends = [
         'tipo_item',
+        'is_pair_camera',
     ];
 
     protected $fillable = [
         'fecha',
         'hora',
         'partida_id',
+        'second_partida_id',
         'big',
         'igtf',
         'iva',
@@ -40,6 +42,23 @@ class Billing extends Model
         'status',
         'observaciones',
     ];
+
+    public function getIsPairCameraAttribute()
+    {
+        if (!empty($this->second_partida_id)) return true;
+        $obs = strtoupper($this->observaciones ?? '');
+        return str_contains($obs, 'PAR DE CÁMARAS') || str_contains($obs, 'PAR DE CAMARAS') || str_contains($obs, 'JUEGO L + R');
+    }
+
+    public function secondInventario()
+    {
+        return $this->belongsTo(Inventario::class, 'second_partida_id');
+    }
+
+    public function secondPartida()
+    {
+        return $this->belongsTo(Inventario::class, 'second_partida_id');
+    }
 
     public function inventario()
     {
@@ -78,7 +97,13 @@ class Billing extends Model
      */
     public function getTipoItemAttribute()
     {
+        if (!empty($this->second_partida_id)) {
+            return 'PAR DE CÁMARAS (L + R)';
+        }
+
         $dispatchDetails = [
+            'PAR DE CÁMARAS (L + R)',
+            'PAR DE CAMARAS',
             'MOTOR COMPLETO',
             'MOTOR 7/8',
             'MOTOR 3/4',

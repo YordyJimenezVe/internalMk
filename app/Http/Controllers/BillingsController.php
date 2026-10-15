@@ -60,7 +60,7 @@ class BillingsController extends Controller
      */
     public function index()
     {
-        $billings = Billing::with(['partida', 'inventario', 'partidas', 'inventarios', 'billingRequests'])
+        $billings = Billing::with(['partida.container', 'inventario.container', 'secondPartida.container', 'secondInventario.container', 'billingRequests'])
             ->orderBy('id', 'desc')
             ->get();
         return inertia('Bill/Index', [
@@ -295,6 +295,18 @@ class BillingsController extends Controller
             $billingRequest = \App\Models\BillingRequest::find($requestId);
             if ($billingRequest) {
                 $billingRequest->update(['status' => 'processed']);
+                if ($billingRequest->second_partida_id) {
+                    $partida->second_partida_id = $billingRequest->second_partida_id;
+                    if (empty($partida->observaciones) && !empty($billingRequest->observation)) {
+                        $partida->observaciones = $billingRequest->observation;
+                    }
+                    $partida->save();
+
+                    $secondInv = Inventario::find($billingRequest->second_partida_id);
+                    if ($secondInv && $secondInv->status !== 'VENDIDO') {
+                        $secondInv->update(['status' => 'VENDIDO', 'price_sale' => 0]);
+                    }
+                }
             }
             // Delete notifications for ALL users since the sale is finished!
             \Illuminate\Support\Facades\DB::table('notifications')
@@ -362,9 +374,18 @@ class BillingsController extends Controller
      */
     public function edit(Billing $bill)
     {
-        $bill->load('inventario');
+        $bill->load(['inventario.container', 'secondInventario.container']);
+
+        $availableItems = Inventario::where('status', 'DISPONIBLE')
+            ->whereDoesntHave('bill')
+            ->select('id', 'codInv', 'tipo', 'marca', 'modelo', 'serial', 'año', 'price', 'container_id', 'observation')
+            ->with('container:id,cod,expediente')
+            ->orderBy('id', 'desc')
+            ->get();
+
         return inertia('Bill/Edit', [
             'bill' => $bill,
+            'availableItems' => $availableItems,
         ]);
     }
 
@@ -377,21 +398,105 @@ class BillingsController extends Controller
      */
     public function update(Request $request, int $id)
     {
-        $billing = Billing::findOrFail($id);
+        $billing = Billing::with(['inventario', 'secondInventario'])->findOrFail($id);
+
+        // --- Verificación y cambio de Ítem (partida_id) ---
+        $newPartidaId = $request->input('partida_id');
+        $oldPartidaId = $billing->partida_id;
+
+        if (!empty($newPartidaId) && (int)$newPartidaId !== (int)$oldPartidaId) {
+            $newItem = Inventario::find($newPartidaId);
+            if (!$newItem) {
+                return back()->withErrors(['partida_id' => 'El nuevo elemento de inventario seleccionado no existe.']);
+            }
+
+            // Validar que el nuevo ítem esté DISPONIBLE y no haya sido vendido en otra factura
+            $isSoldOnOtherBill = $newItem->bill()->where('id', '!=', $billing->id)->exists();
+            if ($newItem->status !== 'DISPONIBLE' || $isSoldOnOtherBill) {
+                $cod = $newItem->codInv ?: $newItem->id;
+                return back()->withErrors([
+                    'partida_id' => "El ítem #{$newItem->id} (Nro. Inv: {$cod} - {$newItem->marca} {$newItem->modelo}) no está DISPONIBLE o ya fue vendido. (Estatus actual: {$newItem->status})"
+                ]);
+            }
+
+            // Liberar ítem anterior a DISPONIBLE
+            $oldItem = $billing->inventario;
+            if ($oldItem) {
+                $oldItem->update([
+                    'status' => 'DISPONIBLE',
+                    'price_sale' => null,
+                ]);
+
+                $oldCod = $oldItem->codInv ?: $oldItem->id;
+                $newCod = $newItem->codInv ?: $newItem->id;
+
+                $this->createBitacoraEntry(
+                    'UPDATE',
+                    $billing->numero_factura,
+                    'partida_id',
+                    "Ítem anterior liberado a DISPONIBLE: #{$oldItem->id} [Nro. Inv: {$oldCod}] {$oldItem->marca} {$oldItem->modelo}",
+                    "Nuevo ítem asignado como VENDIDO: #{$newItem->id} [Nro. Inv: {$newCod}] {$newItem->marca} {$newItem->modelo}"
+                );
+            }
+
+            // Asignar y marcar nuevo ítem como VENDIDO
+            $newItem->update([
+                'status' => 'VENDIDO',
+                'price_sale' => $billing->total ?? $billing->big ?? $newItem->price,
+            ]);
+
+            $billing->partida_id = $newItem->id;
+        }
+
+        // --- Manejo de second_partida_id (por si es juego de cámaras) ---
+        if ($request->has('second_partida_id')) {
+            $newSecondId = $request->input('second_partida_id');
+            $oldSecondId = $billing->second_partida_id;
+
+            if ((int)$newSecondId !== (int)$oldSecondId) {
+                if (!empty($newSecondId)) {
+                    $newSecondItem = Inventario::find($newSecondId);
+                    if (!$newSecondItem) {
+                        return back()->withErrors(['second_partida_id' => 'La segunda cámara seleccionada no existe.']);
+                    }
+                    $isSecondSold = $newSecondItem->bill()->where('id', '!=', $billing->id)->exists();
+                    if ($newSecondItem->status !== 'DISPONIBLE' || $isSecondSold) {
+                        return back()->withErrors(['second_partida_id' => "La segunda cámara #{$newSecondItem->id} no está DISPONIBLE o ya fue vendida."]);
+                    }
+
+                    $oldSecond = $billing->secondInventario;
+                    if ($oldSecond) {
+                        $oldSecond->update(['status' => 'DISPONIBLE', 'price_sale' => null]);
+                    }
+
+                    $newSecondItem->update(['status' => 'VENDIDO', 'price_sale' => 0]);
+                    $billing->second_partida_id = $newSecondItem->id;
+                } else {
+                    $oldSecond = $billing->secondInventario;
+                    if ($oldSecond) {
+                        $oldSecond->update(['status' => 'DISPONIBLE', 'price_sale' => null]);
+                    }
+                    $billing->second_partida_id = null;
+                }
+            }
+        }
+
         $originalValues = $billing->getOriginal();
-        $campos = $request->all();
+        $campos = $request->except(['partida_id', 'second_partida_id']);
         $coleccionA = collect($originalValues);
         $coleccionB = collect($campos);
         $indicesComunes = $coleccionA->intersectByKeys($coleccionB)->keys();
         foreach ($indicesComunes as $indice => $value) {
             $original = $coleccionA[$value];
-            $campos = $coleccionB[$value];
-            if ($original != $campos) {
-                $this->createBitacoraEntry('UPDATE', $billing->numero_factura, $indicesComunes[$indice], 'Valor Original: ' . $original, 'Valor Nuevo: ' . $campos);
+            $campoVal = $coleccionB[$value];
+            if ($original != $campoVal) {
+                $this->createBitacoraEntry('UPDATE', $billing->numero_factura, $indicesComunes[$indice], 'Valor Original: ' . $original, 'Valor Nuevo: ' . $campoVal);
             }
         }
-        $billing->fill($request->all());
+
+        $billing->fill($campos);
         $billing->save();
+
         return redirect()->route('billing');
     }
 
@@ -442,22 +547,39 @@ class BillingsController extends Controller
      * @param  int  $id  Identificador único del ítem en inventario.
      * @return \Illuminate\Http\JsonResponse
      */
-    public function checkItem(int $id)
+    public function checkItem($id)
     {
-        $item = Inventario::with('container')->find($id);
+        $idClean = trim((string) $id);
+        $item = Inventario::with('container')
+            ->where('id', $idClean)
+            ->orWhere('codInv', $idClean)
+            ->orWhere('codInv', ltrim($idClean, '0'))
+            ->orWhere('codInv', str_pad($idClean, 4, '0', STR_PAD_LEFT))
+            ->first();
 
         if (!$item) {
             return response()->json([
                 'success' => false,
-                'message' => 'No se encontró ningún elemento con el ID especificado (#' . $id . ').',
+                'message' => 'No se encontró ningún elemento con el código o ID especificado (' . $id . ').',
             ], 404);
         }
+
+        $excludeBillId = request()->query('exclude_bill_id');
+        $hasOtherBill = $item->bill()
+            ->when($excludeBillId, function ($q) use ($excludeBillId) {
+                $q->where('id', '!=', $excludeBillId);
+            })
+            ->exists();
+
+        $isSold = $item->status === 'VENDIDO' || $hasOtherBill;
+        $isAvailable = $item->status === 'DISPONIBLE' && !$hasOtherBill;
 
         return response()->json([
             'success' => true,
             'item' => [
                 'id' => $item->id,
                 'codInv' => $item->codInv,
+                'formatted_cod' => $item->formatted_cod,
                 'tipo' => $item->tipo,
                 'marca' => $item->marca,
                 'modelo' => $item->modelo,
@@ -465,8 +587,14 @@ class BillingsController extends Controller
                 'año' => $item->año,
                 'status' => $item->status,
                 'price' => $item->price,
+                'is_camara' => $item->is_camara,
+                'camera_side' => $item->camera_side,
+                'camera_side_label' => $item->camera_side_label,
+                'observation' => $item->observation,
                 'expediente' => $item->expediente ?? ($item->container ? $item->container->expediente : null),
-                'is_available' => $item->status === 'DISPONIBLE',
+                'container_cod' => $item->container ? $item->container->cod : null,
+                'is_available' => $isAvailable,
+                'is_sold' => $isSold,
             ],
         ]);
     }
@@ -481,7 +609,7 @@ class BillingsController extends Controller
      */
     public function returnSubmit(Request $request, int $id)
     {
-        $billing = Billing::with('partida')->findOrFail($id);
+        $billing = Billing::with(['partida.container', 'secondPartida.container'])->findOrFail($id);
         $returnType = $request->input('return_type', 'TOTAL');
         $inventario = $billing->partida;
 
@@ -657,7 +785,7 @@ class BillingsController extends Controller
      */
     public function pdf($id)
     {
-        $bill = Billing::with('partida')->findOrFail($id);
+        $bill = Billing::with(['partida.container', 'secondPartida.container'])->findOrFail($id);
 
         $pdf = \PDF::loadView('reports.invoice', compact('bill'));
 

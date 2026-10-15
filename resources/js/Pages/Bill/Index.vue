@@ -112,6 +112,19 @@ const getItem = (factura) => {
     return factura.partidas || factura.partida || factura.inventario || factura.inventarios || {};
 };
 
+const isPairFactura = (factura) => {
+    if (!factura) return false;
+    if (factura.second_partida_id || factura.is_pair_camera || factura.second_partida || factura.second_inventario) {
+        return true;
+    }
+    const obs = String(factura.observaciones || '').toUpperCase();
+    return obs.includes('PAR DE CÁMARAS') || obs.includes('PAR DE CAMARAS') || obs.includes('JUEGO L + R');
+};
+
+const getSecondItemFactura = (factura) => {
+    return factura.second_partida || factura.second_inventario || null;
+};
+
 // Helper to get formatted total in Bs using declared import cost + IVA if precio_total is missing/0
 const getItemTotalBs = (factura) => {
     const raw = String(factura.precio_total || '').trim();
@@ -785,7 +798,33 @@ const exportPdf = () => {
                                         </div>
                                     </td>
                                     <td class="px-6 py-6">
-                                        <div class="space-y-1">
+                                        <!-- Venta de Par de Cámaras -->
+                                        <div v-if="isPairFactura(factura)" class="space-y-1">
+                                            <div class="flex items-center gap-1.5 flex-wrap">
+                                                <span class="px-2 py-0.5 rounded-md bg-purple-600 text-white text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm">
+                                                    <i class="fa-solid fa-layer-group text-[8px]"></i> PAR DE CÁMARAS (L + R)
+                                                </span>
+                                            </div>
+                                            <div class="text-xs font-black text-purple-950 dark:text-purple-200 uppercase leading-tight">
+                                                {{ getItem(factura).marca }} {{ getItem(factura).modelo }}
+                                            </div>
+                                            <!-- Detalle de ambas culatas -->
+                                            <div class="text-[10px] text-gray-500 dark:text-gray-400 font-semibold space-y-0.5">
+                                                <div class="flex items-center gap-1.5">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                                    <span>1. [Cod: {{ getItem(factura).codInv }}] Lado {{ getItem(factura).camera_side || 'R' }}</span>
+                                                </div>
+                                                <div class="flex items-center gap-1.5">
+                                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                                    <span>2. [Cod: {{ getSecondItemFactura(factura)?.codInv || 'VINCULADO' }}] Lado {{ getSecondItemFactura(factura)?.camera_side || 'L' }}</span>
+                                                </div>
+                                            </div>
+                                            <div v-if="factura.observaciones" class="text-[9px] text-gray-400 dark:text-gray-500 italic truncate max-w-[220px]" :title="factura.observaciones">
+                                                {{ factura.observaciones }}
+                                            </div>
+                                        </div>
+                                        <!-- Ítem individual (Motor, Caja, Cámara individual) -->
+                                        <div v-else class="space-y-1">
                                             <div class="text-xs font-black text-gray-700 dark:text-gray-300 uppercase truncate max-w-[200px]" v-if="factura.tipo_item || getItem(factura).tipo">
                                                 {{ factura.tipo_item || getItem(factura).tipo }} {{ getItem(factura).marca }} {{ getItem(factura).modelo }}
                                             </div>
@@ -793,6 +832,9 @@ const exportPdf = () => {
                                                 <i class="fa-solid fa-barcode text-[8px]"></i>
                                                 {{ factura.id }}
                                             </label>
+                                            <div v-if="factura.observaciones" class="text-[9px] text-gray-400 dark:text-gray-500 italic truncate max-w-[220px]" :title="factura.observaciones">
+                                                {{ factura.observaciones }}
+                                            </div>
                                         </div>
                                     </td>
                                     <td class="px-6 py-6">

@@ -116,7 +116,49 @@ watch(() => editForm.fecha_tasa_bcv, async (newDate) => {
     }
 });
 
-const formatSerial = (serial, imageUrl = null) => {
+const isCamaraReq = (req) => {
+    const item = req?.inventario || req?.partida;
+    if (!item) return false;
+    const t = String(item.tipo || '').toUpperCase();
+    const it = String(item.item || '').toUpperCase();
+    return t.includes('CÁMARA') || t.includes('CAMARA') || t.includes('CULATA') ||
+           it.includes('CÁMARA') || it.includes('CAMARA') || it.includes('CULATA') || !!item.is_camara;
+};
+
+const isPairReq = (req) => {
+    return !!(req?.second_partida_id || req?.is_pair_camera || req?.second_inventario || req?.second_partida);
+};
+
+const getSecondItem = (req) => {
+    return req?.second_inventario || req?.second_partida || null;
+};
+
+const isMotorReq = (req) => {
+    const item = req?.inventario || req?.partida;
+    if (!item) return true;
+    const t = String(item.tipo || '').toUpperCase();
+    const it = String(item.item || '').toUpperCase();
+    return t.includes('MOTOR') || it.includes('MOTOR');
+};
+
+const getSideIndicator = (req) => {
+    const item = req?.inventario || req?.partida;
+    if (!item) return null;
+    if (item.camera_side) return item.camera_side;
+    const obs = String(req.observation || '').toUpperCase();
+    if (obs.includes('IZQUIERD') || obs.includes('LADO L') || obs.includes('(L)')) return 'L';
+    if (obs.includes('DERECH') || obs.includes('LADO R') || obs.includes('(R)')) return 'R';
+    return null;
+};
+
+const formatSerial = (serial, imageUrl = null, tipo = '') => {
+    const t = String(tipo || '').toUpperCase();
+    if (t.includes('CÁMARA') || t.includes('CAMARA') || t.includes('CULATA')) {
+        return 'NO APLICA (CÁMARA)';
+    }
+    if (t.includes('CAJA')) {
+        return 'NO APLICA (CAJA)';
+    }
     if (!serial && !imageUrl) return '';
     if (!serial) return 'FOTO ADJUNTA';
     const upper = serial.toUpperCase();
@@ -188,7 +230,32 @@ const getDisplayType = (req) => {
     const item = req.inventario || req.partida;
     if (!item) return '';
     const obs = req.observation ? req.observation.toUpperCase() : '';
-    const dispatchDetails = ['MOTOR COMPLETO', 'MOTOR 7/8', 'MOTOR 3/4', 'CAJA COMPLETA', 'CAJA SIN TURBINA'];
+    const tipo = String(item.tipo || '').toUpperCase();
+    const isCamara = isCamaraReq(req);
+    const isCaja = tipo.includes('CAJA') || !!item.is_caja;
+
+    if (isPairReq(req)) {
+        return 'PAR DE CÁMARAS (L + R)';
+    }
+
+    if (isCamara) {
+        let sideText = '';
+        const side = getSideIndicator(req);
+        if (side) {
+            sideText = ` (${side})`;
+        }
+        if (obs.includes('CAPARAZÓN') || obs.includes('CAPARAZON')) {
+            return `CÁMARA CAPARAZÓN${sideText}`;
+        }
+        return `CÁMARA${sideText}`;
+    }
+
+    if (isCaja) {
+        if (obs.includes('SIN TURBINA')) return 'CAJA SIN TURBINA';
+        return 'CAJA COMPLETA';
+    }
+
+    const dispatchDetails = ['MOTOR COMPLETO', 'MOTOR 7/8', 'MOTOR 3/4'];
     if (dispatchDetails.includes(obs)) {
         return obs;
     }
@@ -285,12 +352,63 @@ const goToCreateBilling = (id, requestId) => {
                                         </div>
                                     </td>
                                     <td class="px-8 py-6 whitespace-nowrap">
-                                        <div v-if="req.inventario || req.partida" class="flex items-center">
+                                        <!-- CASO: PAR DE CÁMARAS (L + R) -->
+                                        <div v-if="isPairReq(req)" class="flex items-center">
+                                            <div class="h-11 w-11 rounded-2xl bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center text-purple-700 dark:text-purple-300 mr-4 font-black transition-transform group-hover:scale-105 border border-purple-200 dark:border-purple-700/50 shadow-sm">
+                                                <i class="fa-solid fa-layer-group text-base"></i>
+                                            </div>
+                                            <div class="flex flex-col">
+                                                <div class="flex items-center gap-2 flex-wrap">
+                                                    <span class="text-sm font-black text-purple-950 dark:text-purple-100 uppercase leading-tight">
+                                                        PAR DE CÁMARAS: {{ (req.inventario || req.partida)?.marca }} {{ (req.inventario || req.partida)?.modelo }}
+                                                    </span>
+                                                    <!-- Pair badge -->
+                                                    <span class="px-2 py-0.5 rounded-md bg-purple-600 text-white text-[10px] font-black uppercase tracking-wider shadow-sm flex items-center gap-1">
+                                                        <i class="fa-solid fa-link text-[8px]"></i> JUEGO (L + R)
+                                                    </span>
+                                                    <!-- Two items side tags -->
+                                                    <span class="px-1.5 py-0.5 rounded bg-blue-600 text-white text-[9px] font-black">L</span>
+                                                    <span class="px-1.5 py-0.5 rounded bg-amber-500 text-black text-[9px] font-black">R</span>
+                                                    <span class="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 text-[9px] font-bold tracking-tighter" title="Garantía exclusiva de motores">
+                                                        <i class="fa-solid fa-file-invoice text-[8px] mr-0.5"></i>SOLO FACTURA
+                                                    </span>
+                                                </div>
+                                                <!-- Both cameras detail -->
+                                                <div class="mt-1 flex flex-col gap-0.5 text-[10px] text-gray-500 dark:text-gray-400">
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="font-bold text-gray-700 dark:text-gray-300">1. [Cod: {{ (req.inventario || req.partida)?.codInv }}]</span>
+                                                        <span>{{ (req.inventario || req.partida)?.camera_side ? 'LADO ' + ((req.inventario || req.partida)?.camera_side_label || (req.inventario || req.partida)?.camera_side) : 'Principal' }}</span>
+                                                        <span v-if="(req.inventario || req.partida)?.container?.expediente" class="text-[9px] text-gray-400 font-normal">· Exp: {{ (req.inventario || req.partida)?.container?.expediente }}</span>
+                                                    </div>
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="font-bold text-purple-700 dark:text-purple-300">2. [Cod: {{ getSecondItem(req)?.codInv || 'VINCULADO' }}]</span>
+                                                        <span>{{ getSecondItem(req)?.camera_side ? 'LADO ' + (getSecondItem(req)?.camera_side_label || getSecondItem(req)?.camera_side) : 'Pareja complementaria' }}</span>
+                                                        <span v-if="getSecondItem(req)?.container?.expediente" class="text-[9px] text-gray-400 font-normal">· Exp: {{ getSecondItem(req)?.container?.expediente }}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- CASO: ÍTEM INDIVIDUAL (MOTOR, CAJA, CÁMARA SOLA) -->
+                                        <div v-else-if="req.inventario || req.partida" class="flex items-center">
                                             <div class="h-10 w-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mr-4 font-black transition-transform group-hover:scale-110 border border-indigo-100/50 dark:border-indigo-700/30 shadow-inner">
                                                 {{ (req.inventario || req.partida)?.codInv ? (req.inventario || req.partida).codInv.split('-')[0] : 'MK' }}
                                             </div>
                                             <div class="flex flex-col">
-                                                <span class="text-sm font-black text-gray-800 dark:text-white uppercase leading-tight">{{ getDisplayType(req) }} - {{ (req.inventario || req.partida)?.marca }} {{ (req.inventario || req.partida)?.modelo }}</span>
+                                                <div class="flex items-center gap-2 flex-wrap">
+                                                    <span class="text-sm font-black text-gray-800 dark:text-white uppercase leading-tight">{{ getDisplayType(req) }} - {{ (req.inventario || req.partida)?.marca }} {{ (req.inventario || req.partida)?.modelo }}</span>
+                                                    <!-- Side Badge for Camara -->
+                                                    <span v-if="getSideIndicator(req)" :class="{
+                                                        'bg-blue-600 text-white': getSideIndicator(req) === 'L',
+                                                        'bg-amber-500 text-black': getSideIndicator(req) === 'R'
+                                                    }" class="px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider shadow-sm flex items-center gap-1">
+                                                        <span>{{ getSideIndicator(req) }}</span>
+                                                        <span class="text-[8px] opacity-80">({{ getSideIndicator(req) === 'L' ? 'IZQ' : 'DER' }})</span>
+                                                    </span>
+                                                    <!-- Warranty badge for non-motors -->
+                                                    <span v-if="!isMotorReq(req)" class="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 text-[9px] font-bold tracking-tighter" title="Garantía exclusiva de motores">
+                                                        <i class="fa-solid fa-file-invoice text-[8px] mr-0.5"></i>SOLO FACTURA
+                                                    </span>
+                                                </div>
                                                 <span class="text-[10px] font-bold text-gray-400 mt-0.5">ID: {{ (req.inventario || req.partida)?.codInv }} | {{ (req.inventario || req.partida)?.año }}</span>
                                                 <span class="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 mt-0.5 flex items-center gap-1">
                                                     <i class="fa-solid fa-folder-closed text-[9px]"></i>
@@ -321,8 +439,11 @@ const goToCreateBilling = (id, requestId) => {
                                             <span v-if="req.client_address" class="text-[9px] text-gray-400 dark:text-gray-500 max-w-[200px] truncate" :title="req.client_address">
                                                 <i class="fa-solid fa-location-dot text-[8px] mr-1 text-rose-400"></i>{{ req.client_address }}
                                             </span>
-                                            <span v-if="(req.inventario || req.partida)?.serial || (req.inventario || req.partida)?.serial_image_url" class="text-[9px] text-gray-400 dark:text-gray-500 max-w-[200px] truncate" :title="formatSerial((req.inventario || req.partida)?.serial, (req.inventario || req.partida)?.serial_image_url)">
-                                                <i class="fa-solid fa-barcode text-[8px] mr-1 text-indigo-400"></i>Serial: {{ formatSerial((req.inventario || req.partida)?.serial, (req.inventario || req.partida)?.serial_image_url) }}
+                                            <span v-if="isCamaraReq(req)" class="text-[9px] text-purple-600 dark:text-purple-400 font-bold flex items-center gap-1">
+                                                <i class="fa-solid fa-layer-group text-[8px]"></i>Sin serial (CÁMARA / CULATA)
+                                            </span>
+                                            <span v-else-if="(req.inventario || req.partida)?.serial || (req.inventario || req.partida)?.serial_image_url" class="text-[9px] text-gray-400 dark:text-gray-500 max-w-[200px] truncate" :title="formatSerial((req.inventario || req.partida)?.serial, (req.inventario || req.partida)?.serial_image_url, (req.inventario || req.partida)?.tipo)">
+                                                <i class="fa-solid fa-barcode text-[8px] mr-1 text-indigo-400"></i>Serial: {{ formatSerial((req.inventario || req.partida)?.serial, (req.inventario || req.partida)?.serial_image_url, (req.inventario || req.partida)?.tipo) }}
                                             </span>
                                             <span v-if="req.observation" class="mt-1 text-[9px] bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded-md border border-amber-100 dark:border-amber-800/30 uppercase tracking-wide inline-block max-w-[200px] truncate" :title="req.observation">
                                                 <i class="fa-solid fa-comment-dots mr-1 text-amber-500"></i>{{ req.observation }}
@@ -490,12 +611,18 @@ const goToCreateBilling = (id, requestId) => {
                                     </div>
                                 </div>
 
-                                <div class="space-y-2">
-                                    <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest ml-1">Serial de Motor / Caja (Opcional)</label>
+                                <div v-if="editingRequest && !isCamaraReq(editingRequest)" class="space-y-2">
+                                    <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest ml-1">
+                                        {{ (editingRequest.inventario || editingRequest.partida)?.tipo?.toUpperCase().includes('CAJA') ? 'Serial / Código de Caja (Opcional)' : 'Serial de Motor (Opcional)' }}
+                                    </label>
                                     <div class="relative group">
                                         <i class="fa-solid fa-barcode absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors"></i>
-                                        <input v-model="editForm.serial" @input="editForm.serial = editForm.serial.toUpperCase()" type="text" class="block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-3.5 pl-12 pr-4 focus:ring-2 focus:ring-blue-500 transition-all font-bold outline-none uppercase" placeholder="Ej: 4G63-XXXXXX">
+                                        <input v-model="editForm.serial" @input="editForm.serial = editForm.serial.toUpperCase()" type="text" class="block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-3.5 pl-12 pr-4 focus:ring-2 focus:ring-blue-500 transition-all font-bold outline-none uppercase" :placeholder="(editingRequest.inventario || editingRequest.partida)?.tipo?.toUpperCase().includes('CAJA') ? 'Ej: A340E-XXXXXX' : 'Ej: 4G63-XXXXXX'">
                                     </div>
+                                </div>
+                                <div v-else-if="editingRequest && isCamaraReq(editingRequest)" class="p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800/30 rounded-2xl flex items-center gap-2 text-xs text-purple-700 dark:text-purple-300">
+                                    <i class="fa-solid fa-layer-group text-sm"></i>
+                                    <span>Cámara/Culata sin serial requerido. Indique lado (L/R) o detalle en la Observación.</span>
                                 </div>
 
                                 <div class="space-y-2">

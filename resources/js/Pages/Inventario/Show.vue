@@ -10,6 +10,10 @@ const props = defineProps({
   barcode: String,
   barcodeData: String,
   tasa_bcv: Number,
+  available_cameras: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const page = usePage();
@@ -73,15 +77,53 @@ const baseImponible = computed(() => {
 
 
 
+const isMotor = computed(() => {
+    const t = (props.inventario.tipo || '').toUpperCase();
+    const item = (props.inventario.item || '').toUpperCase();
+    return t.includes('MOTOR') || item.includes('MOTOR');
+});
+
+const isCamara = computed(() => {
+    const t = (props.inventario.tipo || '').toUpperCase();
+    const item = (props.inventario.item || '').toUpperCase();
+    return t.includes('CÁMARA') || t.includes('CAMARA') || t.includes('CULATA') ||
+           item.includes('CÁMARA') || item.includes('CAMARA') || item.includes('CULATA') ||
+           !!props.inventario.is_camara;
+});
+
+const isCaja = computed(() => {
+    const t = (props.inventario.tipo || '').toUpperCase();
+    const item = (props.inventario.item || '').toUpperCase();
+    return t.includes('CAJA') || item.includes('CAJA') || !!props.inventario.is_caja;
+});
+
+const cameraSide = computed(() => {
+    return props.inventario.camera_side || null;
+});
+
 const getDefaultDispatchDetail = () => {
     const tipo = props.inventario.tipo ? props.inventario.tipo.toUpperCase() : '';
+    const obs = props.inventario.observation ? props.inventario.observation.trim().toUpperCase() : '';
+
+    if (isCamara.value) {
+        if (obs) return obs;
+        const side = props.inventario.camera_side;
+        if (side === 'L') return 'CÁMARA COMPLETA - LADO IZQUIERDO (L)';
+        if (side === 'R') return 'CÁMARA COMPLETA - LADO DERECHO (R)';
+        return 'CÁMARA COMPLETA';
+    }
+
+    if (isCaja.value) {
+        if (obs) return obs;
+        return 'CAJA COMPLETA';
+    }
+
     if (tipo.includes('MOTOR 7/8')) return 'MOTOR 7/8';
     if (tipo.includes('MOTOR COMPLETO')) return 'MOTOR COMPLETO';
     if (tipo.includes('MOTOR 3/4')) return 'MOTOR 3/4';
     if (tipo.includes('MOTOR 5/8')) return 'MOTOR COMPLETO';
     if (tipo.includes('MOTOR')) return 'MOTOR COMPLETO';
-    if (tipo.includes('CAJA')) return 'CAJA COMPLETA';
-    return '';
+    return obs || '';
 };
 
 const getInitialSerial = (serial) => {
@@ -97,6 +139,7 @@ const todayStr = new Date().toISOString().split('T')[0];
 
 const form = useForm({
     partida_id: props.inventario.id,
+    second_partida_id: null,
     price: '',
     tasa_bcv: props.tasa_bcv || '',
     fecha_tasa_bcv: todayStr,
@@ -108,9 +151,152 @@ const form = useForm({
     quantity: 1,
     client_cedula_file: null,
     serial_file: null,
-    serial: getInitialSerial(props.inventario.serial),
+    serial: (isCamara.value || isCaja.value) ? '' : getInitialSerial(props.inventario.serial),
     observation: getDefaultDispatchDetail(),
 });
+
+// Pair camera management
+const isPairCamera = ref(false);
+const secondCodInput = ref('');
+const selectedSecondCamera = ref(null);
+const secondSearchError = ref('');
+const searchingSecond = ref(false);
+
+const suggestedCameras = computed(() => {
+    const list = [...(props.available_cameras || [])];
+    const currentModel = (props.inventario.modelo || '').toUpperCase();
+    const currentSide = props.inventario.camera_side;
+    const targetSide = currentSide === 'R' ? 'L' : (currentSide === 'L' ? 'R' : null);
+
+    return list.sort((a, b) => {
+        const aModel = (a.modelo || '').toUpperCase() === currentModel;
+        const bModel = (b.modelo || '').toUpperCase() === currentModel;
+        const aSide = targetSide && a.side === targetSide;
+        const bSide = targetSide && b.side === targetSide;
+
+        if (aModel && aSide && !(bModel && bSide)) return -1;
+        if (bModel && bSide && !(aModel && aSide)) return 1;
+        if (aModel && !bModel) return -1;
+        if (bModel && !aModel) return 1;
+        return 0;
+    });
+});
+
+const updatePairObservation = (secondCam) => {
+    if (!secondCam) return;
+    const currentCod = props.inventario.formatted_cod || props.inventario.codInv;
+    const currentSide = props.inventario.camera_side_label || props.inventario.camera_side || 'L/R';
+    const secondCod = secondCam.formatted_cod || secondCam.codInv;
+    const secondSide = secondCam.side_label || secondCam.side || 'L/R';
+    
+    form.observation = `PAR DE CÁMARAS (L + R): [Cod: ${currentCod} - LADO ${currentSide}] + [Cod: ${secondCod} - LADO ${secondSide}]`;
+};
+
+const onTogglePairCamera = () => {
+    if (isPairCamera.value) {
+        form.quantity = 2;
+        const perfectMatch = suggestedCameras.value.find(c => {
+            const sameModel = (c.modelo || '').toUpperCase() === (props.inventario.modelo || '').toUpperCase();
+            const oppSide = props.inventario.camera_side === 'R' ? c.side === 'L' : c.side === 'R';
+            return sameModel && oppSide;
+        });
+        if (perfectMatch) {
+            form.second_partida_id = perfectMatch.id;
+            selectedSecondCamera.value = perfectMatch;
+            updatePairObservation(perfectMatch);
+        }
+    } else {
+        clearSecondCamera();
+        form.quantity = 1;
+        form.observation = getDefaultDispatchDetail();
+    }
+};
+
+const onSelectSecondCameraFromDropdown = () => {
+    secondSearchError.value = '';
+    if (!form.second_partida_id) {
+        selectedSecondCamera.value = null;
+        return;
+    }
+    const found = (props.available_cameras || []).find(c => c.id === form.second_partida_id);
+    if (found) {
+        selectedSecondCamera.value = found;
+        secondCodInput.value = found.codInv || '';
+        updatePairObservation(found);
+    }
+};
+
+const clearSecondCamera = () => {
+    form.second_partida_id = null;
+    selectedSecondCamera.value = null;
+    secondCodInput.value = '';
+    secondSearchError.value = '';
+    if (isPairCamera.value) {
+        form.observation = getDefaultDispatchDetail();
+    }
+};
+
+const searchSecondCameraByCode = async () => {
+    const raw = String(secondCodInput.value || '').trim();
+    if (!raw) {
+        secondSearchError.value = 'Por favor ingresa un código de inventario.';
+        return;
+    }
+    secondSearchError.value = '';
+    searchingSecond.value = true;
+
+    const cleanNum = raw.replace(/\D/g, '');
+    const localFound = (props.available_cameras || []).find(c => {
+        return String(c.id) === raw || 
+               String(c.codInv) === raw || 
+               (cleanNum && String(c.codInv) === cleanNum) ||
+               (c.formatted_cod && c.formatted_cod.includes(raw));
+    });
+
+    if (localFound) {
+        form.second_partida_id = localFound.id;
+        selectedSecondCamera.value = localFound;
+        updatePairObservation(localFound);
+        searchingSecond.value = false;
+        return;
+    }
+
+    try {
+        const res = await axios.get(route('billing.checkItem', raw));
+        if (res.data?.success && res.data?.item) {
+            const it = res.data.item;
+            if (it.id === props.inventario.id) {
+                secondSearchError.value = 'No puedes vincular la misma cámara como su propio par.';
+                selectedSecondCamera.value = null;
+                form.second_partida_id = null;
+            } else if (!it.is_available) {
+                secondSearchError.value = `La cámara #${it.codInv} no está disponible (Estatus: ${it.status}).`;
+                selectedSecondCamera.value = null;
+                form.second_partida_id = null;
+            } else {
+                form.second_partida_id = it.id;
+                selectedSecondCamera.value = {
+                    id: it.id,
+                    codInv: it.codInv,
+                    formatted_cod: it.formatted_cod,
+                    marca: it.marca,
+                    modelo: it.modelo,
+                    tipo: it.tipo,
+                    side: it.camera_side,
+                    side_label: it.camera_side_label,
+                    observation: it.observation
+                };
+                updatePairObservation(selectedSecondCamera.value);
+            }
+        } else {
+            secondSearchError.value = 'No se encontró ninguna cámara disponible con ese código.';
+        }
+    } catch (e) {
+        secondSearchError.value = e.response?.data?.message || 'No se encontró ningún ítem con el código especificado.';
+    } finally {
+        searchingSecond.value = false;
+    }
+};
 
 const fetchingRate = ref(false);
 const fetchRateByDate = async (selectedDate) => {
@@ -273,10 +459,20 @@ const closeCamera = () => {
 };
 
 const submitBilling = () => {
+    if (isPairCamera.value && !form.second_partida_id) {
+        alert('Has marcado la venta del par de cámaras. Por favor selecciona o busca la segunda cámara complementaria antes de enviar.');
+        return;
+    }
+
     form.transform((data) => ({
         ...data,
+        second_partida_id: isPairCamera.value ? form.second_partida_id : null,
+        quantity: isPairCamera.value ? 2 : (data.quantity || 1),
         client_name: data.client_name ? data.client_name.toUpperCase() : '',
         client_cedula: data.client_cedula ? data.client_cedula.toUpperCase() : '',
+        client_phone: data.client_phone ? data.client_phone.trim() : '',
+        client_email: data.client_email ? data.client_email.trim() : '',
+        client_address: data.client_address ? data.client_address.toUpperCase() : '',
         serial: data.serial ? data.serial.toUpperCase() : '',
         observation: data.observation ? data.observation.toUpperCase() : '',
         price: data.price ? data.price.toString().replace(/\./g, '').replace(',', '.') : ''
@@ -284,7 +480,7 @@ const submitBilling = () => {
         preserveScroll: true,
         forceFormData: true,
         onSuccess: () => {
-            form.reset('client_name', 'client_cedula_file', 'quantity', 'serial_file', 'serial', 'observation');
+            form.reset('client_name', 'client_cedula', 'client_phone', 'client_email', 'client_address', 'client_cedula_file', 'quantity', 'serial_file', 'serial', 'observation', 'second_partida_id'); isPairCamera.value = false; selectedSecondCamera.value = null;
             if (imagePreviewUrl.value) {
                 URL.revokeObjectURL(imagePreviewUrl.value);
                 imagePreviewUrl.value = null;
@@ -302,8 +498,15 @@ const submitBilling = () => {
 <template>
     <AppLayout title="Detalle de Registro">
         <template #header>
-            <h2 class="font-bold text-2xl text-gray-800 dark:text-white leading-tight flex items-center justify-center">
-                <i class="fa-solid fa-box mr-2 text-indigo-500"></i>Registro: {{ props.inventario.marca }} {{ props.inventario.modelo }}
+            <h2 class="font-bold text-2xl text-gray-800 dark:text-white leading-tight flex items-center justify-center gap-2 flex-wrap">
+                <i class="fa-solid fa-box text-indigo-500"></i>
+                <span>Registro: {{ props.inventario.label_title || (props.inventario.marca + ' ' + props.inventario.modelo) }}</span>
+                <span v-if="props.inventario.camera_side" :class="{
+                    'bg-blue-600 text-white': props.inventario.camera_side === 'L',
+                    'bg-amber-500 text-black': props.inventario.camera_side === 'R'
+                }" class="px-2.5 py-0.5 rounded-lg text-xs font-black uppercase tracking-wider ml-2 shadow-sm">
+                    LADO {{ props.inventario.camera_side === 'L' ? 'IZQUIERDO (L)' : 'DERECHO (R)' }}
+                </span>
             </h2>
         </template>
 
@@ -493,15 +696,30 @@ const submitBilling = () => {
 
                             <!-- Codes Row -->
                             <div v-if="showQrCodes" class="mt-10 grid grid-cols-1 md:grid-cols-2 gap-8 p-6 bg-gray-50 dark:bg-gray-900/30 rounded-2xl border border-gray-100 dark:border-gray-700">
-                                <div class="text-center">
+                                <div class="text-center flex flex-col items-center">
                                     <h4 class="font-bold mb-4 text-xs uppercase tracking-widest text-gray-500 dark:text-gray-400">Código QR</h4>
-                                    <div class="inline-block bg-white p-3 rounded-xl shadow-inner" v-html="props.qrCode"></div>
+                                    <div class="inline-block bg-white p-4 rounded-2xl shadow-inner border border-gray-200 dark:border-gray-700 relative">
+                                        <div v-html="props.qrCode"></div>
+                                        <!-- Side / Type Indicator -->
+                                        <div v-if="props.inventario.camera_side" class="mt-3 inline-flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-xl bg-gray-950 text-white font-black text-xs tracking-wider uppercase shadow-md border border-gray-800">
+                                            <span class="text-amber-400 text-sm font-black">{{ props.inventario.camera_side }}</span>
+                                            <span class="text-[10px] text-gray-200">LADO {{ props.inventario.camera_side === 'L' ? 'IZQUIERDO' : 'DERECHO' }}</span>
+                                        </div>
+                                        <div v-else-if="isCamara" class="mt-3 inline-flex items-center px-3 py-1 rounded-xl bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300 text-[10px] font-black uppercase">
+                                            CÁMARA / CULATA
+                                        </div>
+                                        <div v-else-if="isCaja" class="mt-3 inline-flex items-center px-3 py-1 rounded-xl bg-cyan-100 dark:bg-cyan-900/40 text-cyan-800 dark:text-cyan-300 text-[10px] font-black uppercase">
+                                            CAJA / TRANSMISIÓN
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="text-center">
-                                    <h4 class="font-bold mb-4 text-xs uppercase tracking-widest text-gray-500 dark:text-gray-400">Código de Barras</h4>
-                                    <div class="inline-block bg-white p-4 rounded-xl shadow-inner">
-                                        <div v-html="props.barcode"></div>
-                                        <p class="text-[10px] font-mono text-black mt-2 tracking-[0.2em]">{{ props.barcodeData }}</p>
+                                <div class="text-center flex flex-col items-center justify-between">
+                                    <div>
+                                        <h4 class="font-bold mb-4 text-xs uppercase tracking-widest text-gray-500 dark:text-gray-400">Código de Barras</h4>
+                                        <div class="inline-block bg-white p-4 rounded-xl shadow-inner border border-gray-200 dark:border-gray-700">
+                                            <div v-html="props.barcode"></div>
+                                            <p class="text-[10px] font-mono text-black mt-2 tracking-[0.2em]">{{ props.barcodeData }}</p>
+                                        </div>
                                     </div>
                                     <div class="mt-6">
                                         <a :href="route('printInventario', props.inventario.id)" target="_blank" class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl transition-all shadow-lg hover:shadow-indigo-500/30">
@@ -623,38 +841,150 @@ const submitBilling = () => {
                                         <p v-if="!imagePreviewUrl" class="mt-2 text-[10px] text-white/50 text-center">Formatos permitidos: JPG, PNG (Máx 2MB)</p>
                                     </div>
 
-                                    <div>
-                                        <label class="block text-xs font-bold mb-2 uppercase opacity-80">Serial de Motor/Caja (Opcional)</label>
-                                        <input v-model="form.serial" type="text" @input="form.serial = form.serial.toUpperCase()" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:ring-2 focus:ring-white outline-none uppercase font-bold" placeholder="Ej: 4G63-XXXXXX">
-                                    </div>
-
-                                    <div>
-                                        <label class="block text-xs font-bold mb-2 uppercase opacity-80">Foto de Serial de Motor/Caja (Opcional)</label>
-                                        
-                                        <!-- Serial Image Preview with Deletion Option -->
-                                        <div v-if="serialPreviewUrl" class="relative mt-2 p-2 bg-white/10 border border-white/20 rounded-2xl overflow-hidden flex flex-col items-center">
-                                            <img :src="serialPreviewUrl" class="max-h-48 w-full object-contain rounded-xl" alt="Preview de Serial">
-                                            <button type="button" @click="removeSerialImage" class="mt-2 w-full flex items-center justify-center gap-2 bg-rose-500 hover:bg-rose-600 text-white font-bold py-2 rounded-xl transition-all active:scale-[0.98]">
-                                                <i class="fa-solid fa-trash"></i> Eliminar Foto
-                                            </button>
+                                    <!-- Serial fields ONLY for Motors (No serial for Cajas or Cámaras) -->
+                                    <template v-if="isMotor">
+                                        <div>
+                                            <label class="block text-xs font-bold mb-2 uppercase opacity-80">
+                                                Serial de Motor (Opcional)
+                                            </label>
+                                            <input v-model="form.serial" type="text" @input="form.serial = form.serial.toUpperCase()" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:ring-2 focus:ring-white outline-none uppercase font-bold" placeholder="Ej: 4G63-XXXXXX">
                                         </div>
-                                        
-                                        <!-- Upload / Shutter Options -->
-                                        <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
-                                            <!-- File Upload Wrapper -->
-                                            <label class="flex flex-col items-center justify-center p-3 bg-white/10 hover:bg-white/20 border border-dashed border-white/30 hover:border-white/50 rounded-2xl cursor-pointer transition-all text-center">
-                                                <i class="fa-solid fa-upload text-xl mb-1 opacity-80"></i>
-                                                <span class="text-[10px] font-bold uppercase tracking-wider">Cargar Archivo</span>
-                                                <input type="file" accept="image/*" class="hidden" @change="handleSerialFileChange">
+
+                                        <div>
+                                            <label class="block text-xs font-bold mb-2 uppercase opacity-80">
+                                                Foto de Serial de Motor (Opcional)
                                             </label>
                                             
-                                            <!-- Camera Button -->
-                                            <button type="button" @click="startCamera('serial')" class="flex flex-col items-center justify-center p-3 bg-white/10 hover:bg-white/20 border border-dashed border-white/30 hover:border-white/50 rounded-2xl transition-all text-center">
-                                                <i class="fa-solid fa-camera text-xl mb-1 opacity-80"></i>
-                                                <span class="text-[10px] font-bold uppercase tracking-wider">Tomar Foto</span>
-                                            </button>
+                                            <!-- Serial Image Preview with Deletion Option -->
+                                            <div v-if="serialPreviewUrl" class="relative mt-2 p-2 bg-white/10 border border-white/20 rounded-2xl overflow-hidden flex flex-col items-center">
+                                                <img :src="serialPreviewUrl" class="max-h-48 w-full object-contain rounded-xl" alt="Preview de Serial">
+                                                <button type="button" @click="removeSerialImage" class="mt-2 w-full flex items-center justify-center gap-2 bg-rose-500 hover:bg-rose-600 text-white font-bold py-2 rounded-xl transition-all active:scale-[0.98]">
+                                                    <i class="fa-solid fa-trash"></i> Eliminar Foto
+                                                </button>
+                                            </div>
+                                            
+                                            <!-- Upload / Shutter Options -->
+                                            <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+                                                <label class="flex flex-col items-center justify-center p-3 bg-white/10 hover:bg-white/20 border border-dashed border-white/30 hover:border-white/50 rounded-2xl cursor-pointer transition-all text-center">
+                                                    <i class="fa-solid fa-upload text-xl mb-1 opacity-80"></i>
+                                                    <span class="text-[10px] font-bold uppercase tracking-wider">Cargar Archivo</span>
+                                                    <input type="file" accept="image/*" class="hidden" @change="handleSerialFileChange">
+                                                </label>
+                                                
+                                                <button type="button" @click="startCamera('serial')" class="flex flex-col items-center justify-center p-3 bg-white/10 hover:bg-white/20 border border-dashed border-white/30 hover:border-white/50 rounded-2xl transition-all text-center">
+                                                    <i class="fa-solid fa-camera text-xl mb-1 opacity-80"></i>
+                                                    <span class="text-[10px] font-bold uppercase tracking-wider">Tomar Foto</span>
+                                                </button>
+                                            </div>
+                                            <p v-if="!serialPreviewUrl" class="mt-2 text-[10px] text-white/50 text-center">Formatos permitidos: JPG, PNG (Máx 2MB)</p>
                                         </div>
-                                        <p v-if="!serialPreviewUrl" class="mt-2 text-[10px] text-white/50 text-center">Formatos permitidos: JPG, PNG (Máx 2MB)</p>
+                                    </template>
+                                    <template v-else-if="isCaja">
+                                        <div class="p-3.5 bg-white/10 border border-white/20 rounded-2xl flex items-start gap-3 text-xs">
+                                            <i class="fa-solid fa-boxes text-amber-300 text-base mt-0.5"></i>
+                                            <div>
+                                                <p class="font-bold text-white uppercase tracking-wide">Caja de Cambios Sin Serial Numérico</p>
+                                                <p class="text-white/70 text-[11px] mt-0.5">Las cajas se identifican únicamente por su código de inventario ({{ props.inventario.codInv }}). No requieren serial numérico ni foto para la facturación.</p>
+                                            </div>
+                                        </div>
+                                    </template>
+                                    <template v-else-if="isCamara">
+                                        <div class="p-3.5 bg-white/10 border border-white/20 rounded-2xl flex items-start gap-3 text-xs">
+                                            <i class="fa-solid fa-layer-group text-blue-300 text-base mt-0.5"></i>
+                                            <div>
+                                                <p class="font-bold text-white uppercase tracking-wide">Cámara / Culata Sin Serial Numérico</p>
+                                                <p class="text-white/70 text-[11px] mt-0.5">Las cámaras se identifican con su código de inventario ({{ props.inventario.codInv }}) y lado. No requieren serial numérico ni foto.</p>
+                                            </div>
+                                        </div>
+                                    </template>
+
+                                    <!-- Venta del Par de Cámaras (Ambos lados L + R) -->
+                                    <div v-if="isCamara" class="p-4 bg-purple-950/40 border border-purple-400/40 rounded-2xl backdrop-blur-sm space-y-3">
+                                        <div class="flex items-center justify-between gap-3">
+                                            <div class="flex items-center gap-2.5">
+                                                <div class="h-8 w-8 rounded-xl bg-purple-500/30 border border-purple-400/40 flex items-center justify-center text-purple-200">
+                                                    <i class="fa-solid fa-link text-xs"></i>
+                                                </div>
+                                                <div>
+                                                    <p class="text-xs font-bold text-white uppercase tracking-wide">¿Facturar el Par de Cámaras? (Juego L + R)</p>
+                                                    <p class="text-[10px] text-purple-200/80">Activa esta opción si el cliente compra ambos lados.</p>
+                                                </div>
+                                            </div>
+                                            <label class="relative inline-flex cursor-pointer items-center">
+                                                <input type="checkbox" v-model="isPairCamera" @change="onTogglePairCamera" class="peer sr-only">
+                                                <div class="peer h-6 w-11 rounded-full bg-white/20 after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-purple-500 peer-checked:after:translate-x-full peer-focus:outline-none"></div>
+                                            </label>
+                                        </div>
+
+                                        <!-- Panel de selección de la segunda cámara -->
+                                        <div v-if="isPairCamera" class="pt-3 border-t border-purple-400/20 space-y-3">
+                                            <div>
+                                                <label class="block text-[10px] font-bold mb-1.5 uppercase tracking-wider text-purple-200">
+                                                    Seleccionar Segunda Cámara del Inventario Disponible
+                                                </label>
+                                                <select 
+                                                    v-model="form.second_partida_id"
+                                                    @change="onSelectSecondCameraFromDropdown"
+                                                    class="block w-full bg-slate-900 border border-purple-400/50 rounded-xl py-2.5 px-3 text-xs text-white focus:ring-2 focus:ring-purple-400 outline-none"
+                                                >
+                                                    <option :value="null">-- Seleccionar cámara del listado disponible --</option>
+                                                    <option v-for="cam in suggestedCameras" :key="cam.id" :value="cam.id">
+                                                        {{ cam.label }}
+                                                    </option>
+                                                </select>
+                                            </div>
+
+                                            <div class="flex items-center gap-2">
+                                                <div class="relative flex-1">
+                                                    <input 
+                                                        v-model="secondCodInput"
+                                                        @keyup.enter="searchSecondCameraByCode"
+                                                        type="text"
+                                                        placeholder="O escribe el código de inventario (ej: 628)"
+                                                        class="block w-full bg-white/10 border border-white/20 rounded-xl py-2 px-3 text-xs text-white placeholder-white/40 focus:ring-2 focus:ring-purple-400 outline-none"
+                                                    >
+                                                </div>
+                                                <button 
+                                                    type="button" 
+                                                    @click="searchSecondCameraByCode"
+                                                    :disabled="searchingSecond"
+                                                    class="px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                                                >
+                                                    <i v-if="searchingSecond" class="fa-solid fa-spinner fa-spin"></i>
+                                                    <i v-else class="fa-solid fa-search"></i>
+                                                    Buscar
+                                                </button>
+                                            </div>
+
+                                            <!-- Feedback de cámara seleccionada -->
+                                            <div v-if="selectedSecondCamera" class="p-3 bg-emerald-950/60 border border-emerald-400/50 rounded-xl flex items-start justify-between text-xs text-emerald-100">
+                                                <div class="flex items-start gap-2">
+                                                    <i class="fa-solid fa-circle-check text-emerald-400 text-sm mt-0.5"></i>
+                                                    <div>
+                                                        <div class="font-bold text-white flex items-center gap-2">
+                                                            <span>Segunda Cámara Vinculada:</span>
+                                                            <span class="px-1.5 py-0.2 rounded text-[10px] font-black uppercase" :class="selectedSecondCamera.side === 'L' ? 'bg-blue-600 text-white' : 'bg-amber-500 text-black'">
+                                                                LADO {{ selectedSecondCamera.side_label || selectedSecondCamera.side || 'L/R' }}
+                                                            </span>
+                                                        </div>
+                                                        <p class="mt-0.5 text-white/80">
+                                                            [Cod: {{ selectedSecondCamera.formatted_cod || selectedSecondCamera.codInv }}] {{ selectedSecondCamera.marca }} {{ selectedSecondCamera.modelo }} {{ selectedSecondCamera.observation ? '· ' + selectedSecondCamera.observation : '' }}
+                                                        </p>
+                                                        <p class="text-[10px] text-emerald-300 mt-1 font-semibold">
+                                                            ✓ Al procesar la factura, ambas cámaras pasarán automáticamente a estatus VENDIDO.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <button type="button" @click="clearSecondCamera" class="text-white/60 hover:text-rose-400 transition ml-2">
+                                                    <i class="fa-solid fa-xmark"></i>
+                                                </button>
+                                            </div>
+
+                                            <div v-else-if="secondSearchError" class="p-2.5 bg-rose-900/60 border border-rose-400/40 rounded-xl text-xs text-rose-200 flex items-center gap-2">
+                                                <i class="fa-solid fa-triangle-exclamation text-rose-400"></i>
+                                                <span>{{ secondSearchError }}</span>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -669,26 +999,47 @@ const submitBilling = () => {
                                     </div>
                                     <div>
                                         <label class="block text-xs font-bold mb-2 uppercase opacity-80">Dirección (Opcional)</label>
-                                        <textarea v-model="form.client_address" rows="2" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:ring-2 focus:ring-white outline-none resize-none" placeholder="Dirección del cliente"></textarea>
+                                        <textarea v-model="form.client_address" rows="2" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:ring-2 focus:ring-white outline-none resize-none" placeholder="Dirección completa del cliente"></textarea>
                                     </div>
-                                    <div v-if="props.inventario.tipo && (props.inventario.tipo.toUpperCase().includes('MOTOR') || props.inventario.tipo.toUpperCase().includes('CAJA'))">
-                                        <label class="block text-xs font-bold mb-2 uppercase opacity-80">Detalles de Despacho (Cómo sale)</label>
-                                        <select v-model="form.observation" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white focus:ring-2 focus:ring-white outline-none font-bold text-sm" required>
+                                    <div>
+                                        <label class="block text-xs font-bold mb-2 uppercase opacity-80">
+                                            {{ isCamara ? 'Detalle y Lado de Despacho' : 'Detalles de Despacho (Cómo sale)' }}
+                                        </label>
+                                        <select v-if="isMotor || isCaja || isCamara" v-model="form.observation" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white focus:ring-2 focus:ring-white outline-none font-bold text-sm" required>
                                             <option value="" disabled class="text-gray-800">SELECCIONE UNA OPCIÓN</option>
-                                            <template v-if="props.inventario.tipo.toUpperCase().includes('MOTOR')">
+                                            <template v-if="isMotor">
                                                 <option value="MOTOR COMPLETO" class="text-gray-800">MOTOR COMPLETO</option>
                                                 <option value="MOTOR 7/8" class="text-gray-800">MOTOR 7/8</option>
                                                 <option value="MOTOR 3/4" class="text-gray-800">MOTOR 3/4</option>
                                             </template>
-                                            <template v-else-if="props.inventario.tipo.toUpperCase().includes('CAJA')">
+                                            <template v-else-if="isCaja">
                                                 <option value="CAJA COMPLETA" class="text-gray-800">CAJA COMPLETA</option>
                                                 <option value="CAJA SIN TURBINA" class="text-gray-800">CAJA SIN TURBINA</option>
                                             </template>
+                                            <template v-else-if="isCamara">
+                                                <option value="CÁMARA COMPLETA - LADO IZQUIERDO (L)" class="text-gray-800">CÁMARA COMPLETA - LADO IZQUIERDO (L)</option>
+                                                <option value="CÁMARA COMPLETA - LADO DERECHO (R)" class="text-gray-800">CÁMARA COMPLETA - LADO DERECHO (R)</option>
+                                                <option value="SOLO CAPARAZÓN - LADO IZQUIERDO (L)" class="text-gray-800">SOLO CAPARAZÓN - LADO IZQUIERDO (L)</option>
+                                                <option value="SOLO CAPARAZÓN - LADO DERECHO (R)" class="text-gray-800">SOLO CAPARAZÓN - LADO DERECHO (R)</option>
+                                                <option value="LADO IZQUIERDO" class="text-gray-800">LADO IZQUIERDO (L)</option>
+                                                <option value="LADO DERECHO" class="text-gray-800">LADO DERECHO (R)</option>
+                                                <option value="CÁMARA COMPLETA" class="text-gray-800">CÁMARA COMPLETA (ESTÁNDAR / PAR)</option>
+                                                <option value="SOLO CAPARAZÓN" class="text-gray-800">SOLO CAPARAZÓN (ESTÁNDAR / PAR)</option>
+                                                <option v-if="form.observation && !['CÁMARA COMPLETA - LADO IZQUIERDO (L)', 'CÁMARA COMPLETA - LADO DERECHO (R)', 'SOLO CAPARAZÓN - LADO IZQUIERDO (L)', 'SOLO CAPARAZÓN - LADO DERECHO (R)', 'LADO IZQUIERDO', 'LADO DERECHO', 'CÁMARA COMPLETA', 'SOLO CAPARAZÓN'].includes(form.observation)" :value="form.observation" class="text-gray-800">
+                                                    {{ form.observation }} (REGISTRADO)
+                                                </option>
+                                            </template>
                                         </select>
+                                        <textarea v-else v-model="form.observation" @input="form.observation = form.observation.toUpperCase()" rows="2" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:ring-2 focus:ring-white outline-none resize-none uppercase" placeholder="Ej: Observación de la venta..."></textarea>
                                     </div>
-                                    <div v-else>
-                                        <label class="block text-xs font-bold mb-2 uppercase opacity-80">Observación (Opcional)</label>
-                                        <textarea v-model="form.observation" @input="form.observation = form.observation.toUpperCase()" rows="2" class="block w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:ring-2 focus:ring-white outline-none resize-none uppercase" placeholder="Ej: Observación de la venta..."></textarea>
+
+                                    <!-- Warranty disclaimer for non-motors -->
+                                    <div v-if="!isMotor" class="p-3.5 bg-amber-500/20 border border-amber-400/40 rounded-2xl flex items-center gap-3 text-xs text-amber-100">
+                                        <i class="fa-solid fa-shield-halved text-amber-300 text-lg flex-shrink-0"></i>
+                                        <div>
+                                            <span class="font-bold uppercase tracking-wider block text-[11px] text-amber-200">Garantía Exclusiva para Motores</span>
+                                            <span class="text-[11px] text-white/80">Este ítem ({{ isCamara ? 'Cámara' : (isCaja ? 'Caja' : 'Repuesto') }}) no genera Póliza de Garantía. Solo se emitirá la factura fiscal/comercial.</span>
+                                        </div>
                                     </div>
                                     
                                     <button type="submit" :disabled="form.processing" class="w-full bg-white text-indigo-700 font-bold py-4 px-6 rounded-2xl shadow-xl transition-all transform hover:scale-[1.05] active:scale-95 disabled:opacity-50 flex items-center justify-center text-lg">

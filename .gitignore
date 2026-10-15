@@ -27,3 +27,6 @@ docker/mysql/data/
 .lesshst
 .npm/
 .composer/cache/
+
+*.xlsx
+*:Zone.Identifier

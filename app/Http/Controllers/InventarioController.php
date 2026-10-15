@@ -322,12 +322,38 @@ class InventarioController extends Controller
         $containerTasa = ($data->container && $data->container->tasa_bcv > 0) ? (float) $data->container->tasa_bcv : null;
         $tasaBCV = $itemTasa ?? ($containerTasa ?? ($tempTasa ? (float) $tempTasa : $officialTasa));
 
+        $availableCameras = [];
+        if ($data->is_camara) {
+            $availableCameras = Inventario::where('id', '!=', $data->id)
+                ->where(function ($q) {
+                    $q->where('tipo', 'like', '%CÁMARA%')
+                      ->orWhere('tipo', 'like', '%CAMARA%');
+                })
+                ->where('status', 'DISPONIBLE')
+                ->get()
+                ->map(function ($c) {
+                    return [
+                        'id' => $c->id,
+                        'codInv' => $c->codInv,
+                        'formatted_cod' => $c->formatted_cod,
+                        'marca' => $c->marca,
+                        'modelo' => $c->modelo,
+                        'tipo' => $c->tipo,
+                        'side' => $c->camera_side,
+                        'side_label' => $c->camera_side_label,
+                        'observation' => $c->observation,
+                        'label' => "[Cod: {$c->formatted_cod}] {$c->marca} {$c->modelo} - " . ($c->camera_side ? "LADO {$c->camera_side_label} ({$c->camera_side})" : "CÁMARA") . ($c->observation ? " ({$c->observation})" : ""),
+                    ];
+                });
+        }
+
         return inertia('Inventario/Show', [
             'inventario' => $data,
             'qrCode' => (string) $qrCode,
             'barcode' => (string) $barcode,
             'barcodeData' => $barcodeData,
             'tasa_bcv' => $tasaBCV,
+            'available_cameras' => $availableCameras,
         ]);
     }
 

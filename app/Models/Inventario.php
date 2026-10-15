@@ -37,6 +37,12 @@ class Inventario extends Model
     protected $appends = [
         'formatted_cod',
         'costo_taller',
+        'is_motor',
+        'is_camara',
+        'is_caja',
+        'camera_side',
+        'camera_side_label',
+        'label_title',
     ];
 
     protected $fillable = [
@@ -134,5 +140,82 @@ class Inventario extends Model
 
         $this->price = number_format($newPrice, 2, '.', '');
         $this->saveQuietly();
+    }
+    public function getIsMotorAttribute()
+    {
+        $all = strtoupper(iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', ($this->tipo ?? '') . ' ' . ($this->item ?? '')));
+        return str_contains($all, 'MOTOR');
+    }
+
+    public function getIsCamaraAttribute()
+    {
+        $all = strtoupper(iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', ($this->tipo ?? '') . ' ' . ($this->item ?? '')));
+        return str_contains($all, 'CAMARA') || str_contains($all, 'CULATA');
+    }
+
+    public function getIsCajaAttribute()
+    {
+        $all = strtoupper(iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', ($this->tipo ?? '') . ' ' . ($this->item ?? '')));
+        return str_contains($all, 'CAJA') || str_contains($all, 'TRANSMIS');
+    }
+
+    public function getCameraSideAttribute()
+    {
+        if (!$this->is_camara) {
+            return null;
+        }
+
+        $all = strtoupper(iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', ($this->observation ?? '') . ' ' . ($this->item ?? '') . ' ' . ($this->modelo ?? '')));
+        $obs = strtoupper(trim($this->observation ?? ''));
+
+        // Check Left: IZQUIERDA, IZQUIERDO, IZQ, LADO L, or standalone L
+        if (
+            preg_match('/\b(IZQUIERD[OA]|IZQ)\b/', $all) ||
+            preg_match('/LADO\s*L\b/', $all) ||
+            preg_match('/\bL\b/', $obs)
+        ) {
+            return 'L';
+        }
+
+        // Check Right: DERECHA, DERECHO, DER, LADO R, or standalone R
+        if (
+            preg_match('/\b(DERECH[OA]|DER)\b/', $all) ||
+            preg_match('/LADO\s*R\b/', $all) ||
+            preg_match('/\bR\b/', $obs)
+        ) {
+            return 'R';
+        }
+
+        return null;
+    }
+
+    public function getCameraSideLabelAttribute()
+    {
+        $side = $this->camera_side;
+        if ($side === 'L') return 'IZQUIERDA';
+        if ($side === 'R') return 'DERECHA';
+        return null;
+    }
+
+    public function getLabelTitleAttribute()
+    {
+        $marca = trim($this->marca ?? '');
+        $modelo = trim($this->modelo ?? '');
+
+        if ($this->is_camara) {
+            $side = $this->camera_side;
+            $sideText = $side ? " ({$side})" : "";
+            return "CÁMARA{$sideText} {$marca} {$modelo}";
+        }
+
+        if ($this->is_caja) {
+            return "CAJA {$marca} {$modelo}";
+        }
+
+        if (!$this->is_motor && $this->tipo) {
+            return "{$this->tipo} {$marca} {$modelo}";
+        }
+
+        return "{$marca} {$modelo}";
     }
 }

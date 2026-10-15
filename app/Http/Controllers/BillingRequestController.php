@@ -23,7 +23,7 @@ class BillingRequestController extends Controller
      */
     public function index()
     {
-        $requests = BillingRequest::with(['inventario.container', 'partida.container', 'user'])
+        $requests = BillingRequest::with(['inventario.container', 'partida.container', 'secondInventario.container', 'secondPartida.container', 'user'])
             ->where('status', 'pending')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -52,6 +52,7 @@ class BillingRequestController extends Controller
     {
         $request->validate([
             'partida_id' => 'required|exists:inventarios,id',
+            'second_partida_id' => 'nullable|exists:inventarios,id',
             'quantity' => 'required|integer|min:1',
             'price' => 'required|numeric',
             'tasa_bcv' => 'nullable|numeric|min:0',
@@ -67,6 +68,14 @@ class BillingRequestController extends Controller
             'observation' => 'nullable|string|max:1000',
         ]);
 
+        $secondPartida = null;
+        if ($request->filled('second_partida_id')) {
+            $secondPartida = \App\Models\Inventario::find($request->second_partida_id);
+            if ($secondPartida && in_array($secondPartida->status, ['INOPERATIVO-DESARMADO', 'USO INTERNO', 'VENDIDO'])) {
+                return redirect()->back()->withErrors(['second_partida_id' => 'La segunda cámara seleccionada no se encuentra disponible (Estatus: ' . $secondPartida->status . ').']);
+            }
+        }
+
         $partida = \App\Models\Inventario::findOrFail($request->partida_id);
         if ($partida->status === 'INOPERATIVO-DESARMADO' || $partida->status === 'USO INTERNO') {
             return redirect()->back()->withErrors(['partida_id' => 'No se puede facturar un ítem inoperativo, desarmado o de uso interno.']);
@@ -79,6 +88,7 @@ class BillingRequestController extends Controller
 
         $billingRequest = BillingRequest::create([
             'partida_id' => $request->partida_id,
+            'second_partida_id' => $request->second_partida_id,
             'user_id' => auth()->id(),
             'quantity' => $request->quantity,
             'price' => $request->price,
@@ -128,9 +138,13 @@ class BillingRequestController extends Controller
 
         $clientName = $request->client_name ? strip_tags($request->client_name) : 'No especificado';
 
+        $itemDisplay = $secondPartida 
+            ? "Par de Cámaras: {$partida->marca} {$partida->modelo} (L + R)"
+            : ($partida ? $partida->marca . ' ' . $partida->modelo : 'Item');
+
         $notification = new \App\Notifications\SystemAlertNotification(
             'Nueva Solicitud',
-            "El asesor " . auth()->user()->name . " solicitó facturar: " . ($partida ? $partida->marca . ' ' . $partida->modelo : 'Item') . " (Cliente: {$clientName}) por $" . number_format($request->price, 2),
+            "El asesor " . auth()->user()->name . " solicitó facturar: " . $itemDisplay . " (Cliente: {$clientName}) por $" . number_format($request->price, 2),
             route('billing.requests.index'),
             'fa-file-circle-exclamation',
             'amber',
@@ -142,7 +156,11 @@ class BillingRequestController extends Controller
         }
 
         // Notify via Telegram Group
-        $itemName = $partida ? "{$partida->marca} {$partida->modelo}" : 'Ítem';
+        if ($secondPartida) {
+            $itemName = "PAR DE CÁMARAS: {$partida->marca} {$partida->modelo} (L + R) [Items #{$partida->codInv} y #{$secondPartida->codInv}]";
+        } else {
+            $itemName = $partida ? "{$partida->marca} {$partida->modelo}" : 'Ítem';
+        }
         $vendedor = auth()->user()->name;
         
         $telegramMessage = "🔔 <b>Nueva Solicitud de Facturación</b>\n\n"
@@ -190,6 +208,7 @@ class BillingRequestController extends Controller
                 'fecha' => now()->format('Y-m-d'),
                 'hora' => now()->format('H:i:s'),
                 'partida_id' => $partida->id,
+                'second_partida_id' => $billingRequest->second_partida_id,
                 'precio_total' => $billingRequest->price, // Storing unit price as total for now, logic might differ if qty > 1
                 'user_id' => auth()->id(), // Processed by current user (Accountant)
                 'client_name' => $billingRequest->client_name,
@@ -209,13 +228,21 @@ class BillingRequestController extends Controller
             // For bulk items, we might check stock.
             if ($partida->stock >= $billingRequest->quantity) {
                 // $partida->decrement('stock', $billingRequest->quantity); 
-                // If item is unique (Engine/Box), mark as VENDIDO
+                // If item is unique (Engine/Box/Camera), mark as VENDIDO
                 if ($partida->stock <= $billingRequest->quantity) {
                     $partida->update(['status' => 'VENDIDO']);
                 }
             } else {
                 // Force sold if no stock tracking?
                 $partida->update(['status' => 'VENDIDO']);
+            }
+
+            // If it was a pair of cameras, mark the second camera as VENDIDO as well!
+            if ($billingRequest->second_partida_id) {
+                $secondPartida = \App\Models\Inventario::find($billingRequest->second_partida_id);
+                if ($secondPartida && $secondPartida->status !== 'VENDIDO') {
+                    $secondPartida->update(['status' => 'VENDIDO', 'price_sale' => 0]);
+                }
             }
 
             // 3. Mark Request as Processed

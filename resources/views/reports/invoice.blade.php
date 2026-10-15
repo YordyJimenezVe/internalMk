@@ -66,22 +66,56 @@
         </thead>
         <tbody>
             @if($bill->partida)
-                <tr>
-                    <td style="padding: 10px; text-align: center; border: 1px solid #ddd;">1</td>
-                    <td style="padding: 10px; border: 1px solid #ddd;">
-                        <strong>{{ $bill->partida->marca }} {{ $bill->partida->modelo }}</strong>
-                        <br>
-                        <span style="font-size: 10px; color: #666;">
-                            Año: {{ $bill->partida->año }} | Cod: {{ str_pad($bill->partida->codInv, 4, '0', STR_PAD_LEFT) }}
-                        </span>
-                    </td>
-                    <td style="padding: 10px; text-align: right; border: 1px solid #ddd;">
-                        {{ number_format($bill->divisa, 2) }}
-                    </td>
-                    <td style="padding: 10px; text-align: right; border: 1px solid #ddd;">
-                        {{ number_format($bill->divisa, 2) }}
-                    </td>
-                </tr>
+                @if($bill->is_pair_camera || !empty($bill->second_partida_id) || str_contains(strtoupper($bill->observaciones ?? ''), 'PAR DE CÁMARAS') || str_contains(strtoupper($bill->observaciones ?? ''), 'PAR DE CAMARAS'))
+                    <tr>
+                        <td style="padding: 10px; text-align: center; border: 1px solid #ddd; font-weight: bold;">
+                            1 (PAR)
+                        </td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">
+                            <strong style="color: #1E3A8A; font-size: 13px;">PAR DE CÁMARAS (JUEGO LADO DERECHO + IZQUIERDO)</strong>
+                            <br>
+                            <strong style="font-size: 12px;">{{ $bill->partida->marca }} {{ $bill->partida->modelo }}</strong>
+                            <div style="margin-top: 6px; padding: 6px 8px; background-color: #F8FAFC; border: 1px dashed #CBD5E1; border-radius: 4px; font-size: 10px; color: #334155; line-height: 1.5;">
+                                <div>• <strong>Cámara 1:</strong> [Cod: {{ str_pad($bill->partida->codInv, 4, '0', STR_PAD_LEFT) }}] Lado {{ $bill->partida->camera_side_label ?? 'DERECHO' }} ({{ $bill->partida->camera_side ?? 'R' }}) @if($bill->partida->container) - Exp: {{ $bill->partida->container->expediente }} @endif</div>
+                                @if($bill->secondPartida)
+                                    <div>• <strong>Cámara 2:</strong> [Cod: {{ str_pad($bill->secondPartida->codInv, 4, '0', STR_PAD_LEFT) }}] Lado {{ $bill->secondPartida->camera_side_label ?? 'IZQUIERDO' }} ({{ $bill->secondPartida->camera_side ?? 'L' }}) @if($bill->secondPartida->container) - Exp: {{ $bill->secondPartida->container->expediente }} @endif</div>
+                                @endif
+                                @if(!empty($bill->observaciones))
+                                    <div style="margin-top: 4px; color: #64748B; font-style: italic;">Detalles: {{ $bill->observaciones }}</div>
+                                @endif
+                            </div>
+                        </td>
+                        <td style="padding: 10px; text-align: right; border: 1px solid #ddd; font-weight: bold;">
+                            {{ number_format($bill->divisa, 2) }}
+                        </td>
+                        <td style="padding: 10px; text-align: right; border: 1px solid #ddd; font-weight: bold;">
+                            {{ number_format($bill->divisa, 2) }}
+                        </td>
+                    </tr>
+                @else
+                    <tr>
+                        <td style="padding: 10px; text-align: center; border: 1px solid #ddd;">1</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">
+                            <strong>{{ $bill->partida->marca }} {{ $bill->partida->modelo }}</strong>
+                            <br>
+                            <span style="font-size: 10px; color: #666;">
+                                Tipo: {{ $bill->tipo_item ?? $bill->partida->tipo }} | Año: {{ $bill->partida->año }} | Cod: {{ str_pad($bill->partida->codInv, 4, '0', STR_PAD_LEFT) }}
+                                @if($bill->partida->camera_side)
+                                    | Lado: {{ $bill->partida->camera_side_label }} ({{ $bill->partida->camera_side }})
+                                @endif
+                            </span>
+                            @if(!empty($bill->observaciones))
+                                <br><span style="font-size: 9px; color: #888; font-style: italic;">Detalles: {{ $bill->observaciones }}</span>
+                            @endif
+                        </td>
+                        <td style="padding: 10px; text-align: right; border: 1px solid #ddd;">
+                            {{ number_format($bill->divisa, 2) }}
+                        </td>
+                        <td style="padding: 10px; text-align: right; border: 1px solid #ddd;">
+                            {{ number_format($bill->divisa, 2) }}
+                        </td>
+                    </tr>
+                @endif
             @else
                 <tr>
                     <td colspan="4" style="text-align: center; padding: 20px;">Sin detalles de partida asociados</td>

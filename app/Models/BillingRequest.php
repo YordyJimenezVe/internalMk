@@ -7,8 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class BillingRequest extends Model
 {
-    protected $fillable = [
+        protected $fillable = [
         'partida_id',
+        'second_partida_id',
         'user_id',
         'quantity',
         'price',
@@ -23,6 +24,25 @@ class BillingRequest extends Model
         'status',
         'observation',
     ];
+
+    protected $appends = [
+        'is_pair_camera',
+    ];
+
+    public function getIsPairCameraAttribute()
+    {
+        return !empty($this->second_partida_id);
+    }
+
+    public function secondInventario()
+    {
+        return $this->belongsTo(Inventario::class, 'second_partida_id');
+    }
+
+    public function secondPartida()
+    {
+        return $this->belongsTo(Inventario::class, 'second_partida_id');
+    }
 
     public function inventario()
     {

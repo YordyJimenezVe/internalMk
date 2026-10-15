@@ -12,7 +12,14 @@ const props = defineProps({
 const showCedulaModal = ref(false);
 const showSerialZoomModal = ref(false);
 
-const formatSerial = (serial, imageUrl = null) => {
+const formatSerial = (serial, imageUrl = null, tipo = '') => {
+    const t = String(tipo || '').toUpperCase();
+    if (t.includes('CÁMARA') || t.includes('CAMARA') || t.includes('CULATA')) {
+        return 'NO APLICA (CÁMARA)';
+    }
+    if (t.includes('CAJA')) {
+        return 'NO APLICA (CAJA)';
+    }
     if (!serial && !imageUrl) return 'NO APARENTA SERIAL';
     if (!serial) return 'VER FOTO ADJUNTA';
     const upper = serial.toUpperCase();
@@ -183,10 +190,12 @@ const formatSerial = (serial, imageUrl = null) => {
                             
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div class="space-y-4">
-                                    <div v-if="data.tipo && (data.tipo.toUpperCase().includes('MOTOR') || data.tipo.toUpperCase().includes('CAJA'))">
-                                        <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="observaciones">Detalles de Despacho (Cómo sale)</label>
+                                    <div v-if="data.tipo && (data.tipo.toUpperCase().includes('MOTOR') || data.tipo.toUpperCase().includes('CAJA') || data.tipo.toUpperCase().includes('CÁMARA') || data.tipo.toUpperCase().includes('CAMARA') || data.tipo.toUpperCase().includes('CULATA'))">
+                                        <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="observaciones">
+                                            {{ (data.tipo.toUpperCase().includes('CÁMARA') || data.tipo.toUpperCase().includes('CAMARA') || data.tipo.toUpperCase().includes('CULATA')) ? 'Detalle y Lado de Despacho (Cámara)' : 'Detalles de Despacho (Cómo sale)' }}
+                                        </label>
                                         <select class="block w-full bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-sm" v-model="observaciones" name="observaciones" required>
-                                            <option value="" disabled>SELECCIONE UNA OPCIÓN</option>
+                                            <option value="" disabled>SELECCIONE UNA OPCION</option>
                                             <template v-if="data.tipo.toUpperCase().includes('MOTOR')">
                                                 <option value="MOTOR COMPLETO">MOTOR COMPLETO</option>
                                                 <option value="MOTOR 7/8">MOTOR 7/8</option>
@@ -195,6 +204,19 @@ const formatSerial = (serial, imageUrl = null) => {
                                             <template v-else-if="data.tipo.toUpperCase().includes('CAJA')">
                                                 <option value="CAJA COMPLETA">CAJA COMPLETA</option>
                                                 <option value="CAJA SIN TURBINA">CAJA SIN TURBINA</option>
+                                            </template>
+                                            <template v-else-if="data.tipo.toUpperCase().includes('CÁMARA') || data.tipo.toUpperCase().includes('CAMARA') || data.tipo.toUpperCase().includes('CULATA')">
+                                                <option value="CÁMARA COMPLETA - LADO IZQUIERDO (L)">CÁMARA COMPLETA - LADO IZQUIERDO (L)</option>
+                                                <option value="CÁMARA COMPLETA - LADO DERECHO (R)">CÁMARA COMPLETA - LADO DERECHO (R)</option>
+                                                <option value="SOLO CAPARAZÓN - LADO IZQUIERDO (L)">SOLO CAPARAZÓN - LADO IZQUIERDO (L)</option>
+                                                <option value="SOLO CAPARAZÓN - LADO DERECHO (R)">SOLO CAPARAZÓN - LADO DERECHO (R)</option>
+                                                <option value="LADO IZQUIERDO">LADO IZQUIERDO (L)</option>
+                                                <option value="LADO DERECHO">LADO DERECHO (R)</option>
+                                                <option value="CÁMARA COMPLETA">CÁMARA COMPLETA (PAR / CENTRAL)</option>
+                                                <option value="SOLO CAPARAZÓN">SOLO CAPARAZÓN (PAR / CENTRAL)</option>
+                                                <option v-if="observaciones && !['CÁMARA COMPLETA - LADO IZQUIERDO (L)', 'CÁMARA COMPLETA - LADO DERECHO (R)', 'SOLO CAPARAZÓN - LADO IZQUIERDO (L)', 'SOLO CAPARAZÓN - LADO DERECHO (R)', 'LADO IZQUIERDO', 'LADO DERECHO', 'CÁMARA COMPLETA', 'SOLO CAPARAZÓN'].includes(observaciones)" :value="observaciones">
+                                                    {{ observaciones }}
+                                                </option>
                                             </template>
                                         </select>
                                     </div>
@@ -231,9 +253,9 @@ const formatSerial = (serial, imageUrl = null) => {
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div class="p-4 bg-indigo-50/50 dark:bg-indigo-900/20 rounded-2xl border border-indigo-100 dark:border-indigo-900/30">
                                             <label class="block text-[10px] font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-widest mb-1 flex items-center gap-1">
-                                                <i class="fa-solid fa-barcode text-indigo-500"></i> Serial del Motor / Caja
+                                                <i class="fa-solid fa-barcode text-indigo-500"></i> Serial del Motor
                                             </label>
-                                            <p class="text-sm font-black text-indigo-900 dark:text-indigo-300 uppercase">{{ formatSerial(data.serial, data.serial_image_url) }}</p>
+                                            <p class="text-sm font-black text-indigo-900 dark:text-indigo-300 uppercase">{{ formatSerial(data.serial, data.serial_image_url, data.tipo) }}</p>
                                         </div>
                                         <div class="p-4 bg-indigo-50/50 dark:bg-indigo-900/20 rounded-2xl border border-indigo-100 dark:border-indigo-900/30">
                                             <label class="block text-[10px] font-black text-indigo-700 dark:text-indigo-400 uppercase tracking-widest mb-1 flex items-center gap-1">
@@ -423,10 +445,19 @@ export default {
         this.clientAddress = this.data['client_address'] || '';
         this.clientEmail = this.data['client_email'] || '';
         this.partida = this.data.id;
-        const validOptions = ['MOTOR COMPLETO', 'MOTOR 7/8', 'MOTOR 3/4', 'CAJA COMPLETA', 'CAJA SIN TURBINA'];
+        const tipoUpper = (this.data.tipo || '').toUpperCase();
         const obsUpper = (this.data['observation'] || '').trim().toUpperCase();
+        const isCamaraItem = tipoUpper.includes('CÁMARA') || tipoUpper.includes('CAMARA') || tipoUpper.includes('CULATA');
+        const isCajaItem = tipoUpper.includes('CAJA');
+
+        const validOptions = ['MOTOR COMPLETO', 'MOTOR 7/8', 'MOTOR 3/4', 'CAJA COMPLETA', 'CAJA SIN TURBINA'];
         const matched = validOptions.find(opt => obsUpper === opt || obsUpper.includes(opt));
-        if (matched) {
+
+        if (isCamaraItem) {
+            this.observaciones = obsUpper || 'CÁMARA COMPLETA';
+        } else if (isCajaItem) {
+            this.observaciones = obsUpper.includes('SIN TURBINA') ? 'CAJA SIN TURBINA' : 'CAJA COMPLETA';
+        } else if (matched) {
             this.observaciones = matched;
         } else if (obsUpper.includes('COMPLETO')) {
             this.observaciones = 'MOTOR COMPLETO';

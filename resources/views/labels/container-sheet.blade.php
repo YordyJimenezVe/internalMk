@@ -67,6 +67,58 @@
             width: 100%;
         }
 
+        
+        .qr-row {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3mm;
+            margin: 0;
+        }
+
+        .side-badge {
+            width: 15.5mm;
+            height: 15.5mm;
+            border: 1.8px solid #000;
+            border-radius: 4px;
+            background: #000;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            padding: 1px;
+            flex-shrink: 0;
+        }
+
+        .side-badge .side-letter {
+            font-size: 24px;
+            font-weight: 900;
+            line-height: 1;
+            font-family: Arial, Helvetica, sans-serif;
+            letter-spacing: -0.5px;
+        }
+
+        .side-badge .side-letter-sm {
+            font-size: 11px;
+            font-weight: 900;
+            line-height: 1.1;
+            font-family: Arial, Helvetica, sans-serif;
+            letter-spacing: 0.5px;
+        }
+
+        .side-badge .side-sub {
+            font-size: 7.5px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            line-height: 1;
+            margin-top: 1px;
+            text-transform: uppercase;
+            opacity: 0.9;
+        }
+
         .qr-code {
             margin: 0;
             display: flex;
@@ -113,10 +165,46 @@
                 @foreach($pageLabels as $label)
                     <div class="label-cell">
                         <div class="info-value">
-                            {{ $label['inventario']->marca }} {{ $label['inventario']->modelo }}
+                            {{ $label['inventario']->label_title }}
                         </div>
-                        <div class="qr-code">
-                            <img src="data:image/svg+xml;base64,{{ $label['qrCode'] }}" width="58" height="58">
+                        <div class="qr-row">
+                            @if(!$label['inventario']->is_motor && $label['inventario']->camera_side)
+                                <div class="side-badge">
+                                    <span class="side-letter">{{ $label['inventario']->camera_side }}</span>
+                                    <span class="side-sub">{{ $label['inventario']->camera_side === 'L' ? 'IZQ' : 'DER' }}</span>
+                                </div>
+                            @elseif(!$label['inventario']->is_motor && $label['inventario']->is_caja)
+                                <div class="side-badge">
+                                    <span class="side-letter-sm">CAJA</span>
+                                    <span class="side-sub">TRANS</span>
+                                </div>
+                            @elseif(!$label['inventario']->is_motor && $label['inventario']->is_camara)
+                                <div class="side-badge">
+                                    <span class="side-letter-sm">C?M</span>
+                                    <span class="side-sub">CULATA</span>
+                                </div>
+                            @endif
+
+                            <div class="qr-code">
+                                <img src="data:image/svg+xml;base64,{{ $label['qrCode'] }}" width="58" height="58">
+                            </div>
+
+                            @if(!$label['inventario']->is_motor && $label['inventario']->camera_side)
+                                <div class="side-badge">
+                                    <span class="side-letter">{{ $label['inventario']->camera_side }}</span>
+                                    <span class="side-sub">{{ $label['inventario']->camera_side === 'L' ? 'IZQ' : 'DER' }}</span>
+                                </div>
+                            @elseif(!$label['inventario']->is_motor && $label['inventario']->is_caja)
+                                <div class="side-badge">
+                                    <span class="side-letter-sm">CAJA</span>
+                                    <span class="side-sub">TRANS</span>
+                                </div>
+                            @elseif(!$label['inventario']->is_motor && $label['inventario']->is_camara)
+                                <div class="side-badge">
+                                    <span class="side-letter-sm">C?M</span>
+                                    <span class="side-sub">CULATA</span>
+                                </div>
+                            @endif
                         </div>
                         <div class="barcode">
                             <img src="data:image/png;base64,{{ $label['barcode'] }}" width="135" height="14">
