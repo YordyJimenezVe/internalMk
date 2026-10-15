@@ -47,6 +47,7 @@ CREATE TABLE `accesorio_engines` (
 CREATE TABLE `billings` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `partida_id` bigint(20) UNSIGNED DEFAULT NULL,
+  `second_partida_id` bigint(20) UNSIGNED DEFAULT NULL,
   `big` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `iva` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `bs` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -137,6 +138,9 @@ INSERT INTO `billings` (`id`, `partida_id`, `big`, `iva`, `bs`, `value_divisa`, 
 (57, 144, '418.829,82', '67.012,77', NULL, '876.80', '2600', '485.842,59', 477.68, '0,00', '2026-10-13', '10:42:00', 'A001305', NULL, NULL, NULL, 3, 'RUTAS ELITE MARÍA RODRÍGUEZ F.P', 'V-23585164-0', NULL, 'Calle eleazar López Contreras, sector la colina, coro falcón', '', NULL, '2026-10-13 16:42:14', '2026-10-13 16:42:14', 'MOTOR 7/8'),
 (58, 25, '106.057,73', '16.969,24', NULL, '876.80', '2500', '123.026,97', 120.96, '0,00', '2026-10-13', '10:42:00', '1558', NULL, NULL, NULL, 3, 'FROILAN ALEXANDER GOMEZ', '8733842', '04144155877', 'Maracay Estado Aragua', '', NULL, '2026-10-13 17:01:24', '2026-10-13 17:01:24', 'MOTOR 7/8'),
 (59, 283, '126.259,20', '20.201,47', NULL, '876.80', '1500', '146.460,67', 144.00, '0,00', '2026-10-13', '11:41:00', '1559', NULL, NULL, NULL, 3, 'MANUEL EDUARDO DA SILVA PITA', '15297199', '04144715574', 'Aguirre sector la Guamita Municipio Montalban Edo Carabobo', '', NULL, '2026-10-13 17:50:56', '2026-10-13 17:50:56', 'MOTOR COMPLETO');
+INSERT INTO `billings` (`id`, `partida_id`, `second_partida_id`, `big`, `iva`, `bs`, `value_divisa`, `divisa`, `precio_total`, `total`, `igtf`, `fecha`, `hora`, `numero_factura`, `numero_control`, `numero_nota_credito`, `numero_factura_afect`, `user_id`, `client_name`, `client_cedula`, `client_phone`, `client_address`, `status`, `client_email`, `created_at`, `updated_at`, `observaciones`) VALUES
+(60, 350, NULL, '337.045,82', '53.927,33', NULL, '879.12', '2200', '390.973,15', 383.39, '0,00', '2026-10-15', '13:08:00', '1561', NULL, NULL, NULL, 1, 'JOSÉ TORRES PINTO', '14264037', '04147544813', 'SAN CRISTÓBAL ESTADO TÁCHIRA', '', NULL, '2026-10-15 13:08:57', '2026-10-15 13:08:57', 'MOTOR COMPLETO');
+
 
 -- --------------------------------------------------------
 
@@ -147,6 +151,7 @@ INSERT INTO `billings` (`id`, `partida_id`, `big`, `iva`, `bs`, `value_divisa`, 
 CREATE TABLE `billing_requests` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `partida_id` bigint(20) UNSIGNED NOT NULL,
+  `second_partida_id` bigint(20) UNSIGNED DEFAULT NULL,
   `user_id` bigint(20) UNSIGNED NOT NULL,
   `quantity` int(11) NOT NULL DEFAULT '1',
   `price` decimal(10,2) NOT NULL,
@@ -228,6 +233,9 @@ INSERT INTO `billing_requests` (`id`, `partida_id`, `user_id`, `quantity`, `pric
 (81, 25, 1, 1, 2500.00, 874.7300, '2026-10-13', 'FROILAN ALEXANDER GOMEZ', '8733842', NULL, '04144155877', 'Maracay Estado Aragua', NULL, 'processed', '2026-10-13 15:19:10', '2026-10-13 17:01:24', 'MOTOR 7/8'),
 (82, 144, 1, 1, 2600.00, 282.5100, '2026-10-13', 'RUTAS ELITE MARÍA RODRÍGUEZ F.P', 'V-23585164-0', NULL, NULL, 'Calle eleazar López Contreras, sector la colina, coro falcón', NULL, 'processed', '2026-10-13 15:32:02', '2026-10-13 16:42:14', 'MOTOR 7/8'),
 (83, 283, 1, 1, 1500.00, 28.3500, '2026-10-13', 'MANUEL EDUARDO DA SILVA PITA', '15297199', NULL, '04144715574', 'Aguirre sector la Guamita Municipio Montalban Edo Carabobo', NULL, 'processed', '2026-10-13 17:31:50', '2026-10-13 17:50:56', 'MOTOR COMPLETO');
+INSERT INTO `billing_requests` (`id`, `partida_id`, `second_partida_id`, `user_id`, `quantity`, `price`, `tasa_bcv`, `fecha_tasa_bcv`, `client_name`, `client_cedula`, `client_cedula_file`, `client_phone`, `client_address`, `client_email`, `status`, `created_at`, `updated_at`, `observation`) VALUES
+(86, 350, NULL, 1, 1, 2200.00, 736.9300, '2026-10-15', 'JOSÉ TORRES PINTO', '14264037', NULL, '04147544813', 'SAN CRISTÓBAL ESTADO TÁCHIRA', NULL, 'processed', '2026-10-15 13:08:32', '2026-10-15 13:08:57', 'MOTOR COMPLETO');
+
 
 -- --------------------------------------------------------
 
@@ -2797,7 +2805,9 @@ INSERT INTO `bitacoras` (`id`, `users_id`, `action`, `description`, `created_at`
 (2580, 1, 'CREACIÓN DE INVENTARIO: CÁMARA FORD 3.6L 3V', 'EL USUARIO YORDY JIMENEZ CREÓ UN NUEVO REGISTRO DE INVENTARIO CON ID #669.', '2026-10-14 15:44:33', '2026-10-14 15:44:33'),
 (2581, 1, 'CREACIÓN DE INVENTARIO: CÁMARA FORD 3.6L 3V', 'EL USUARIO YORDY JIMENEZ CREÓ UN NUEVO REGISTRO DE INVENTARIO CON ID #670.', '2026-10-14 15:44:35', '2026-10-14 15:44:35'),
 (2582, 1, 'CREACIÓN DE INVENTARIO: CÁMARA FORD 3.6L 3V', 'EL USUARIO YORDY JIMENEZ CREÓ UN NUEVO REGISTRO DE INVENTARIO CON ID #671.', '2026-10-14 15:44:38', '2026-10-14 15:44:38'),
-(2583, 1, 'CREACIÓN DE INVENTARIO: CÁMARA FORD 3.6L 3V', 'EL USUARIO YORDY JIMENEZ CREÓ UN NUEVO REGISTRO DE INVENTARIO CON ID #672.', '2026-10-14 15:44:40', '2026-10-14 15:44:40');
+(2583, 1, 'CREACIÓN DE INVENTARIO: CÁMARA FORD 3.6L 3V', 'EL USUARIO YORDY JIMENEZ CREÓ UN NUEVO REGISTRO DE INVENTARIO CON ID #672.', '2026-10-14 15:44:40', '2026-10-14 15:44:40'),
+(2588, 1, 'CREACIÓN DE FACTURACIÓN: 1561', 'EL USUARIO YORDY JIMENEZ CREÓ UN NUEVO REGISTRO DE FACTURACIÓN CON ID #60.', '2026-10-15 13:08:57', '2026-10-15 13:08:57'),
+(2589, 1, 'ACTUALIZACIÓN DE INVENTARIO: MOTOR 7/8 FORD V8 4.6L 3V', 'EL USUARIO YORDY JIMENEZ ACTUALIZÓ EL REGISTRO DE INVENTARIO #350. SE CAMBIÓ \'STATUS\' DE \'DISPONIBLE\' A \'VENDIDO\', SE CAMBIÓ \'PRICE_SALE\' DE \'2200\' A \'383.39\'', '2026-10-15 13:08:57', '2026-10-15 13:08:57');
 
 -- --------------------------------------------------------
 
@@ -2941,7 +2951,8 @@ INSERT INTO `exchange_rates` (`id`, `rate`, `source`, `created_at`, `updated_at`
 (49, 872.3927, 'BCV', '2026-10-06 16:44:10', '2026-10-06 16:44:10'),
 (50, 873.8670, 'BCV', '2026-10-07 20:46:40', '2026-10-07 20:46:40'),
 (51, 874.7321, 'BCV', '2026-10-08 15:09:59', '2026-10-08 15:09:59'),
-(52, 876.7976, 'BCV', '2026-10-13 16:42:06', '2026-10-13 16:42:06');
+(52, 876.7976, 'BCV', '2026-10-13 16:42:06', '2026-10-13 16:42:06'),
+(53, 879.1225, 'BCV', '2026-10-15 13:08:42', '2026-10-15 13:08:42');
 
 -- --------------------------------------------------------
 
@@ -3351,7 +3362,7 @@ INSERT INTO `inventarios` (`id`, `origen`, `item`, `tipo`, `marca`, `modelo`, `s
 (347, 'IMPORTADO', 'MOTOR COMPLETO MACK EM6-237', 'MOTOR COMPLETO', 'MACK', 'EM6-237', '', NULL, '1986', '347', '260723', 'APLICA', 'DISPONIBLE', '282532.91', 218.00, 160651.39, 96196.71, 10.00, 736.9330, '2026-07-23', '444.73', 27, '2026-07-31 17:40:09', '2026-10-02 21:35:28', NULL, NULL, NULL),
 (348, 'IMPORTADO', 'MOTOR COMPLETO INTERNATIONAL DT466', 'MOTOR COMPLETO', 'INTERNATIONAL', 'DT466', '', NULL, '1976-2008', '348', '260723', 'APLICA', 'DISPONIBLE', '282532.91', 218.00, 160651.39, 96196.71, 10.00, 736.9330, '2026-07-23', '444.73', 27, '2026-07-31 18:08:33', '2026-10-02 21:35:28', NULL, NULL, NULL),
 (349, 'IMPORTADO', 'MOTOR 7/8 FORD V8 4.6L 3V', 'MOTOR 7/8', 'FORD', 'V8 4.6L 3V', '', NULL, '2006-2010', '349', '260723', 'APLICA', 'DISPONIBLE', '282532.91', 218.00, 160651.39, 96196.71, 10.00, 736.9330, '2026-07-23', '444.73', 27, '2026-07-31 18:31:22', '2026-10-02 21:35:28', NULL, NULL, NULL),
-(350, 'IMPORTADO', 'MOTOR 7/8 FORD V8 4.6L 3V', 'MOTOR 7/8', 'FORD', 'V8 4.6L 3V', '', NULL, '2006-2010', '350', '260723', 'APLICA', 'DISPONIBLE', '282532.91', 218.00, 160651.39, 96196.71, 10.00, 736.9330, '2026-07-23', '444.73', 27, '2026-07-31 18:31:37', '2026-10-02 21:35:28', NULL, NULL, NULL),
+(350, 'IMPORTADO', 'MOTOR 7/8 FORD V8 4.6L 3V', 'MOTOR 7/8', 'FORD', 'V8 4.6L 3V', '', NULL, '2006-2010', '350', '260723', 'APLICA', 'VENDIDO', '282532.91', 218.00, 160651.39, 96196.71, 10.00, 736.9330, '2026-07-23', '383.39', 27, '2026-07-31 18:31:37', '2026-10-15 13:08:57', NULL, NULL, NULL),
 (351, 'IMPORTADO', 'MOTOR 7/8 FORD V8 4.6L 3V', 'MOTOR 7/8', 'FORD', 'V8 4.6L 3V', '', NULL, '2006-2010', '351', '260723', 'APLICA', 'DISPONIBLE', '282532.91', 218.00, 160651.39, 96196.71, 10.00, 736.9330, '2026-07-23', '444.73', 27, '2026-07-31 18:31:52', '2026-10-02 21:35:28', NULL, NULL, NULL),
 (352, 'IMPORTADO', 'MOTOR 7/8 FORD V8 4.6L 3V', 'MOTOR 7/8', 'FORD', 'V8 4.6L 3V', '', NULL, '2006-2010', '352', '260723', 'APLICA', 'DISPONIBLE', '282532.91', 218.00, 160651.39, 96196.71, 10.00, 736.9330, '2026-07-23', '444.73', 27, '2026-07-31 18:55:25', '2026-10-02 21:35:28', NULL, NULL, NULL),
 (353, 'IMPORTADO', 'MOTOR 7/8 TOYOTA 2TR VVTI', 'MOTOR 7/8', 'TOYOTA', '2TR VVTI', '', NULL, '2004-2026', '353', '260723', 'APLICA', 'DISPONIBLE', '282532.91', 218.00, 160651.39, 96196.71, 10.00, 736.9330, '2026-07-23', '444.73', 27, '2026-07-31 18:56:23', '2026-10-02 21:35:28', NULL, NULL, NULL),
@@ -4637,19 +4648,19 @@ ALTER TABLE `accesorio_engines`
 -- AUTO_INCREMENT de la tabla `billings`
 --
 ALTER TABLE `billings`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=60;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=61;
 
 --
 -- AUTO_INCREMENT de la tabla `billing_requests`
 --
 ALTER TABLE `billing_requests`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=84;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=87;
 
 --
 -- AUTO_INCREMENT de la tabla `bitacoras`
 --
 ALTER TABLE `bitacoras`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2584;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2590;
 
 --
 -- AUTO_INCREMENT de la tabla `containers`
@@ -4667,7 +4678,7 @@ ALTER TABLE `employees`
 -- AUTO_INCREMENT de la tabla `exchange_rates`
 --
 ALTER TABLE `exchange_rates`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=53;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=54;
 
 --
 -- AUTO_INCREMENT de la tabla `failed_jobs`
