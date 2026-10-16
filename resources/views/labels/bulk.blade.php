@@ -40,17 +40,32 @@
             page-break-after: auto;
         }
 
+        .info-title-container {
+            width: 100%;
+            height: 5.5mm;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin: 0;
+            padding: 0 0.5mm;
+            box-sizing: border-box;
+        }
+
         .info-value {
-            font-size: 10px;
-            font-weight: bold;
+            font-size: 8.5px;
+            font-weight: 800;
             color: #000;
             margin: 0;
-            line-height: 1.1;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            width: 100%;
+            line-height: 1.15;
             text-transform: uppercase;
+            text-align: center;
+            width: 100%;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            word-break: normal;
         }
 
         
@@ -169,8 +184,10 @@
 <body>
     @foreach($labels as $index => $label)
         <div class="label-cell">
-            <div class="info-value">
-                {{ $label['inventario']->label_title }}
+            <div class="info-title-container">
+                <div class="info-value">
+                    {{ $label['inventario']->label_title }}
+                </div>
             </div>
 
             <div class="qr-row">

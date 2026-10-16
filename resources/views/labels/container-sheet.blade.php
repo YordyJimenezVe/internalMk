@@ -51,21 +51,36 @@
             flex-direction: column;
             align-items: center;
             justify-content: space-between; /* Distribuye el contenido para que no se encime ni se corte */
-            padding: 6mm 1.2mm 1.2mm 1.2mm; /* 6mm libres arriba para la perforadora y balance de elementos */
+            padding: 4.5mm 1.2mm 1.2mm 1.2mm; /* 4.5mm libres arriba para la perforadora */
             overflow: hidden;
-            border: 0.1mm dashed #ccc; /* Líneas de corte */
+            border: 0.1mm dashed #ccc; /* Líneas de corte */}
+
+        .info-title-container {
+            width: 100%;
+            height: 6.2mm;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin: 0;
+            padding: 0 0.8mm;
+            box-sizing: border-box;
         }
 
         .info-value {
-            font-size: 11.5px; /* Letra clara y visible */
+            font-size: 9.5px; /* Permite hasta 2 líneas completas sin recortar con ... */
             font-weight: 800;
             color: #000;
             margin: 0;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            width: 100%;
+            line-height: 1.15;
             text-transform: uppercase;
+            text-align: center;
+            width: 100%;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            word-break: normal;
         }
 
         
@@ -128,8 +143,8 @@
         }
 
         .qr-code img {
-            width: 18.5mm;
-            height: 18.5mm;
+            width: 17.5mm;
+            height: 17.5mm;
             display: block;
         }
 
@@ -171,8 +186,10 @@
             <div class="grid-container">
                 @foreach($pageLabels as $label)
                     <div class="label-cell">
-                        <div class="info-value">
-                            {{ $label['inventario']->label_title }}
+                        <div class="info-title-container">
+                            <div class="info-value">
+                                {{ $label['inventario']->label_title }}
+                            </div>
                         </div>
                         <div class="qr-row">
                             @if(!$label['inventario']->is_motor && $label['inventario']->camera_side)
