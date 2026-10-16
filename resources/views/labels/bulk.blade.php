@@ -64,10 +64,10 @@
         }
 
         .side-badge {
-            width: 13mm;
-            height: 13mm;
-            border: 1.5px solid #000;
-            border-radius: 3px;
+            width: 7.5mm;
+            height: 7.5mm;
+            border: 1px solid #000;
+            border-radius: 2px;
             background: #000;
             color: #fff;
             display: flex;
@@ -75,14 +75,14 @@
             align-items: center;
             justify-content: center;
             box-sizing: border-box;
-            padding: 1px;
+            padding: 0.5px;
             flex-shrink: 0;
         }
 
         .side-badge .side-letter {
-            font-size: 18px;
+            font-size: 12px;
             font-weight: 900;
-            line-height: 1;
+            line-height: 0.95;
             font-family: Arial, Helvetica, sans-serif;
             letter-spacing: -0.5px;
         }
@@ -96,13 +96,13 @@
         }
 
         .side-badge .side-sub {
-            font-size: 6px;
+            font-size: 4.5px;
             font-weight: 800;
-            letter-spacing: 0.4px;
+            letter-spacing: 0.3px;
             line-height: 1;
             margin-top: 1px;
             text-transform: uppercase;
-            opacity: 0.9;
+            opacity: 0.95;
         }
 
         .qr-code {
@@ -113,8 +113,8 @@
         }
 
         .qr-code img {
-            width: 48px;
-            height: 48px;
+            width: 15mm;
+            height: 15mm;
             display: block;
         }
 
@@ -182,7 +182,7 @@
                 @endif
 
                 <div class="qr-code">
-                    <img src="data:image/svg+xml;base64,{{ $label['qrCode'] }}" width="48" height="48" alt="QR Code">
+                    <img src="data:image/svg+xml;base64,{{ $label['qrCode'] }}" width="56" height="56" alt="QR Code">
                 </div>
             </div>
             <div class="barcode">

@@ -51,7 +51,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: space-between; /* Distribuye el contenido para que no se encime ni se corte */
-            padding: 6.5mm 1.2mm 1.5mm 1.2mm; /* 6.5mm libres arriba para la perforadora */
+            padding: 6mm 1.2mm 1.2mm 1.2mm; /* 6mm libres arriba para la perforadora y balance de elementos */
             overflow: hidden;
             border: 0.1mm dashed #ccc; /* Líneas de corte */
         }
@@ -74,15 +74,15 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 3.5mm;
+            gap: 2.8mm;
             margin: 0;
         }
 
         .side-badge {
-            width: 16mm;
-            height: 16mm;
-            border: 1.5px solid #000;
-            border-radius: 3.5px;
+            width: 9.5mm;
+            height: 9.5mm;
+            border: 1px solid #000;
+            border-radius: 2.5px;
             background: #000;
             color: #fff;
             display: flex;
@@ -90,14 +90,14 @@
             align-items: center;
             justify-content: center;
             box-sizing: border-box;
-            padding: 1px;
+            padding: 0.5px;
             flex-shrink: 0;
         }
 
         .side-badge .side-letter {
-            font-size: 24px;
+            font-size: 15px;
             font-weight: 900;
-            line-height: 1;
+            line-height: 0.95;
             font-family: Arial, Helvetica, sans-serif;
             letter-spacing: -0.5px;
         }
@@ -111,13 +111,13 @@
         }
 
         .side-badge .side-sub {
-            font-size: 7.5px;
+            font-size: 5.5px;
             font-weight: 800;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.4px;
             line-height: 1;
             margin-top: 1px;
             text-transform: uppercase;
-            opacity: 0.9;
+            opacity: 0.95;
         }
 
         .qr-code {
@@ -125,6 +125,12 @@
             display: flex;
             justify-content: center;
             align-items: center;
+        }
+
+        .qr-code img {
+            width: 18.5mm;
+            height: 18.5mm;
+            display: block;
         }
 
         .barcode {
@@ -177,7 +183,7 @@
                             @endif
 
                             <div class="qr-code">
-                                <img src="data:image/svg+xml;base64,{{ $label['qrCode'] }}" width="58" height="58" alt="QR Code">
+                                <img src="data:image/svg+xml;base64,{{ $label['qrCode'] }}" width="70" height="70" alt="QR Code">
                             </div>
                         </div>
                         <div class="barcode">
