@@ -106,11 +106,28 @@ const getDefaultDispatchDetail = () => {
     const obs = props.inventario.observation ? props.inventario.observation.trim().toUpperCase() : '';
 
     if (isCamara.value) {
-        if (obs) return obs;
-        const side = props.inventario.camera_side;
-        if (side === 'L') return 'CÁMARA COMPLETA - LADO IZQUIERDO (L)';
-        if (side === 'R') return 'CÁMARA COMPLETA - LADO DERECHO (R)';
-        return 'CÁMARA COMPLETA';
+        const validOptions = [
+            'CÁMARA COMPLETA - LADO DERECHO (R)',
+            'CÁMARA COMPLETA - LADO IZQUIERDO (L)',
+            'SOLO CAPARAZÓN - LADO DERECHO (R)',
+            'SOLO CAPARAZÓN - LADO IZQUIERDO (L)',
+            'CÁMARA COMPLETA',
+            'SOLO CAPARAZÓN'
+        ];
+        if (validOptions.includes(obs)) {
+            return obs;
+        }
+
+        const side = props.inventario.camera_side || (obs.includes('DERECH') || obs === 'R' ? 'R' : (obs.includes('IZQUIERD') || obs === 'L' ? 'L' : null));
+        const isCaparazon = obs.includes('CAPARAZON') || obs.includes('CAPARAZÓN');
+
+        if (side === 'R') {
+            return isCaparazon ? 'SOLO CAPARAZÓN - LADO DERECHO (R)' : 'CÁMARA COMPLETA - LADO DERECHO (R)';
+        }
+        if (side === 'L') {
+            return isCaparazon ? 'SOLO CAPARAZÓN - LADO IZQUIERDO (L)' : 'CÁMARA COMPLETA - LADO IZQUIERDO (L)';
+        }
+        return isCaparazon ? 'SOLO CAPARAZÓN' : 'CÁMARA COMPLETA';
     }
 
     if (isCaja.value) {
@@ -1017,15 +1034,13 @@ const submitBilling = () => {
                                                 <option value="CAJA SIN TURBINA" class="text-gray-800">CAJA SIN TURBINA</option>
                                             </template>
                                             <template v-else-if="isCamara">
-                                                <option value="CÁMARA COMPLETA - LADO IZQUIERDO (L)" class="text-gray-800">CÁMARA COMPLETA - LADO IZQUIERDO (L)</option>
                                                 <option value="CÁMARA COMPLETA - LADO DERECHO (R)" class="text-gray-800">CÁMARA COMPLETA - LADO DERECHO (R)</option>
-                                                <option value="SOLO CAPARAZÓN - LADO IZQUIERDO (L)" class="text-gray-800">SOLO CAPARAZÓN - LADO IZQUIERDO (L)</option>
+                                                <option value="CÁMARA COMPLETA - LADO IZQUIERDO (L)" class="text-gray-800">CÁMARA COMPLETA - LADO IZQUIERDO (L)</option>
                                                 <option value="SOLO CAPARAZÓN - LADO DERECHO (R)" class="text-gray-800">SOLO CAPARAZÓN - LADO DERECHO (R)</option>
-                                                <option value="LADO IZQUIERDO" class="text-gray-800">LADO IZQUIERDO (L)</option>
-                                                <option value="LADO DERECHO" class="text-gray-800">LADO DERECHO (R)</option>
-                                                <option value="CÁMARA COMPLETA" class="text-gray-800">CÁMARA COMPLETA (ESTÁNDAR / PAR)</option>
-                                                <option value="SOLO CAPARAZÓN" class="text-gray-800">SOLO CAPARAZÓN (ESTÁNDAR / PAR)</option>
-                                                <option v-if="form.observation && !['CÁMARA COMPLETA - LADO IZQUIERDO (L)', 'CÁMARA COMPLETA - LADO DERECHO (R)', 'SOLO CAPARAZÓN - LADO IZQUIERDO (L)', 'SOLO CAPARAZÓN - LADO DERECHO (R)', 'LADO IZQUIERDO', 'LADO DERECHO', 'CÁMARA COMPLETA', 'SOLO CAPARAZÓN'].includes(form.observation)" :value="form.observation" class="text-gray-800">
+                                                <option value="SOLO CAPARAZÓN - LADO IZQUIERDO (L)" class="text-gray-800">SOLO CAPARAZÓN - LADO IZQUIERDO (L)</option>
+                                                <option value="CÁMARA COMPLETA" class="text-gray-800">CÁMARA COMPLETA (UN SOLO LADO)</option>
+                                                <option value="SOLO CAPARAZÓN" class="text-gray-800">SOLO CAPARAZÓN (UN SOLO LADO)</option>
+                                                <option v-if="form.observation && !['CÁMARA COMPLETA - LADO IZQUIERDO (L)', 'CÁMARA COMPLETA - LADO DERECHO (R)', 'SOLO CAPARAZÓN - LADO IZQUIERDO (L)', 'SOLO CAPARAZÓN - LADO DERECHO (R)', 'CÁMARA COMPLETA', 'SOLO CAPARAZÓN'].includes(form.observation)" :value="form.observation" class="text-gray-800">
                                                     {{ form.observation }} (REGISTRADO)
                                                 </option>
                                             </template>

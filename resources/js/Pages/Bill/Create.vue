@@ -206,15 +206,13 @@ const formatSerial = (serial, imageUrl = null, tipo = '') => {
                                                 <option value="CAJA SIN TURBINA">CAJA SIN TURBINA</option>
                                             </template>
                                             <template v-else-if="data.tipo.toUpperCase().includes('CÁMARA') || data.tipo.toUpperCase().includes('CAMARA') || data.tipo.toUpperCase().includes('CULATA')">
-                                                <option value="CÁMARA COMPLETA - LADO IZQUIERDO (L)">CÁMARA COMPLETA - LADO IZQUIERDO (L)</option>
                                                 <option value="CÁMARA COMPLETA - LADO DERECHO (R)">CÁMARA COMPLETA - LADO DERECHO (R)</option>
-                                                <option value="SOLO CAPARAZÓN - LADO IZQUIERDO (L)">SOLO CAPARAZÓN - LADO IZQUIERDO (L)</option>
+                                                <option value="CÁMARA COMPLETA - LADO IZQUIERDO (L)">CÁMARA COMPLETA - LADO IZQUIERDO (L)</option>
                                                 <option value="SOLO CAPARAZÓN - LADO DERECHO (R)">SOLO CAPARAZÓN - LADO DERECHO (R)</option>
-                                                <option value="LADO IZQUIERDO">LADO IZQUIERDO (L)</option>
-                                                <option value="LADO DERECHO">LADO DERECHO (R)</option>
-                                                <option value="CÁMARA COMPLETA">CÁMARA COMPLETA (PAR / CENTRAL)</option>
-                                                <option value="SOLO CAPARAZÓN">SOLO CAPARAZÓN (PAR / CENTRAL)</option>
-                                                <option v-if="observaciones && !['CÁMARA COMPLETA - LADO IZQUIERDO (L)', 'CÁMARA COMPLETA - LADO DERECHO (R)', 'SOLO CAPARAZÓN - LADO IZQUIERDO (L)', 'SOLO CAPARAZÓN - LADO DERECHO (R)', 'LADO IZQUIERDO', 'LADO DERECHO', 'CÁMARA COMPLETA', 'SOLO CAPARAZÓN'].includes(observaciones)" :value="observaciones">
+                                                <option value="SOLO CAPARAZÓN - LADO IZQUIERDO (L)">SOLO CAPARAZÓN - LADO IZQUIERDO (L)</option>
+                                                <option value="CÁMARA COMPLETA">CÁMARA COMPLETA (UN SOLO LADO)</option>
+                                                <option value="SOLO CAPARAZÓN">SOLO CAPARAZÓN (UN SOLO LADO)</option>
+                                                <option v-if="observaciones && !['CÁMARA COMPLETA - LADO IZQUIERDO (L)', 'CÁMARA COMPLETA - LADO DERECHO (R)', 'SOLO CAPARAZÓN - LADO IZQUIERDO (L)', 'SOLO CAPARAZÓN - LADO DERECHO (R)', 'CÁMARA COMPLETA', 'SOLO CAPARAZÓN'].includes(observaciones)" :value="observaciones">
                                                     {{ observaciones }}
                                                 </option>
                                             </template>
@@ -454,7 +452,27 @@ export default {
         const matched = validOptions.find(opt => obsUpper === opt || obsUpper.includes(opt));
 
         if (isCamaraItem) {
-            this.observaciones = obsUpper || 'CÁMARA COMPLETA';
+            const validOptions = [
+                'CÁMARA COMPLETA - LADO DERECHO (R)',
+                'CÁMARA COMPLETA - LADO IZQUIERDO (L)',
+                'SOLO CAPARAZÓN - LADO DERECHO (R)',
+                'SOLO CAPARAZÓN - LADO IZQUIERDO (L)',
+                'CÁMARA COMPLETA',
+                'SOLO CAPARAZÓN'
+            ];
+            if (validOptions.includes(obsUpper)) {
+                this.observaciones = obsUpper;
+            } else {
+                const side = this.data.camera_side || (obsUpper.includes('DERECH') || obsUpper === 'R' ? 'R' : (obsUpper.includes('IZQUIERD') || obsUpper === 'L' ? 'L' : null));
+                const isCaparazon = obsUpper.includes('CAPARAZON') || obsUpper.includes('CAPARAZÓN');
+                if (side === 'R') {
+                    this.observaciones = isCaparazon ? 'SOLO CAPARAZÓN - LADO DERECHO (R)' : 'CÁMARA COMPLETA - LADO DERECHO (R)';
+                } else if (side === 'L') {
+                    this.observaciones = isCaparazon ? 'SOLO CAPARAZÓN - LADO IZQUIERDO (L)' : 'CÁMARA COMPLETA - LADO IZQUIERDO (L)';
+                } else {
+                    this.observaciones = isCaparazon ? 'SOLO CAPARAZÓN' : 'CÁMARA COMPLETA';
+                }
+            }
         } else if (isCajaItem) {
             this.observaciones = obsUpper.includes('SIN TURBINA') ? 'CAJA SIN TURBINA' : 'CAJA COMPLETA';
         } else if (matched) {

@@ -563,7 +563,7 @@ const submitForm = () => {
                                 <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase ml-1">Dirección</label>
                                 <input v-model="form.client_address" class="appearance-none block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-3.5 px-4 focus:ring-2 focus:ring-indigo-500 transition-all font-bold" type="text">
                             </div>
-                            <div v-if="selectedItem && selectedItem.tipo && (selectedItem.tipo.toUpperCase().includes('MOTOR') || selectedItem.tipo.toUpperCase().includes('CAJA'))" class="space-y-2">
+                            <div v-if="selectedItem && selectedItem.tipo && (selectedItem.tipo.toUpperCase().includes('MOTOR') || selectedItem.tipo.toUpperCase().includes('CAJA') || selectedItem.tipo.toUpperCase().includes('CÁMARA') || selectedItem.tipo.toUpperCase().includes('CAMARA') || selectedItem.tipo.toUpperCase().includes('CULATA'))" class="space-y-2">
                                 <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase ml-1">Detalles de Despacho (Cómo sale)</label>
                                 <select v-model="form.observaciones" class="block w-full bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl py-3.5 px-4 focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-sm">
                                     <option value="" disabled>SELECCIONE UNA OPCIÓN</option>
@@ -575,6 +575,17 @@ const submitForm = () => {
                                     <template v-else-if="selectedItem.tipo.toUpperCase().includes('CAJA')">
                                         <option value="CAJA COMPLETA">CAJA COMPLETA</option>
                                         <option value="CAJA SIN TURBINA">CAJA SIN TURBINA</option>
+                                    </template>
+                                    <template v-else-if="selectedItem.tipo.toUpperCase().includes('CÁMARA') || selectedItem.tipo.toUpperCase().includes('CAMARA') || selectedItem.tipo.toUpperCase().includes('CULATA')">
+                                        <option value="CÁMARA COMPLETA - LADO DERECHO (R)">CÁMARA COMPLETA - LADO DERECHO (R)</option>
+                                        <option value="CÁMARA COMPLETA - LADO IZQUIERDO (L)">CÁMARA COMPLETA - LADO IZQUIERDO (L)</option>
+                                        <option value="SOLO CAPARAZÓN - LADO DERECHO (R)">SOLO CAPARAZÓN - LADO DERECHO (R)</option>
+                                        <option value="SOLO CAPARAZÓN - LADO IZQUIERDO (L)">SOLO CAPARAZÓN - LADO IZQUIERDO (L)</option>
+                                        <option value="CÁMARA COMPLETA">CÁMARA COMPLETA (UN SOLO LADO)</option>
+                                        <option value="SOLO CAPARAZÓN">SOLO CAPARAZÓN (UN SOLO LADO)</option>
+                                        <option v-if="form.observaciones && !['CÁMARA COMPLETA - LADO IZQUIERDO (L)', 'CÁMARA COMPLETA - LADO DERECHO (R)', 'SOLO CAPARAZÓN - LADO IZQUIERDO (L)', 'SOLO CAPARAZÓN - LADO DERECHO (R)', 'CÁMARA COMPLETA', 'SOLO CAPARAZÓN'].includes(form.observaciones)" :value="form.observaciones">
+                                            {{ form.observaciones }}
+                                        </option>
                                     </template>
                                 </select>
                             </div>
