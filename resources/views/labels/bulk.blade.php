@@ -179,36 +179,12 @@
                         <span class="side-letter">{{ $label['inventario']->camera_side }}</span>
                         <span class="side-sub">{{ $label['inventario']->camera_side === 'L' ? 'IZQ' : 'DER' }}</span>
                     </div>
-                @elseif(!$label['inventario']->is_motor && $label['inventario']->is_caja)
-                    <div class="side-badge">
-                        <span class="side-letter-sm">CAJA</span>
-                    </div>
-                @elseif(!$label['inventario']->is_motor && $label['inventario']->is_camara)
-                    <div class="side-badge">
-                        <span class="side-letter-sm">C?M</span>
-                    </div>
                 @endif
 
                 <div class="qr-code">
                     <img src="data:image/svg+xml;base64,{{ $label['qrCode'] }}" width="48" height="48" alt="QR Code">
                 </div>
-
-                @if(!$label['inventario']->is_motor && $label['inventario']->camera_side)
-                    <div class="side-badge">
-                        <span class="side-letter">{{ $label['inventario']->camera_side }}</span>
-                        <span class="side-sub">{{ $label['inventario']->camera_side === 'L' ? 'IZQ' : 'DER' }}</span>
-                    </div>
-                @elseif(!$label['inventario']->is_motor && $label['inventario']->is_caja)
-                    <div class="side-badge">
-                        <span class="side-letter-sm">CAJA</span>
-                    </div>
-                @elseif(!$label['inventario']->is_motor && $label['inventario']->is_camara)
-                    <div class="side-badge">
-                        <span class="side-letter-sm">C?M</span>
-                    </div>
-                @endif
             </div>
-
             <div class="barcode">
                 <img src="data:image/png;base64,{{ $label['barcode'] }}" width="130" height="14" alt="Barcode">
                 <div class="barcode-text">Cod: {{ $label['inventario']->formatted_cod }} | Item: {{ str_pad($label['inventario']->codInv, 4, '0', STR_PAD_LEFT) }}</div>

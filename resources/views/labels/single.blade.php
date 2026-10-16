@@ -70,15 +70,15 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 3mm;
+            gap: 3.5mm;
             margin: 0;
         }
 
         .side-badge {
-            width: 15.5mm;
-            height: 15.5mm;
-            border: 1.8px solid #000;
-            border-radius: 4px;
+            width: 16mm;
+            height: 16mm;
+            border: 1.5px solid #000;
+            border-radius: 3.5px;
             background: #000;
             color: #fff;
             display: flex;
@@ -169,38 +169,11 @@
                             <span class="side-letter">{{ $inventario->camera_side }}</span>
                             <span class="side-sub">{{ $inventario->camera_side === 'L' ? 'IZQ' : 'DER' }}</span>
                         </div>
-                    @elseif(!$inventario->is_motor && $inventario->is_caja)
-                        <div class="side-badge">
-                            <span class="side-letter-sm">CAJA</span>
-                            <span class="side-sub">TRANS</span>
-                        </div>
-                    @elseif(!$inventario->is_motor && $inventario->is_camara)
-                        <div class="side-badge">
-                            <span class="side-letter-sm">C?M</span>
-                            <span class="side-sub">CULATA</span>
-                        </div>
                     @endif
 
                     <div class="qr-code">
                         <img src="data:image/svg+xml;base64,{{ $qrCode }}" width="58" height="58" alt="QR Code">
                     </div>
-
-                    @if(!$inventario->is_motor && $inventario->camera_side)
-                        <div class="side-badge">
-                            <span class="side-letter">{{ $inventario->camera_side }}</span>
-                            <span class="side-sub">{{ $inventario->camera_side === 'L' ? 'IZQ' : 'DER' }}</span>
-                        </div>
-                    @elseif(!$inventario->is_motor && $inventario->is_caja)
-                        <div class="side-badge">
-                            <span class="side-letter-sm">CAJA</span>
-                            <span class="side-sub">TRANS</span>
-                        </div>
-                    @elseif(!$inventario->is_motor && $inventario->is_camara)
-                        <div class="side-badge">
-                            <span class="side-letter-sm">C?M</span>
-                            <span class="side-sub">CULATA</span>
-                        </div>
-                    @endif
                 </div>
                 <div class="barcode">
                     <img src="data:image/png;base64,{{ $barcode }}" width="135" height="14" alt="Barcode">
