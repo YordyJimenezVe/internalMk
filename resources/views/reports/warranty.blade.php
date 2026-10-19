@@ -151,8 +151,8 @@
             <td style="width: 55%; vertical-align: top;">
                 <h1 class="logo-title">Maikel Cars, C.A.</h1>
                 <p class="company-info">Venta de Motores, Cajas y Autopartes</p>
-                <p class="company-info">RIF: J-50029302-3</p>
-                <p class="company-info">Calle 51 con Av. Libertador, frente al CC Babilon</p>
+                <p class="company-info">RIF: J30565248-1</p>
+                <p class="company-info">AV LIBERTADOR ENTRE CALLES 50 Y 51 LOCAL S/Nº SECTOR SIMON RODRIGUEZ BARQUISIMETO LARA ZONA POSTAL 3001</p>
             </td>
             <td style="width: 45%; vertical-align: top; text-align: right;">
                 <h2 class="doc-title">PÓLIZA DE GARANTÍA</h2>

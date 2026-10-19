@@ -13,8 +13,8 @@
             <td style="width: 60%; vertical-align: top;">
                 <h1 style="color: #1E3A8A; margin-bottom: 5px;">Maikel Cars</h1>
                 <p style="margin: 0; color: #555;">Venta de Motores, Cajas y Autopartes</p>
-                <p style="margin: 0; color: #555;">RIF: J-50029302-3</p>
-                <p style="margin: 0; color: #555;">Dirección: Calle 51 con Av. Libertador, frente al CC Babilon</p>
+                <p style="margin: 0; color: #555;">RIF: J30565248-1</p>
+                <p style="margin: 0; color: #555;">Dirección: AV LIBERTADOR ENTRE CALLES 50 Y 51 LOCAL S/Nº SECTOR SIMON RODRIGUEZ BARQUISIMETO LARA ZONA POSTAL 3001</p>
             </td>
             <td style="width: 40%; vertical-align: top; text-align: right;">
                 <h2 style="color: #DC2626; margin: 0;">NOTA DE ENTREGA</h2>

@@ -6,7 +6,7 @@ import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import axios from 'axios';
 
 const props = defineProps({
@@ -64,26 +64,28 @@ const fetchNotifications = async () => {
     }
 };
 
-const markAllNotificationsRead = () => {
-    router.post(route('notifications.read_all'), {}, {
-        preserveScroll: true,
-        onSuccess: () => {
-            unreadCount.value = 0;
-            notifications.value = [];
-        }
-    });
+const markAllNotificationsRead = async () => {
+    unreadCount.value = 0;
+    notifications.value = [];
+    try {
+        await axios.post(route('notifications.read_all'));
+    } catch (error) {
+        console.error('Error marking all notifications as read:', error);
+        fetchNotifications();
+    }
 };
 
-const handleNotifClick = (notif) => {
-    router.post(route('notifications.read', notif.id), {}, {
-        preserveScroll: true,
-        onSuccess: () => {
-            fetchNotifications();
-            if (notif.action_url) {
-                router.visit(notif.action_url);
-            }
-        }
-    });
+const handleNotifClick = async (notif) => {
+    try {
+        if (unreadCount.value > 0) unreadCount.value--;
+        notifications.value = notifications.value.filter(n => n.id !== notif.id);
+        await axios.post(route('notifications.read', notif.id));
+    } catch (error) {
+        console.error('Error marking notification as read:', error);
+    }
+    if (notif.action_url) {
+        router.visit(notif.action_url);
+    }
 };
 
 const showTempModal = ref(false);
@@ -178,7 +180,32 @@ onMounted(() => {
     });
 
     fetchNotifications();
-    setInterval(fetchNotifications, 45000);
+
+    // Polling cada 15 segundos para mayor reactividad
+    const notifTimer = setInterval(fetchNotifications, 15000);
+
+    // Refrescar de inmediato al navegar en la SPA
+    const removeNavListener = router.on('navigate', () => {
+        fetchNotifications();
+    });
+
+    // Refrescar al volver a la pestaña o ventana del navegador
+    const onWindowFocus = () => fetchNotifications();
+    window.addEventListener('focus', onWindowFocus);
+
+    const onVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+            fetchNotifications();
+        }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    onUnmounted(() => {
+        clearInterval(notifTimer);
+        removeNavListener();
+        window.removeEventListener('focus', onWindowFocus);
+        document.removeEventListener('visibilitychange', onVisibilityChange);
+    });
 });
 
 const switchToTeam = (team) => {
@@ -432,10 +459,10 @@ const logout = () => {
                       <div class="relative ms-3 flex items-center">
                            <Dropdown align="right" width="80" :content-classes="['py-0', 'bg-transparent', 'shadow-none', 'ring-0']">
                                <template #trigger>
-                                   <button type="button" class="relative p-2 text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition-all duration-200 focus:outline-none" :title="'Notificaciones'">
-                                       <font-awesome-icon icon="fa-solid fa-bell" class="w-5 h-5" :class="{'animate-bounce': unreadCount > 0}" />
-                                       <span v-if="unreadCount > 0" class="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-black text-white ring-2 ring-white dark:ring-slate-900 animate-pulse">
-                                           {{ unreadCount }}
+                                   <button type="button" class="relative p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition-all duration-200 focus:outline-none" :class="unreadCount > 0 ? 'text-amber-500 dark:text-amber-400 bg-amber-50/50 dark:bg-amber-950/20' : 'text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400'" :title="unreadCount > 0 ? 'Tienes ' + unreadCount + ' notificaciones pendientes' : 'Notificaciones'">
+                                       <font-awesome-icon icon="fa-solid fa-bell" class="w-5 h-5 transition-transform duration-200" :class="{'animate-bounce text-amber-500 dark:text-amber-400': unreadCount > 0}" />
+                                       <span v-if="unreadCount > 0" class="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-rose-500 text-[9px] font-black text-white ring-2 ring-white dark:ring-slate-900 animate-pulse shadow-md">
+                                           {{ unreadCount > 9 ? '9+' : unreadCount }}
                                        </span>
                                    </button>
                                </template>

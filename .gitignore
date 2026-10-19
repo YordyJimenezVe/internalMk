@@ -30,3 +30,4 @@ docker/mysql/data/
 
 *.xlsx
 *:Zone.Identifier
+/storage/app/public/serial_captures/

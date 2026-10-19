@@ -12,13 +12,29 @@ use Illuminate\Support\Facades\DB;
 class NotificationController extends Controller
 {
     /**
+     * Comprueba si el usuario autenticado tiene rol administrativo.
+     */
+    private function isAdminUser(): bool
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return false;
+        }
+        $role = strtolower(trim($user->rol ?? ''));
+        if (in_array($role, ['administrador', 'superusuario'])) {
+            return true;
+        }
+        return $user->hasAnyRole(['Administrador', 'ADMINISTRADOR', 'Superusuario', 'SUPERUSUARIO']);
+    }
+
+    /**
      * Muestra la bandeja de notificaciones y panel de control administrativo.
      */
     public function index()
     {
         \App\Models\BillingRequest::cleanupNotifications();
-        // Solo administradores pueden ver el panel completo
-        if (auth()->user()->rol !== 'Administrador') {
+
+        if (!$this->isAdminUser()) {
             return redirect()->route('dashboard')->with('error', 'No tiene permisos para acceder a esta sección.');
         }
 
@@ -52,16 +68,22 @@ class NotificationController extends Controller
     }
 
     /**
-     * Obtiene el listado de las 5 últimas notificaciones no leídas y el total.
+     * Obtiene el listado de las 10 últimas notificaciones no leídas y el total.
      */
     public function getUnread()
     {
         \App\Models\BillingRequest::cleanupNotifications();
-        $unread = auth()->user()->unreadNotifications;
+        
+        $user = auth()->user();
+        if (!$user) {
+            return response()->json(['unread_count' => 0, 'notifications' => []]);
+        }
+
+        $unread = $user->unreadNotifications()->latest()->get();
         
         return response()->json([
             'unread_count' => $unread->count(),
-            'notifications' => $unread->take(5)->map(function ($notif) {
+            'notifications' => $unread->take(10)->map(function ($notif) {
                 return [
                     'id' => $notif->id,
                     'title' => $notif->data['title'] ?? 'Alerta del Sistema',
@@ -69,7 +91,7 @@ class NotificationController extends Controller
                     'action_url' => $notif->data['action_url'] ?? null,
                     'icon' => $notif->data['icon'] ?? 'fa-bell',
                     'color' => $notif->data['color'] ?? 'indigo',
-                    'created_at' => $notif->created_at->diffForHumans(),
+                    'created_at' => $notif->created_at ? $notif->created_at->diffForHumans() : '',
                 ];
             }),
         ]);
@@ -83,15 +105,23 @@ class NotificationController extends Controller
         $notification = auth()->user()->notifications()->findOrFail($id);
         $notification->markAsRead();
 
+        if ($request->expectsJson() || $request->wantsJson()) {
+            return response()->json(['success' => true]);
+        }
+
         return redirect()->back();
     }
 
     /**
      * Marca todas las notificaciones como leídas.
      */
-    public function markAllAsRead()
+    public function markAllAsRead(Request $request)
     {
         auth()->user()->unreadNotifications->markAsRead();
+
+        if ($request->expectsJson() || $request->wantsJson()) {
+            return response()->json(['success' => true]);
+        }
 
         return redirect()->back()->with('success', 'Todas las notificaciones marcadas como leídas.');
     }
@@ -101,7 +131,7 @@ class NotificationController extends Controller
      */
     public function toggleSetting(Request $request, $id)
     {
-        if (auth()->user()->rol !== 'Administrador') {
+        if (!$this->isAdminUser()) {
             return response()->json(['error' => 'No autorizado'], 403);
         }
 
@@ -118,7 +148,7 @@ class NotificationController extends Controller
      */
     public function sendBroadcast(Request $request)
     {
-        if (auth()->user()->rol !== 'Administrador') {
+        if (!$this->isAdminUser()) {
             return redirect()->route('dashboard')->with('error', 'No tiene permisos para enviar comunicados.');
         }
 
@@ -148,7 +178,8 @@ class NotificationController extends Controller
                 $user->notify($notification);
             }
         } elseif ($request->input('target_type') === 'ROLE') {
-            $users = User::where('rol', $request->input('target_role'))->get();
+            $targetRole = strtolower($request->input('target_role'));
+            $users = User::whereRaw('LOWER(rol) = ?', [$targetRole])->get();
             foreach ($users as $user) {
                 $user->notify($notification);
             }

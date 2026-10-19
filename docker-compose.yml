@@ -11,6 +11,15 @@ services:
     container_name: internalmk-app
     restart: unless-stopped
     working_dir: /var/www
+    command: >
+      sh -c "
+      if [ ! -f /var/www/artisan ]; then
+        echo '[App] ERROR: /var/www/artisan no disponible (WSL volumen no listo). Saliendo...' >&2;
+        sleep 3;
+        exit 1;
+      fi;
+      exec php-fpm
+      "
     volumes:
       - .:/var/www
       - ./docker/php/custom.ini:/usr/local/etc/php/conf.d/custom.ini:ro
@@ -45,18 +54,26 @@ services:
 
   # Nginx Webserver
   webserver:
-    image: nginx:alpine
+    build:
+      context: ./docker/nginx
+      dockerfile: Dockerfile
+    image: internalmk-webserver:latest
     container_name: internalmk-webserver
     restart: unless-stopped
     ports:
       - "8096:80"
     volumes:
       - .:/var/www
-      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
     networks:
       - internalmk-network
     depends_on:
       - app
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/login > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   # Redis Service
   redis:

@@ -822,7 +822,7 @@ class MaintenancesController extends Controller
         ]);
 
         if (NotificationSetting::isNotificationEnabled('notify_outflow')) {
-            $admins = User::where('rol', 'Administrador')->get();
+            $admins = User::whereRaw('LOWER(rol) IN (?, ?)', ['administrador', 'superusuario'])->get();
             $notification = new SystemAlertNotification(
                 'Pieza a Rectificadora',
                 "La pieza '{$item->description}' salió a la rectificadora (Orden #{$item->maintenance_id}).",
@@ -885,7 +885,7 @@ class MaintenancesController extends Controller
 
         // Trigger notifications
         if (NotificationSetting::isNotificationEnabled('notify_return')) {
-            $admins = User::where('rol', 'Administrador')->get();
+            $admins = User::whereRaw('LOWER(rol) IN (?, ?)', ['administrador', 'superusuario'])->get();
             $notification = new SystemAlertNotification(
                 'Entrada de Rectificadora',
                 "La pieza '{$item->description}' retornó de la rectificadora (Orden #{$item->maintenance_id}).",
@@ -899,7 +899,7 @@ class MaintenancesController extends Controller
         }
 
         if ($status === 'RETORNADO' && NotificationSetting::isNotificationEnabled('notify_pending_conciliation')) {
-            $billingUsers = User::whereIn('rol', ['Administrador', 'Administrador Consulta', 'Facturación'])->get();
+            $billingUsers = User::whereRaw('LOWER(rol) IN (?, ?, ?, ?)', ['administrador', 'superusuario', 'administrador consulta', 'facturacion'])->get();
             $notification = new SystemAlertNotification(
                 'Conciliación Pendiente',
                 "Se cargó la factura Nro. '{$item->invoice_number}' para la pieza '{$item->description}' (Orden #{$item->maintenance_id}). Pendiente de conciliación.",
@@ -1051,7 +1051,7 @@ class MaintenancesController extends Controller
         }
 
         if ($status === 'RETORNADO' && NotificationSetting::isNotificationEnabled('notify_pending_conciliation')) {
-            $billingUsers = User::whereIn('rol', ['Administrador', 'Administrador Consulta', 'Facturación'])->get();
+            $billingUsers = User::whereRaw('LOWER(rol) IN (?, ?, ?, ?)', ['administrador', 'superusuario', 'administrador consulta', 'facturacion'])->get();
             $notification = new SystemAlertNotification(
                 'Conciliación Pendiente',
                 "Se actualizó la factura Nro. '{$item->invoice_number}' para la pieza '{$item->description}' (Orden #{$item->maintenance_id}). Pendiente de conciliación.",
