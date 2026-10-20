@@ -66,7 +66,9 @@ const fetchNotifications = async () => {
 
 const markAllNotificationsRead = async () => {
     unreadCount.value = 0;
-    notifications.value = [];
+    notifications.value.forEach(n => {
+        n.is_read = true;
+    });
     try {
         await axios.post(route('notifications.read_all'));
     } catch (error) {
@@ -77,9 +79,11 @@ const markAllNotificationsRead = async () => {
 
 const handleNotifClick = async (notif) => {
     try {
-        if (unreadCount.value > 0) unreadCount.value--;
-        notifications.value = notifications.value.filter(n => n.id !== notif.id);
-        await axios.post(route('notifications.read', notif.id));
+        if (!notif.is_read) {
+            if (unreadCount.value > 0) unreadCount.value--;
+            notif.is_read = true;
+            await axios.post(route('notifications.read', notif.id));
+        }
     } catch (error) {
         console.error('Error marking notification as read:', error);
     }
@@ -470,21 +474,30 @@ const logout = () => {
                                <template #content>
                                    <div class="w-80 max-w-sm bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl shadow-2xl p-4 text-left">
                                        <div class="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-slate-800 mb-3">
-                                           <span class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-wider">Alertas Recientes</span>
+                                           <div class="flex items-center gap-2">
+                                               <span class="text-xs font-black text-gray-900 dark:text-white uppercase tracking-wider">Alertas Recientes</span>
+                                               <span v-if="unreadCount > 0" class="px-1.5 py-0.5 text-[9px] font-black bg-rose-500 text-white rounded-full">
+                                                   {{ unreadCount }}
+                                               </span>
+                                           </div>
                                            <button v-if="unreadCount > 0" @click="markAllNotificationsRead" class="text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 hover:underline">
-                                               Marcar todo leido
+                                               Marcar todo leído
                                            </button>
                                        </div>
 
-                                       <div class="space-y-3 max-h-[250px] overflow-y-auto">
+                                       <div class="space-y-2.5 max-h-[300px] overflow-y-auto pr-1">
                                            <div v-if="notifications.length === 0" class="py-6 text-center text-xs text-gray-400 italic">
-                                               <i class="fa-solid fa-bell-slash text-lg mb-2 block text-gray-300"></i>Sin notificaciones pendientes
+                                               <i class="fa-solid fa-bell-slash text-lg mb-2 block text-gray-300"></i>Sin alertas recientes
                                            </div>
                                            <div v-for="notif in notifications" :key="notif.id" @click="handleNotifClick(notif)" class="flex gap-3 p-2.5 hover:bg-gray-50 dark:hover:bg-slate-850 rounded-2xl cursor-pointer transition-all duration-150 border-l-4" :class="[
-                                               notif.color === 'rose' ? 'border-rose-500 bg-rose-500/5' :
-                                               notif.color === 'emerald' ? 'border-emerald-500 bg-emerald-500/5' :
-                                               notif.color === 'amber' ? 'border-amber-500 bg-amber-500/5' :
-                                               'border-indigo-500 bg-indigo-500/5'
+                                               notif.is_read
+                                                   ? 'opacity-65 hover:opacity-100 border-slate-300 dark:border-slate-700 bg-transparent'
+                                                   : (
+                                                       notif.color === 'rose' ? 'border-rose-500 bg-rose-500/10' :
+                                                       notif.color === 'emerald' ? 'border-emerald-500 bg-emerald-500/10' :
+                                                       notif.color === 'amber' ? 'border-amber-500 bg-amber-500/10' :
+                                                       'border-indigo-500 bg-indigo-500/10'
+                                                   )
                                            ]">
                                                <div class="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full" :class="[
                                                    notif.color === 'rose' ? 'bg-rose-100 text-rose-600 dark:bg-rose-950/30 dark:text-rose-400' :
@@ -495,14 +508,17 @@ const logout = () => {
                                                    <i :class="['fa-solid', notif.icon || 'fa-bell', 'text-xs']"></i>
                                                </div>
                                                <div class="flex-1 min-w-0">
-                                                   <div class="text-xs font-bold text-gray-900 dark:text-white truncate uppercase">{{ notif.title }}</div>
+                                                   <div class="flex items-center justify-between gap-1">
+                                                       <span class="text-xs font-bold text-gray-900 dark:text-white truncate uppercase">{{ notif.title }}</span>
+                                                       <span v-if="!notif.is_read" class="w-2 h-2 rounded-full bg-rose-500 ring-2 ring-rose-200 dark:ring-rose-950 flex-shrink-0"></span>
+                                                   </div>
                                                    <div class="text-[10px] text-gray-500 dark:text-slate-400 line-clamp-2 mt-0.5 leading-snug">{{ notif.message }}</div>
                                                    <div class="text-[8px] text-gray-400 dark:text-slate-500 mt-1 italic">{{ notif.created_at }}</div>
                                                </div>
                                            </div>
                                        </div>
 
-                                       <div v-if="$page.props.auth.user.rol === 'Administrador'" class="pt-3 border-t border-gray-100 dark:border-slate-800 mt-3 text-center">
+                                       <div v-if="isAdministrador || hasSuperusuario" class="pt-3 border-t border-gray-100 dark:border-slate-800 mt-3 text-center">
                                            <Link :href="route('admin.notifications.index')" class="text-[10px] font-black text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 uppercase tracking-widest">
                                                Administrar Notificaciones →
                                            </Link>

@@ -155,6 +155,19 @@ class BillingRequestController extends Controller
             $userToNotify->notify($notification);
         }
 
+        // Also notify the requesting advisor if they are not already in $usersToNotify
+        if (auth()->check() && !$usersToNotify->contains('id', auth()->id())) {
+            $advisorNotif = new \App\Notifications\SystemAlertNotification(
+                'Solicitud Enviada',
+                "Has solicitado facturar: {$itemDisplay} (Cliente: {$clientName}) por $" . number_format($request->price, 2) . ". Pendiente por procesar.",
+                route('billing.requests.index'),
+                'fa-paper-plane',
+                'indigo',
+                ['billing_request_id' => $billingRequest->id, 'type' => 'advisor_request_sent']
+            );
+            auth()->user()->notify($advisorNotif);
+        }
+
         // Notify via Telegram Group
         if ($secondPartida) {
             $itemName = "PAR DE CÁMARAS: {$partida->marca} {$partida->modelo} (L + R) [Items #{$partida->codInv} y #{$secondPartida->codInv}]";
@@ -248,13 +261,34 @@ class BillingRequestController extends Controller
             // 3. Mark Request as Processed
             $billingRequest->update(['status' => 'processed']);
 
-            // Delete notifications for ALL users since the sale is finished!
+            // Mark pending request notifications as read for all users
             \Illuminate\Support\Facades\DB::table('notifications')
                 ->where(function($query) use ($id) {
                     $query->where('data->billing_request_id', $id)
                           ->orWhere('data', 'like', '%"billing_request_id":' . $id . '%');
                 })
-                ->delete();
+                ->whereNull('read_at')
+                ->update(['read_at' => now()]);
+
+            // Notify the advisor/seller that their request was successfully billed
+            if ($billingRequest->user_id) {
+                $seller = \App\Models\User::find($billingRequest->user_id);
+                if ($seller) {
+                    $itemDesc = $billingRequest->second_partida_id 
+                        ? "Par de C?maras: {$partida->marca} {$partida->modelo} (L + R)"
+                        : ($partida ? "{$partida->marca} {$partida->modelo}" : '?tem');
+                    $clientLabel = $billingRequest->client_name ? " (Cliente: {$billingRequest->client_name})" : '';
+                    $sellerNotification = new \App\Notifications\SystemAlertNotification(
+                        '?Solicitud Facturada!',
+                        "Tu solicitud para {$itemDesc}{$clientLabel} fue facturada exitosamente con la Nota #{$newBill->id}.",
+                        route('billing.pdf', $newBill->id),
+                        'fa-file-invoice-dollar',
+                        'emerald',
+                        ['bill_id' => $newBill->id, 'type' => 'billing_processed']
+                    );
+                    $seller->notify($sellerNotification);
+                }
+            }
 
             // Collect IDs
             $createdBillingIds[] = $newBill->id;

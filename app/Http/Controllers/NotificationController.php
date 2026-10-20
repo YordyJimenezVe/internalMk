@@ -79,11 +79,12 @@ class NotificationController extends Controller
             return response()->json(['unread_count' => 0, 'notifications' => []]);
         }
 
-        $unread = $user->unreadNotifications()->latest()->get();
+        $unreadCount = $user->unreadNotifications()->count();
+        $recent = $user->notifications()->latest()->take(10)->get();
         
         return response()->json([
-            'unread_count' => $unread->count(),
-            'notifications' => $unread->take(10)->map(function ($notif) {
+            'unread_count' => $unreadCount,
+            'notifications' => $recent->map(function ($notif) {
                 return [
                     'id' => $notif->id,
                     'title' => $notif->data['title'] ?? 'Alerta del Sistema',
@@ -91,6 +92,7 @@ class NotificationController extends Controller
                     'action_url' => $notif->data['action_url'] ?? null,
                     'icon' => $notif->data['icon'] ?? 'fa-bell',
                     'color' => $notif->data['color'] ?? 'indigo',
+                    'is_read' => $notif->read_at !== null,
                     'created_at' => $notif->created_at ? $notif->created_at->diffForHumans() : '',
                 ];
             }),

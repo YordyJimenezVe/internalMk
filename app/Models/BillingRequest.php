@@ -82,14 +82,15 @@ class BillingRequest extends Model
         $allCompletedRequestIds = array_unique(array_merge($processedRequestIds, $soldRequestIds));
 
         if (!empty($allCompletedRequestIds)) {
-            // Delete notifications ONLY for these processed requests
+            // Mark pending request notifications as read for completed requests
             foreach ($allCompletedRequestIds as $requestId) {
                 \Illuminate\Support\Facades\DB::table('notifications')
                     ->where(function($query) use ($requestId) {
                         $query->where('data->billing_request_id', $requestId)
                               ->orWhere('data', 'like', '%"billing_request_id":' . $requestId . '%');
                     })
-                    ->delete();
+                    ->whereNull('read_at')
+                    ->update(['read_at' => now()]);
             }
         }
     }
