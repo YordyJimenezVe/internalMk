@@ -136,6 +136,10 @@ const parseLocaleFloat = (val) => {
     return isNaN(parsed) ? NaN : parsed;
 };
 
+const submitCost = (id) => {
+    saveRow(id);
+};
+
 const saveRow = (id) => {
     const f = forms.value[id];
     if (!f) return;
@@ -150,6 +154,7 @@ const saveRow = (id) => {
         fecha_tasa_bcv: f.fecha_tasa_bcv,
         price: finSummary.big.toFixed(2),
         price_sale: finSummary.totalUsd.toFixed(2),
+        porcentaje_utilidad: f.utility_percent ?? 30,
     }, {
         preserveScroll: true,
         onStart: () => {
