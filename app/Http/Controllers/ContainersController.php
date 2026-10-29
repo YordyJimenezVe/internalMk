@@ -161,7 +161,9 @@ class ContainersController extends Controller
                         'container_id' => $container->id,
                         'expediente' => $container->expediente,
                     ];
-                    if ($prorrateo !== null) $updateData['prorrateo_gastos'] = $prorrateo;
+                    $isCamara = str_contains(strtolower($item->tipo), 'cámara') || str_contains(strtolower($item->tipo), 'camara') || (bool) ($item->is_camara ?? false);
+                    $isCaja = str_contains(strtolower($item->tipo), 'caja') || (bool) ($item->is_caja ?? false);
+                    if ($prorrateo !== null && !$isCamara && !$isCaja) $updateData['prorrateo_gastos'] = $prorrateo;
                     if ($utilidad !== null) $updateData['porcentaje_utilidad'] = $utilidad;
                     if ($container->fecha) $updateData['fecha_tasa_bcv'] = $container->fecha;
                     if ($rate && $rate > 0) $updateData['tasa_bcv'] = $rate;
@@ -352,10 +354,10 @@ class ContainersController extends Controller
             }
 
             $isCamara = str_contains(strtolower($item->tipo), 'cámara') || str_contains(strtolower($item->tipo), 'camara') || (bool) ($item->is_camara ?? false);
-
+            $isCaja = str_contains(strtolower($item->tipo), 'caja') || (bool) ($item->is_caja ?? false);
             if ($prorrateo !== null) {
-                // Proteger cámaras para no sobreescribir su prorrateo específico con el prorrateo general de motores del contenedor
-                if (!$isCamara) {
+                // Proteger cámaras y cajas para no sobreescribir con el prorrateo general de motores del contenedor
+                if (!$isCamara && !$isCaja) {
                     $updateData['prorrateo_gastos'] = $prorrateo;
                 }
             }

@@ -23,13 +23,7 @@ class CamarasController extends Controller
     {
         $search = $request->input('search', '');
 
-        $tipos = Inventario::whereDoesntHave('bill')
-            ->selectRaw('
-            SUM(CASE WHEN tipo LIKE "%motor%" THEN 1 ELSE 0 END) AS motores,
-            SUM(CASE WHEN tipo LIKE "%caja%" THEN 1 ELSE 0 END) AS cajas_automaticas,
-            SUM(CASE WHEN tipo = "AUTOPARTE" THEN 1 ELSE 0 END) AS autopartes
-        ')
-            ->get();
+// $tipos will be calculated after filters
 
         $partidas = Inventario::with('container')
             ->where('tipo', 'CÁMARA')
@@ -42,6 +36,16 @@ class CamarasController extends Controller
                     ->orWhereRaw('LOWER(codInv) LIKE ?', ['%' . strtolower($search) . '%']);
             });
         }
+        $summaryQuery = clone $partidas;
+        $summaryQuery->getQuery()->orders = null;
+        $tipos = $summaryQuery->selectRaw('
+            COALESCE(SUM(CASE WHEN LOWER(tipo) LIKE "%motor%" THEN 1 ELSE 0 END), 0) AS motores,
+            COALESCE(SUM(CASE WHEN LOWER(tipo) LIKE "%caja%" THEN 1 ELSE 0 END), 0) AS cajas_automaticas,
+            COALESCE(SUM(CASE WHEN LOWER(tipo) = "autoparte" THEN 1 ELSE 0 END), 0) AS autopartes,
+            COALESCE(SUM(CASE WHEN LOWER(tipo) LIKE "%cámara%" OR LOWER(tipo) LIKE "%camara%" THEN 1 ELSE 0 END), 0) AS camaras,
+            COUNT(*) AS total_filtrados
+        ')->get();
+
         $response = $partidas->paginate(15)->appends($request->query());
 
         return inertia('Inventario/Index', [

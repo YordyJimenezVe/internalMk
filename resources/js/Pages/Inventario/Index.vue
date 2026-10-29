@@ -6,7 +6,7 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { fas } from '@fortawesome/free-solid-svg-icons';
 import { fab } from '@fortawesome/free-brands-svg-icons';
 import { router, Link, usePage } from '@inertiajs/vue3';
-import { computed, ref, reactive, watch, onMounted } from 'vue';
+import { computed, ref, reactive, watch } from 'vue';
 
 library.add(fas, fab);
 const page = usePage();
@@ -14,6 +14,8 @@ const props = defineProps({
     Inventarios: Object,
     filters: Object,
     tipos: Object,
+    marcas: Array,
+    containersList: Array,
 });
 
 const getBrandSlug = (brand) => {
@@ -130,12 +132,12 @@ const deleteModal = reactive({
 const columns = computed(() => {
     let cols = [
         { key: 'id', label: 'ID', sortable: true },
-        { key: 'container.cod', label: 'Contenedor', sortable: true }, // Nested sort might need backend tweak, but key is for display
+        { key: 'container.cod', label: 'Contenedor', sortable: true },
         { key: 'codInv', label: 'Inventario', sortable: true },
         { key: 'expediente', label: 'Expediente', sortable: true },
         { key: 'tipo', label: 'Tipo', sortable: true },
         { key: 'serial', label: 'Serial', sortable: true },
-        { key: 'model_display', label: 'Marca / Modelo', sortable: true }, // Composite
+        { key: 'model_display', label: 'Marca / Modelo', sortable: true },
     ];
 
     if (isAutopart.value) {
@@ -186,9 +188,37 @@ const getBillingTotals = (row) => {
     };
 };
 
+// Filter states
 const statusFilter = ref(props.filters?.status || 'ALL');
-const typeFilter = ref(props.filters?.type_filter || ''); // New
+const typeFilter = ref(props.filters?.type_filter || '');
 const modelFilter = ref(props.filters?.model_filter || '');
+const brandFilter = ref(props.filters?.brand_filter || '');
+const containerFilter = ref(props.filters?.container_filter || '');
+const priceFilter = ref(props.filters?.price_filter || '');
+
+// Keep filters synchronized with inertia props
+watch(() => props.filters, (newFilters) => {
+    if (newFilters) {
+        if (newFilters.status !== undefined) statusFilter.value = newFilters.status || 'ALL';
+        if (newFilters.type_filter !== undefined) typeFilter.value = newFilters.type_filter || '';
+        if (newFilters.model_filter !== undefined) modelFilter.value = newFilters.model_filter || '';
+        if (newFilters.brand_filter !== undefined) brandFilter.value = newFilters.brand_filter || '';
+        if (newFilters.container_filter !== undefined) containerFilter.value = newFilters.container_filter || '';
+        if (newFilters.price_filter !== undefined) priceFilter.value = newFilters.price_filter || '';
+    }
+}, { deep: true });
+
+const activeFiltersCount = computed(() => {
+    let count = 0;
+    if (statusFilter.value && statusFilter.value !== 'ALL') count++;
+    if (typeFilter.value) count++;
+    if (modelFilter.value) count++;
+    if (brandFilter.value) count++;
+    if (containerFilter.value) count++;
+    if (priceFilter.value) count++;
+    if (props.filters?.search) count++;
+    return count;
+});
 
 const fetchInventarios = () => {
     const routeName = isAutopart.value ? 'autopart' : (isCamara.value ? 'camara' : 'inventario');
@@ -196,8 +226,26 @@ const fetchInventarios = () => {
         ...props.filters,
         status: statusFilter.value,
         type_filter: typeFilter.value,
-        model_filter: modelFilter.value
-    }, { preserveState: true });
+        model_filter: modelFilter.value,
+        brand_filter: brandFilter.value,
+        container_filter: containerFilter.value,
+        price_filter: priceFilter.value,
+        page: 1
+    }, { preserveState: true, replace: true });
+};
+
+const clearFilters = () => {
+    statusFilter.value = 'ALL';
+    typeFilter.value = '';
+    modelFilter.value = '';
+    brandFilter.value = '';
+    containerFilter.value = '';
+    priceFilter.value = '';
+    const routeName = isAutopart.value ? 'autopart' : (isCamara.value ? 'camara' : 'inventario');
+    router.get(route(routeName), {
+        status: 'ALL',
+        page: 1
+    }, { preserveState: true, replace: true });
 };
 
 const registrarInventario = () => {
@@ -243,7 +291,6 @@ const confirmDelete = () => {
         }
     });
 };
-
 </script>
 
 <template>
@@ -269,60 +316,131 @@ const confirmDelete = () => {
                 </Link>
             </div>
             
-            <!-- Advanced Toolbar -->
-            <div class="mb-8 grid grid-cols-1 md:grid-cols-3 gap-6 bg-white dark:bg-gray-800 p-6 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-700/50 backdrop-blur-sm">
+            <!-- Professional Advanced Toolbar -->
+            <div class="mb-8 bg-white dark:bg-gray-800 p-6 md:p-8 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-700/50 backdrop-blur-sm transition-all duration-300">
                 
-                <!-- Category/Type Filter -->
-                <div class="space-y-2">
-                    <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] ml-2">CATEGORÍA</label>
-                    <div class="relative group">
-                        <i class="fa-solid fa-filter absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 transition-colors"></i>
-                        <select v-model="typeFilter" @change="fetchInventarios" class="w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl focus:ring-2 focus:ring-indigo-500 transition-all font-bold outline-none appearance-none cursor-pointer">
-                            <option value="">TODOS LOS TIPOS</option>
-                            <option value="motores">MOTORES</option>
-                            <option value="cajas">CAJAS</option>
-                            <option value="camaras">CÁMARAS</option>
-                            <option value="autopartes">AUTOPARTES</option>
-                        </select>
+                <!-- Toolbar Header with Title and Reset Button -->
+                <div class="flex flex-wrap items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-100 dark:border-gray-700/60">
+                    <div class="flex items-center gap-3">
+                        <div class="h-10 w-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                            <i class="fa-solid fa-sliders text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-black text-gray-800 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                                Filtros Profesionales
+                                <span v-if="activeFiltersCount > 0" class="px-2.5 py-0.5 text-[10px] font-black rounded-full bg-indigo-500 text-white shadow-sm shadow-indigo-500/30">
+                                    {{ activeFiltersCount }} activo{{ activeFiltersCount > 1 ? 's' : '' }}
+                                </span>
+                            </h3>
+                            <p class="text-xs text-gray-400 dark:text-gray-500 font-medium">Filtra por contenedor, marca, categoría, estado y modelo con actualización en tiempo real</p>
+                        </div>
                     </div>
+
+                    <!-- Clear Filters Button -->
+                    <button 
+                        v-if="activeFiltersCount > 0" 
+                        @click="clearFilters" 
+                        class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-rose-50 text-gray-600 hover:text-rose-600 dark:bg-gray-700/50 dark:hover:bg-rose-900/20 dark:text-gray-300 dark:hover:text-rose-400 text-xs font-black transition-all flex items-center gap-2 group active:scale-95 shadow-sm"
+                    >
+                        <i class="fa-solid fa-filter-circle-xmark text-sm group-hover:rotate-12 transition-transform"></i>
+                        <span>LIMPIAR FILTROS</span>
+                    </button>
                 </div>
 
-                <!-- Model Filter -->
-                <div class="space-y-2">
-                    <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] ml-2">MODELO DE AUTO</label>
-                    <div class="relative group">
-                        <i class="fa-solid fa-car-side absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors"></i>
-                        <input 
-                            v-model="modelFilter" 
-                            @keyup.enter="fetchInventarios"
-                            @blur="fetchInventarios"
-                            type="text" 
-                            placeholder="Ej: COROLLA, HILUX..." 
-                            class="w-full pl-12 pr-10 py-3.5 bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl focus:ring-2 focus:ring-blue-500 transition-all font-bold outline-none uppercase text-sm"
-                        />
-                        <button v-if="modelFilter" @click="modelFilter = ''; fetchInventarios();" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs">
-                            <i class="fa-solid fa-xmark"></i>
-                        </button>
+                <!-- Filters Grid (6 Professional Filters) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+                    
+                    <!-- 1. Category/Type Filter -->
+                    <div class="space-y-1.5">
+                        <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] ml-1">CATEGORÍA</label>
+                        <div class="relative group">
+                            <i class="fa-solid fa-layer-group absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 text-xs transition-colors pointer-events-none"></i>
+                            <select v-model="typeFilter" @change="fetchInventarios" class="w-full pl-9 pr-6 py-3 bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-xs outline-none appearance-none cursor-pointer">
+                                <option value="">TODOS LOS TIPOS</option>
+                                <option value="motores">MOTORES</option>
+                                <option value="cajas">CAJAS</option>
+                                <option value="camaras">CÁMARAS</option>
+                                <option value="autopartes">AUTOPARTES</option>
+                            </select>
+                        </div>
                     </div>
-                </div>
 
-                <!-- Status Filter -->
-                <div class="space-y-2">
-                    <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] ml-2">ESTADO</label>
-                    <div class="relative group">
-                        <i class="fa-solid fa-tag absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-emerald-500 transition-colors"></i>
-                        <select v-model="statusFilter" @change="fetchInventarios" class="w-full pl-12 pr-4 py-3.5 bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-2xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold outline-none appearance-none cursor-pointer">
-                            <option value="PRECIO PENDIENTE">PRECIO PENDIENTE</option>
-                            <option value="DISPONIBLE">DISPONIBLES</option>
-                            <option value="VENDIDO">VENDIDOS</option>
-                            <option value="GARANTIA">GARANTÍAS</option>
-                            <option value="INOPERATIVO-DESARMADO">INOPERATIVO-DESARMADO</option>
-                            <option value="USO INTERNO">USO INTERNO</option>
-                            <option value="ALL">LISTADO COMPLETO</option>
-                        </select>
+                    <!-- 2. Brand Filter -->
+                    <div class="space-y-1.5">
+                        <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] ml-1">MARCA</label>
+                        <div class="relative group">
+                            <i class="fa-solid fa-shield-halved absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 text-xs transition-colors pointer-events-none"></i>
+                            <select v-model="brandFilter" @change="fetchInventarios" class="w-full pl-9 pr-6 py-3 bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-xs outline-none appearance-none cursor-pointer">
+                                <option value="">TODAS LAS MARCAS</option>
+                                <option v-for="b in (marcas || [])" :key="b" :value="b">{{ b }}</option>
+                            </select>
+                        </div>
                     </div>
-                </div>
 
+                    <!-- 3. Container Filter -->
+                    <div class="space-y-1.5">
+                        <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] ml-1">CONTENEDOR / EXP.</label>
+                        <div class="relative group">
+                            <i class="fa-solid fa-box-archive absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-indigo-500 text-xs transition-colors pointer-events-none"></i>
+                            <select v-model="containerFilter" @change="fetchInventarios" class="w-full pl-9 pr-6 py-3 bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-xs outline-none appearance-none cursor-pointer truncate">
+                                <option value="">TODOS CONTENEDORES</option>
+                                <option v-for="c in (containersList || [])" :key="c.id" :value="c.id">
+                                    {{ c.cod }} ({{ c.expediente || 'S/E' }})
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 4. Model Filter -->
+                    <div class="space-y-1.5">
+                        <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] ml-1">MODELO</label>
+                        <div class="relative group">
+                            <i class="fa-solid fa-car-side absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 text-xs transition-colors pointer-events-none"></i>
+                            <input 
+                                v-model="modelFilter" 
+                                @keyup.enter="fetchInventarios"
+                                @blur="fetchInventarios"
+                                type="text" 
+                                placeholder="Ej: COROLLA, HILUX..." 
+                                class="w-full pl-9 pr-7 py-3 bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 transition-all font-bold outline-none uppercase text-xs"
+                            />
+                            <button v-if="modelFilter" @click="modelFilter = ''; fetchInventarios();" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs">
+                                <i class="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 5. Status Filter -->
+                    <div class="space-y-1.5">
+                        <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] ml-1">ESTADO</label>
+                        <div class="relative group">
+                            <i class="fa-solid fa-tag absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-emerald-500 text-xs transition-colors pointer-events-none"></i>
+                            <select v-model="statusFilter" @change="fetchInventarios" class="w-full pl-9 pr-6 py-3 bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold text-xs outline-none appearance-none cursor-pointer">
+                                <option value="ALL">LISTADO COMPLETO</option>
+                                <option value="DISPONIBLE">DISPONIBLES</option>
+                                <option value="VENDIDO">VENDIDOS</option>
+                                <option value="GARANTIA">GARANTÍAS</option>
+                                <option value="PRECIO PENDIENTE">PRECIO PENDIENTE</option>
+                                <option value="INOPERATIVO-DESARMADO">INOPERATIVO-DESARMADO</option>
+                                <option value="USO INTERNO">USO INTERNO</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- 6. Costo / Factura Filter -->
+                    <div class="space-y-1.5">
+                        <label class="block text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] ml-1">COSTO / FACTURA</label>
+                        <div class="relative group">
+                            <i class="fa-solid fa-file-invoice-dollar absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-emerald-500 text-xs transition-colors pointer-events-none"></i>
+                            <select v-model="priceFilter" @change="fetchInventarios" class="w-full pl-9 pr-6 py-3 bg-gray-50 dark:bg-gray-900/50 text-gray-700 dark:text-white border border-gray-100 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-emerald-500 transition-all font-bold text-xs outline-none appearance-none cursor-pointer">
+                                <option value="">TODOS LOS COSTOS</option>
+                                <option value="CON_PRECIO">CON PRECIO REGISTRADO</option>
+                                <option value="PENDIENTE">PRECIO PENDIENTE</option>
+                            </select>
+                        </div>
+                    </div>
+
+                </div>
             </div>
 
             <!-- Premium DataTable -->
@@ -330,9 +448,17 @@ const confirmDelete = () => {
                 <DataTable 
                     :rows="Inventarios" 
                     :columns="columns" 
-                    :filters="{ ...filters, status: statusFilter, type_filter: typeFilter, model_filter: modelFilter }"
+                    :filters="{ 
+                        ...filters, 
+                        status: statusFilter, 
+                        type_filter: typeFilter, 
+                        model_filter: modelFilter,
+                        brand_filter: brandFilter,
+                        container_filter: containerFilter,
+                        price_filter: priceFilter
+                    }"
                     :routeName="isAutopart ? 'autopart' : (isCamara ? 'camara' : 'inventario')"
-                    :title="isAutopart ? 'LISTADO DE AUTOPARTES' : 'REGISTROS DE INVENTARIO'"
+                    :title="isAutopart ? 'LISTADO DE AUTOPARTES' : (isCamara ? 'CONTROL DE CÁMARAS' : 'REGISTROS DE INVENTARIO')"
                     exportType="Inventarios"
                     class="p-4"
                 >
@@ -405,42 +531,77 @@ const confirmDelete = () => {
                 </DataTable>
             </div>
 
-            <!-- Enhanced Summary Footer -->
-             <div class="mt-8 p-8 bg-white dark:bg-gray-800 rounded-[2rem] shadow-xl border border-gray-100 dark:border-gray-700 flex flex-wrap items-center justify-center gap-12 sm:justify-start">
-                <div class="flex items-center gap-4">
-                    <div class="h-12 w-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-500">
-                        <i class="fa-solid fa-wrench text-xl"></i>
+            <!-- Enhanced Summary Footer with Live Counters (Dynamically updates with Search and Filters) -->
+            <div class="mt-8 p-6 md:p-8 bg-white dark:bg-gray-800 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-700/60 backdrop-blur-sm transition-all duration-300">
+                <div class="flex flex-col sm:flex-row items-center justify-between pb-4 mb-6 border-b border-gray-100 dark:border-gray-700/60 gap-3">
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span class="text-xs font-black uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                            Resumen Dinámico del Inventario
+                        </span>
+                        <span v-if="activeFiltersCount > 0" class="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2.5 py-0.5 rounded-full border border-indigo-100 dark:border-indigo-800/40">
+                            Filtrado activo ({{ activeFiltersCount }})
+                        </span>
                     </div>
-                    <div>
-                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Motores</p>
-                        <p class="text-lg font-black text-gray-700 dark:text-white">{{ tipos?.[0]?.['motores'] || 0 }}</p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-4">
-                    <div class="h-12 w-12 rounded-2xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-500">
-                        <i class="fa-solid fa-gears text-xl"></i>
-                    </div>
-                    <div>
-                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Cajas</p>
-                        <p class="text-lg font-black text-gray-700 dark:text-white">{{ tipos?.[0]?.['cajas_automaticas'] || 0 }}</p>
+                    <div class="text-xs text-gray-400 dark:text-gray-500 font-medium">
+                        Total de coincidencias: <strong class="text-gray-800 dark:text-white font-black text-sm">{{ tipos?.[0]?.['total_filtrados'] ?? 0 }}</strong>
                     </div>
                 </div>
-                <div class="flex items-center gap-4">
-                    <div class="h-12 w-12 rounded-2xl bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center text-amber-500">
-                        <i class="fa-solid fa-oil-can text-xl"></i>
+
+                <div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    <!-- Total Coincidencias Card -->
+                    <div class="flex items-center gap-4 p-4 rounded-2xl bg-gray-50/80 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700/40">
+                        <div class="h-12 w-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-500 shrink-0">
+                            <i class="fa-solid fa-boxes-stacked text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Registros</p>
+                            <p class="text-xl font-black text-gray-800 dark:text-white">{{ tipos?.[0]?.['total_filtrados'] ?? 0 }}</p>
+                        </div>
                     </div>
-                    <div>
-                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Autopartes</p>
-                        <p class="text-lg font-black text-gray-700 dark:text-white">{{ tipos?.[0]?.['autopartes'] || 0 }}</p>
+
+                    <!-- Motores Card -->
+                    <div class="flex items-center gap-4 p-4 rounded-2xl bg-gray-50/80 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700/40">
+                        <div class="h-12 w-12 rounded-2xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-500 shrink-0">
+                            <i class="fa-solid fa-wrench text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Motores</p>
+                            <p class="text-xl font-black text-gray-800 dark:text-white">{{ tipos?.[0]?.['motores'] || 0 }}</p>
+                        </div>
                     </div>
-                </div>
-                <div class="flex items-center gap-4">
-                    <div class="h-12 w-12 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-500">
-                        <i class="fa-solid fa-camera text-xl"></i>
+
+                    <!-- Cajas Card -->
+                    <div class="flex items-center gap-4 p-4 rounded-2xl bg-gray-50/80 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700/40">
+                        <div class="h-12 w-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-500 shrink-0">
+                            <i class="fa-solid fa-gears text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Cajas</p>
+                            <p class="text-xl font-black text-gray-800 dark:text-white">{{ tipos?.[0]?.['cajas_automaticas'] || 0 }}</p>
+                        </div>
                     </div>
-                    <div>
-                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Cámaras</p>
-                        <p class="text-lg font-black text-gray-700 dark:text-white">{{ tipos?.[0]?.['camaras'] || 0 }}</p>
+
+                    <!-- Autopartes Card -->
+                    <div class="flex items-center gap-4 p-4 rounded-2xl bg-gray-50/80 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700/40">
+                        <div class="h-12 w-12 rounded-2xl bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center text-amber-500 shrink-0">
+                            <i class="fa-solid fa-oil-can text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Autopartes</p>
+                            <p class="text-xl font-black text-gray-800 dark:text-white">{{ tipos?.[0]?.['autopartes'] || 0 }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Cámaras Card -->
+                    <div class="flex items-center gap-4 p-4 rounded-2xl bg-gray-50/80 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700/40 col-span-2 sm:col-span-1">
+                        <div class="h-12 w-12 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-500 shrink-0">
+                            <i class="fa-solid fa-camera text-xl"></i>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Cámaras</p>
+                            <p class="text-xl font-black text-gray-800 dark:text-white">{{ tipos?.[0]?.['camaras'] || 0 }}</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -459,20 +620,13 @@ const confirmDelete = () => {
                 <h3 class="text-2xl font-black text-gray-800 dark:text-white uppercase tracking-tight mb-2">¿Eliminar Item?</h3>
                 <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-8 font-medium">Esta acción eliminará permanentemente este registro del inventario.</p>
                 
-                <div class="flex flex-col gap-3">
-                    <button 
-                        @click="confirmDelete" 
-                        :disabled="deleteModal.processing"
-                        class="w-full bg-rose-500 hover:bg-rose-600 text-white font-black py-4 rounded-2xl shadow-lg shadow-rose-500/20 transition-all transform active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                        <i v-if="deleteModal.processing" class="fa-solid fa-circle-notch fa-spin"></i>
-                        <span>{{ deleteModal.processing ? 'ELIMINANDO...' : 'SÍ, ELIMINAR AHORA' }}</span>
+                <div class="flex gap-3">
+                    <button @click="closeDeleteModal" class="flex-1 py-3.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold rounded-xl transition-all">
+                        Cancelar
                     </button>
-                    <button 
-                        @click="closeDeleteModal" 
-                        class="w-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold py-4 rounded-2xl transition-all"
-                    >
-                        CANCELAR
+                    <button @click="confirmDelete" :disabled="deleteModal.processing" class="flex-1 py-3.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-lg shadow-rose-600/30 transition-all flex items-center justify-center gap-2">
+                        <i v-if="deleteModal.processing" class="fa-solid fa-spinner fa-spin text-sm"></i>
+                        <span>Eliminar</span>
                     </button>
                 </div>
             </div>

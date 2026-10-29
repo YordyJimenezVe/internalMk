@@ -60,13 +60,7 @@ class AutopartsController extends Controller
             }
         }
 
-        $tipos = Inventario::whereDoesntHave('bill')
-            ->selectRaw('
-            SUM(CASE WHEN tipo LIKE "%motor%" THEN 1 ELSE 0 END) AS motores,
-            SUM(CASE WHEN tipo LIKE "%caja%" THEN 1 ELSE 0 END) AS cajas_automaticas,
-            SUM(CASE WHEN tipo = "AUTOPARTE" THEN 1 ELSE 0 END) AS autopartes
-        ')
-            ->get();
+// $tipos will be calculated after filters
 
         $statusFilter = $request->input('status', 'ALL'); // Default
 
@@ -101,6 +95,16 @@ class AutopartsController extends Controller
         $sort = $request->input('sort', 'created_at');
         $direction = $request->input('direction', 'desc');
         $partidas->orderBy($sort, $direction);
+
+        $summaryQuery = clone $partidas;
+        $summaryQuery->getQuery()->orders = null;
+        $tipos = $summaryQuery->selectRaw('
+            COALESCE(SUM(CASE WHEN LOWER(tipo) LIKE "%motor%" THEN 1 ELSE 0 END), 0) AS motores,
+            COALESCE(SUM(CASE WHEN LOWER(tipo) LIKE "%caja%" THEN 1 ELSE 0 END), 0) AS cajas_automaticas,
+            COALESCE(SUM(CASE WHEN LOWER(tipo) = "autoparte" THEN 1 ELSE 0 END), 0) AS autopartes,
+            COALESCE(SUM(CASE WHEN LOWER(tipo) LIKE "%cámara%" OR LOWER(tipo) LIKE "%camara%" THEN 1 ELSE 0 END), 0) AS camaras,
+            COUNT(*) AS total_filtrados
+        ')->get();
 
         $response = $partidas->paginate(15)->appends($request->query());
 

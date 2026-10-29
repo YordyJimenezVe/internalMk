@@ -74,12 +74,15 @@ class InventarioController extends Controller
         $search = str_replace("'", "-", $searchRaw);
 
         // --- Search Query ---
-        // --- Filter Logic ---
-        $statusFilter = $request->input('status', 'DISPONIBLE'); // Default: Only Available
-        $typeFilter = $request->input('type_filter', null); // New Type Filter
-        $modelFilter = $request->input('model_filter', null); // Model Filter
+        // --- Professional Filters Logic ---
+        $statusFilter = $request->input('status', 'ALL'); // Default to ALL so users see full list unless specified
+        $typeFilter = $request->input('type_filter', null);
+        $modelFilter = $request->input('model_filter', null);
+        $brandFilter = $request->input('brand_filter', null);
+        $containerFilter = $request->input('container_filter', null);
+        $priceFilter = $request->input('price_filter', null);
 
-        // REMOVED 'AUTOPARTE' EXCLUSION to consolidate modules
+        // Base query with container relationship
         $inventarios = Inventario::with('container');
 
         // Apply Type Filter
@@ -89,10 +92,34 @@ class InventarioController extends Controller
             } elseif ($typeFilter === 'cajas') {
                 $inventarios->where('tipo', 'LIKE', '%CAJA%');
             } elseif ($typeFilter === 'camaras') {
-                $inventarios->where('tipo', 'LIKE', '%CÁMARA%');
+                $inventarios->where(function ($q) {
+                    $q->where('tipo', 'LIKE', '%CÁMARA%')
+                      ->orWhere('tipo', 'LIKE', '%CAMARA%');
+                });
             } elseif ($typeFilter === 'autopartes') {
                 $inventarios->where('tipo', 'AUTOPARTE');
             }
+        }
+
+        // Apply Brand Filter
+        if ($brandFilter) {
+            $inventarios->where('marca', $brandFilter);
+        }
+
+        // Apply Container Filter
+        if ($containerFilter) {
+            $inventarios->where('container_id', $containerFilter);
+        }
+
+        // Apply Price / Declaración Costo Filter
+        if ($priceFilter === 'CON_PRECIO') {
+            $inventarios->whereNotNull('costo_importacion_unitario')
+                ->where('costo_importacion_unitario', '>', 0);
+        } elseif ($priceFilter === 'PENDIENTE') {
+            $inventarios->where(function ($q) {
+                $q->whereNull('costo_importacion_unitario')
+                  ->orWhere('costo_importacion_unitario', 0);
+            });
         }
 
         // Apply Model Filter
@@ -186,15 +213,30 @@ class InventarioController extends Controller
             $inventarios->orderBy($sortBy, $direction);
         }
 
-        $motorTypes = ['MOTOR 7/8', 'MOTOR 3/4', 'MOTOR COMPLETO', 'MOTOR 5/8'];
-        $tipos = Inventario::whereDoesntHave('bill')
+        // Dynamic summary reflecting search & all active filters in real-time
+        $summaryQuery = clone $inventarios;
+        $summaryQuery->getQuery()->orders = null;
+
+        $tipos = $summaryQuery
             ->selectRaw('
-            SUM(CASE WHEN tipo LIKE "%motor%" THEN 1 ELSE 0 END) AS motores,
-            SUM(CASE WHEN tipo LIKE "%caja%" THEN 1 ELSE 0 END) AS cajas_automaticas,
-            SUM(CASE WHEN tipo = "AUTOPARTE" THEN 1 ELSE 0 END) AS autopartes,
-            SUM(CASE WHEN tipo = "CÁMARA" THEN 1 ELSE 0 END) AS camaras
-        ')
-            ->orderBy('created_at', 'desc')
+                COALESCE(SUM(CASE WHEN LOWER(tipo) LIKE "%motor%" THEN 1 ELSE 0 END), 0) AS motores,
+                COALESCE(SUM(CASE WHEN LOWER(tipo) LIKE "%caja%" THEN 1 ELSE 0 END), 0) AS cajas_automaticas,
+                COALESCE(SUM(CASE WHEN LOWER(tipo) = "autoparte" THEN 1 ELSE 0 END), 0) AS autopartes,
+                COALESCE(SUM(CASE WHEN LOWER(tipo) LIKE "%cámara%" OR LOWER(tipo) LIKE "%camara%" THEN 1 ELSE 0 END), 0) AS camaras,
+                COUNT(*) AS total_filtrados
+            ')
+            ->get();
+
+        // Distinct brands for filter dropdown
+        $marcas = Inventario::whereNotNull('marca')
+            ->where('marca', '!=', '')
+            ->distinct()
+            ->orderBy('marca')
+            ->pluck('marca');
+
+        // Containers for container filter dropdown
+        $containersList = Container::select('id', 'cod', 'expediente')
+            ->orderBy('id', 'desc')
             ->get();
 
         $response = $inventarios->paginate(15)->appends($request->query());
@@ -208,10 +250,15 @@ class InventarioController extends Controller
                 'status' => $statusFilter,
                 'type_filter' => $typeFilter,
                 'model_filter' => $modelFilter,
+                'brand_filter' => $brandFilter,
+                'container_filter' => $containerFilter,
+                'price_filter' => $priceFilter,
                 'sort' => $sort,
                 'direction' => $direction,
             ],
             'tipos' => $tipos,
+            'marcas' => $marcas,
+            'containersList' => $containersList,
         ]);
     }
 
