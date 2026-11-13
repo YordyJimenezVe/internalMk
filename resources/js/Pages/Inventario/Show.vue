@@ -67,7 +67,7 @@ onMounted(() => {
 });
 
 const alreadyRequested = computed(() => {
-    return (props.inventario.billing_requests && props.inventario.billing_requests.length > 0) || 
+    return (props.inventario.billing_requests && props.inventario.billing_requests.some(req => req.status === 'pending')) || 
            (props.inventario.bill && props.inventario.bill.length > 0);
 });
 

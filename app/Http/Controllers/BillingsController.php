@@ -445,6 +445,17 @@ class BillingsController extends Controller
                 'price_sale' => $billing->total ?? $billing->big ?? $newItem->price,
             ]);
 
+            // Sincronizar también la solicitud de facturación asociada si existía
+            \App\Models\BillingRequest::where('partida_id', $oldPartidaId)
+                ->where(function ($q) use ($billing) {
+                    if (!empty($billing->client_cedula)) {
+                        $q->where('client_cedula', $billing->client_cedula);
+                    } elseif (!empty($billing->client_name)) {
+                        $q->where('client_name', $billing->client_name);
+                    }
+                })
+                ->update(['partida_id' => $newItem->id]);
+
             $billing->partida_id = $newItem->id;
         }
 
