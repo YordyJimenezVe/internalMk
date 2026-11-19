@@ -234,7 +234,7 @@
             <li>Limpieza profunda o reemplazo del enfriador / serpentín de aceite de la caja y sus tuberías.</li>
             <li>Verificar el correcto acople de la turbina (convertidor de par) antes de fijar la caja al motor.</li>
             <li>Reemplazo del filtro de transmisión y empacadura del cárter (si aplica).</li>
-            <li>Utilizar exclusivamente el aceite de transmisión (ATF / fluido) especificado por el fabricante y medir el nivel a temperatura de operación.</li>
+            <li>Utilizar exclusivamente el aceite de transmisión y adicional instalar serpentín nuevo.</li>
             <li>Revisar estoperas (retenes), soportes (bases) de caja y sensores / conectores eléctricos.</li>
             <li>Calibrar la guaya o varillaje selector y realizar escaneo/adaptación electrónica (si aplica) tras la instalación.</li>
             <li>Verificar el óptimo funcionamiento del sistema de enfriamiento del motor para prevenir sobrecalentamiento de la transmisión.</li>
