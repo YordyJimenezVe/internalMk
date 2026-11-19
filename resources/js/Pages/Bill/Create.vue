@@ -45,6 +45,10 @@ const formatSerial = (serial, imageUrl = null, tipo = '') => {
 
         <div class="py-12 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
             <div class="max-w-5xl mx-auto sm:px-6 lg:px-8">
+                <div v-if="$page.props.flash?.error" class="mb-6 p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 text-rose-700 dark:text-rose-300 flex items-center gap-3 text-sm font-bold shadow-sm">
+                    <i class="fa-solid fa-triangle-exclamation text-rose-500 text-lg"></i>
+                    <span>{{ $page.props.flash.error }}</span>
+                </div>
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-2xl rounded-3xl border border-gray-100 dark:border-gray-700/50 p-8">
                     <form ref="form" @submit.prevent="submitForm" class="space-y-8">
                         
@@ -318,10 +322,16 @@ const formatSerial = (serial, imageUrl = null, tipo = '') => {
                             <input type="hidden" v-model="pagoDivisaHidden">
                             <input type="hidden" v-model="pagoBsHidden">
                             <input type="hidden" name="billing_request_id" :value="data.billing_request_id">
+                            <input type="hidden" name="idempotency_key" :value="idempotencyKey">
                             
-                            <button type="submit" class="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 px-12 rounded-[2rem] shadow-2xl shadow-indigo-600/30 transition-all transform hover:scale-[1.03] active:scale-95 flex items-center justify-center gap-3">
-                                <i class="fa-solid fa-floppy-disk text-xl"></i>
-                                PROCESAR FACTURACIÓN
+                            <button
+                                type="submit"
+                                :disabled="isSubmitting"
+                                class="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-black py-4 px-12 rounded-[2rem] shadow-2xl shadow-indigo-600/30 transition-all transform hover:scale-[1.03] active:scale-95 flex items-center justify-center gap-3 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+                            >
+                                <i v-if="isSubmitting" class="fa-solid fa-circle-notch fa-spin text-xl"></i>
+                                <i v-else class="fa-solid fa-floppy-disk text-xl"></i>
+                                {{ isSubmitting ? 'PROCESANDO FACTURA...' : 'PROCESAR FACTURACIÓN' }}
                             </button>
                         </div>
                     </form>
@@ -366,6 +376,8 @@ const formatSerial = (serial, imageUrl = null, tipo = '') => {
 export default {
     data() {
         return {
+            isSubmitting: false,
+            idempotencyKey: '',
             formatValue: '',
             bsAmount:'',
             priceDivisa:'',
@@ -496,15 +508,44 @@ export default {
         const day = String(now.getDate()).padStart(2, '0');
         this.fecha = `${year}-${month}-${day}`;
         this.hora = now.toTimeString().split(' ')[0].substring(0, 5);
+
+        // Generar llave única de idempotencia para esta sesión de facturación
+        if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+            this.idempotencyKey = `bill-${this.data.id}-${crypto.randomUUID()}`;
+        } else {
+            this.idempotencyKey = `bill-${this.data.id}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+        }
     },
     methods: {
         submitForm() {
+            if (this.isSubmitting) return;
+            this.isSubmitting = true;
+
             const data = {};
             for (const element of this.$refs.form.elements) {
-                data[element.name] = element.value;
+                if (element.name) {
+                    data[element.name] = element.value;
+                }
             }
+            data.idempotency_key = this.idempotencyKey;
 
-            this.$inertia.post('/billing/store', data);
+            let succeeded = false;
+            this.$inertia.post('/billing/store', data, {
+                onSuccess: () => {
+                    succeeded = true;
+                },
+                onError: () => {
+                    this.isSubmitting = false;
+                },
+                onCancel: () => {
+                    this.isSubmitting = false;
+                },
+                onFinish: () => {
+                    if (!succeeded) {
+                        this.isSubmitting = false;
+                    }
+                },
+            });
         },
         thousandsSeparator(param){
             return param

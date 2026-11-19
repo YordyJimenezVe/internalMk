@@ -8,6 +8,8 @@ use App\Models\Inventario;
 use App\Models\Bitacora;
 use App\Models\ReverseBill;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use GuzzleHttp\Client;
 use Symfony\Component\DomCrawler\Crawler;
 use App\Models\ExchangeRate;
@@ -87,6 +89,21 @@ class BillingsController extends Controller
 
         $requestId = $request->input('request_id');
         $billing = Inventario::with('container')->findOrFail($id);
+
+        // Evitar abrir el formulario de nueva venta si el artículo ya fue vendido o facturado
+        $alreadyBilled = Billing::where(function ($q) use ($billing) {
+                $q->where('partida_id', $billing->id)
+                  ->orWhere('second_partida_id', $billing->id);
+            })
+            ->where(function ($q) {
+                $q->whereNull('status')->orWhere('status', '!=', 'ANULADA');
+            })
+            ->exists();
+
+        if ($billing->status === 'VENDIDO' || $alreadyBilled) {
+            return redirect()->route('billing')
+                ->with('error', 'Este artículo ya fue vendido o facturado anteriormente. No se puede registrar una venta duplicada.');
+        }
 
         $requestTasa = null;
         $requestedPriceUsd = null;
@@ -237,6 +254,16 @@ class BillingsController extends Controller
      */
     public function store(Request $request)
     {
+        $request->validate([
+            'partida_id' => 'required|integer|exists:inventarios,id',
+        ]);
+
+        $idempotencyKey = trim((string) $request->input('idempotency_key', ''));
+        if ($idempotencyKey !== '' && Cache::has('billing_store_done:' . $idempotencyKey)) {
+            return redirect()->route('billing')
+                ->with('error', 'Esta venta ya fue registrada anteriormente. No se creó un registro duplicado.');
+        }
+
         $valorD = $request->input('divisa');
 
         // Helper function to clean numeric input
@@ -269,73 +296,148 @@ class BillingsController extends Controller
             return (float) $value;
         };
 
-        $partida = new Billing();
-        $partida->fill($request->all());
+        $txResult = DB::transaction(function () use ($request, $valorD, $cleanNumeric) {
+            // Bloquear fila de inventario para evitar ventas duplicadas por múltiples clics o reintentos de red
+            $inventario = Inventario::where('id', $request->partida_id)->lockForUpdate()->firstOrFail();
 
-        $numericDivisa = $cleanNumeric($valorD);
-        $partida->divisa = $numericDivisa;
+            $hasActiveBilling = Billing::where(function ($q) use ($inventario) {
+                    $q->where('partida_id', $inventario->id)
+                      ->orWhere('second_partida_id', $inventario->id);
+                })
+                ->where(function ($q) {
+                    $q->whereNull('status')->orWhere('status', '!=', 'ANULADA');
+                })
+                ->exists();
 
-        // Use the full sale price for the dashboard total
-        $salePrice = $cleanNumeric($request->input('priceDivisa'));
-        $partida->total = $salePrice > 0 ? $salePrice : $numericDivisa;
+            if ($inventario->status === 'VENDIDO' || $hasActiveBilling) {
+                return [
+                    'duplicate' => true,
+                    'message' => 'Esta venta ya fue registrada anteriormente. Se evitó crear un registro duplicado.',
+                ];
+            }
 
-        $partida->user_id = Auth::id(); // Assign current user
-        $partida->save();
+            if (in_array($inventario->status, ['INOPERATIVO-DESARMADO', 'USO INTERNO'], true)) {
+                return [
+                    'duplicate' => true,
+                    'message' => "El artículo no está disponible para la venta (Estatus: {$inventario->status}).",
+                ];
+            }
 
-        // 1. Update Inventario Status and Record the actual sale price
-        $inventario = Inventario::findOrFail($request->partida_id);
-        $inventario->update([
-            'status' => 'VENDIDO',
-            'price_sale' => $partida->total
-        ]);
+            $requestId = $request->input('billing_request_id');
+            $billingRequest = null;
+            $secondInv = null;
 
-        // 2. Handle Billing Request
-        $requestId = $request->input('billing_request_id');
-        if ($requestId) {
-            $billingRequest = \App\Models\BillingRequest::find($requestId);
-            if ($billingRequest) {
-                $billingRequest->update(['status' => 'processed']);
-                if ($billingRequest->second_partida_id) {
-                    $partida->second_partida_id = $billingRequest->second_partida_id;
-                    if (empty($partida->observaciones) && !empty($billingRequest->observation)) {
-                        $partida->observaciones = $billingRequest->observation;
-                    }
-                    $partida->save();
+            if ($requestId) {
+                $billingRequest = \App\Models\BillingRequest::where('id', $requestId)->lockForUpdate()->first();
+                if ($billingRequest && $billingRequest->status === 'processed') {
+                    return [
+                        'duplicate' => true,
+                        'message' => 'Esta solicitud de facturación ya fue procesada anteriormente. Se evitó un registro duplicado.',
+                    ];
+                }
+                if ($billingRequest && $billingRequest->second_partida_id) {
+                    $secondInv = Inventario::where('id', $billingRequest->second_partida_id)->lockForUpdate()->first();
+                    if ($secondInv) {
+                        $secondHasActiveBilling = Billing::where(function ($q) use ($secondInv) {
+                                $q->where('partida_id', $secondInv->id)
+                                  ->orWhere('second_partida_id', $secondInv->id);
+                            })
+                            ->where(function ($q) {
+                                $q->whereNull('status')->orWhere('status', '!=', 'ANULADA');
+                            })
+                            ->exists();
 
-                    $secondInv = Inventario::find($billingRequest->second_partida_id);
-                    if ($secondInv && $secondInv->status !== 'VENDIDO') {
-                        $secondInv->update(['status' => 'VENDIDO', 'price_sale' => 0]);
+                        if ($secondInv->status === 'VENDIDO' || $secondHasActiveBilling) {
+                            return [
+                                'duplicate' => true,
+                                'message' => 'La segunda cámara vinculada ya fue vendida anteriormente. Se evitó un registro duplicado.',
+                            ];
+                        }
                     }
                 }
             }
-            // Delete notifications for ALL users since the sale is finished!
-            \Illuminate\Support\Facades\DB::table('notifications')
-                ->where(function($query) use ($requestId) {
-                    $query->where('data->billing_request_id', $requestId)
-                          ->orWhere('data', 'like', '%"billing_request_id":' . $requestId . '%');
-                })
-                ->delete();
+
+            $partida = new Billing();
+            $partida->fill($request->except(['idempotency_key']));
+
+            $numericDivisa = $cleanNumeric($valorD);
+            $partida->divisa = $numericDivisa;
+
+            // Use the full sale price for the dashboard total
+            $salePrice = $cleanNumeric($request->input('priceDivisa'));
+            $partida->total = $salePrice > 0 ? $salePrice : $numericDivisa;
+
+            $partida->user_id = Auth::id(); // Assign current user
+            $partida->save();
+
+            // 1. Update Inventario Status and Record the actual sale price
+            $inventario->update([
+                'status' => 'VENDIDO',
+                'price_sale' => $partida->total
+            ]);
+
+            // 2. Handle Billing Request
+            if ($requestId) {
+                if ($billingRequest) {
+                    $billingRequest->update(['status' => 'processed']);
+                    if ($billingRequest->second_partida_id) {
+                        $partida->second_partida_id = $billingRequest->second_partida_id;
+                        if (empty($partida->observaciones) && !empty($billingRequest->observation)) {
+                            $partida->observaciones = $billingRequest->observation;
+                        }
+                        $partida->save();
+
+                        if ($secondInv && $secondInv->status !== 'VENDIDO') {
+                            $secondInv->update(['status' => 'VENDIDO', 'price_sale' => 0]);
+                        }
+                    }
+                }
+                // Delete notifications for ALL users since the sale is finished!
+                DB::table('notifications')
+                    ->where(function ($query) use ($requestId) {
+                        $query->where('data->billing_request_id', $requestId)
+                              ->orWhere('data', 'like', '%"billing_request_id":' . $requestId . '%');
+                    })
+                    ->delete();
+            }
+
+            // Also clean up any pending requests for this motor/partida
+            $pendingRequests = \App\Models\BillingRequest::where('partida_id', $inventario->id)
+                ->where('status', 'pending')
+                ->get();
+
+            foreach ($pendingRequests as $pReq) {
+                $pReq->update(['status' => 'processed']);
+                DB::table('notifications')
+                    ->where(function ($query) use ($pReq) {
+                        $query->where('data->billing_request_id', $pReq->id)
+                              ->orWhere('data', 'like', '%"billing_request_id":' . $pReq->id . '%');
+                    })
+                    ->delete();
+            }
+
+            return [
+                'duplicate' => false,
+                'partida' => $partida,
+                'inventario' => $inventario,
+            ];
+        });
+
+        if (!empty($txResult['duplicate'])) {
+            return redirect()->route('billing')->with('error', $txResult['message']);
         }
 
-        // Also clean up any pending requests for this motor/partida
-        $pendingRequests = \App\Models\BillingRequest::where('partida_id', $inventario->id)
-            ->where('status', 'pending')
-            ->get();
-            
-        foreach ($pendingRequests as $pReq) {
-            $pReq->update(['status' => 'processed']);
-            \Illuminate\Support\Facades\DB::table('notifications')
-                ->where(function($query) use ($pReq) {
-                    $query->where('data->billing_request_id', $pReq->id)
-                          ->orWhere('data', 'like', '%"billing_request_id":' . $pReq->id . '%');
-                })
-                ->delete();
+        if ($idempotencyKey !== '') {
+            Cache::put('billing_store_done:' . $idempotencyKey, true, now()->addMinutes(10));
         }
+
+        $partida = $txResult['partida'];
+        $inventario = $txResult['inventario'];
 
         // Run full cleanup
         \App\Models\BillingRequest::cleanupNotifications();
 
-        // Notify via Telegram Group
+        // Notify via Telegram Group (outside DB transaction so network latency never locks tables)
         $itemName = $inventario ? "{$inventario->marca} {$inventario->modelo}" : 'Ítem';
         $telegramMessage = "✅ <b>Factura Registrada</b>\n\n"
             . "📄 <b>Factura:</b> #{$partida->numero_factura}\n"
@@ -346,7 +448,9 @@ class BillingsController extends Controller
         \App\Services\TelegramService::sendMessage($telegramMessage);
 
         $redirect = redirect()->route('billing')->with('success', 'Factura registrada con éxito.')->with('billing_ids', [$partida->id]);
-        
+
+        // Solo los motores generan póliza de garantía automáticamente al facturar;
+        // las cajas y cámaras se emiten únicamente desde Historial de Ventas (/billing).
         $tipo = strtoupper($partida->tipo_item ?? ($inventario->tipo ?? ''));
         if (str_contains($tipo, 'MOTOR')) {
             $redirect = $redirect->with('warranty_ids', [$partida->id]);
@@ -807,21 +911,51 @@ class BillingsController extends Controller
     }
 
     /**
-     * Genera y transmite el PDF de la Póliza de Garantía de Motor utilizando DomPDF.
+     * Genera y transmite el PDF de la Póliza de Garantía (Motor 90 días, Caja 60 días, Cámara 30 días) utilizando DomPDF.
      *
      * @param  string|int  $id  Identificador único de la factura.
      * @return \Illuminate\Http\Response|\Illuminate\Http\RedirectResponse
      */
     public function warrantyPdf($id)
     {
-        $bill = Billing::with(['partida', 'billingRequests'])->findOrFail($id);
+        $bill = Billing::with(['partida', 'secondPartida', 'billingRequests'])->findOrFail($id);
 
-        $tipo = strtoupper($bill->tipo_item ?? ($bill->partida->tipo ?? ''));
-        if (!str_contains($tipo, 'MOTOR')) {
-            return redirect()->back()->with('error', 'La póliza de garantía solo aplica para motores.');
+        $warrantyCategory = null;
+        $warrantyDays = 90;
+
+        if ($bill->is_pair_camera || !empty($bill->second_partida_id)) {
+            $warrantyCategory = 'CAMARA';
+            $warrantyDays = 30;
+        } elseif ($bill->partida && $bill->partida->is_camara) {
+            $warrantyCategory = 'CAMARA';
+            $warrantyDays = 30;
+        } elseif ($bill->partida && $bill->partida->is_caja) {
+            $warrantyCategory = 'CAJA';
+            $warrantyDays = 60;
+        } elseif ($bill->partida && $bill->partida->is_motor) {
+            $warrantyCategory = 'MOTOR';
+            $warrantyDays = 90;
+        } else {
+            $tipoRaw = ($bill->tipo_item ?? '') . ' ' . ($bill->partida->tipo ?? '');
+            $tipoNormalized = strtoupper(iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $tipoRaw) ?: $tipoRaw);
+
+            if (str_contains($tipoNormalized, 'MOTOR')) {
+                $warrantyCategory = 'MOTOR';
+                $warrantyDays = 90;
+            } elseif (str_contains($tipoNormalized, 'CAJA') || str_contains($tipoNormalized, 'TRANSMIS')) {
+                $warrantyCategory = 'CAJA';
+                $warrantyDays = 60;
+            } elseif (str_contains($tipoNormalized, 'CAMARA') || str_contains($tipoNormalized, 'CULATA')) {
+                $warrantyCategory = 'CAMARA';
+                $warrantyDays = 30;
+            }
         }
 
-        $pdf = \PDF::loadView('reports.warranty', compact('bill'));
+        if (!$warrantyCategory) {
+            return redirect()->back()->with('error', 'La póliza de garantía solo aplica para motores, cajas y cámaras.');
+        }
+
+        $pdf = \PDF::loadView('reports.warranty', compact('bill', 'warrantyCategory', 'warrantyDays'));
         $pdf->setPaper('letter', 'portrait');
 
         return $pdf->stream('Garantia-' . str_pad($bill->id, 6, '0', STR_PAD_LEFT) . '.pdf');

@@ -68,44 +68,88 @@ class BillingRequestController extends Controller
             'observation' => 'nullable|string|max:1000',
         ]);
 
-        $secondPartida = null;
-        if ($request->filled('second_partida_id')) {
-            $secondPartida = \App\Models\Inventario::find($request->second_partida_id);
-            if ($secondPartida && in_array($secondPartida->status, ['INOPERATIVO-DESARMADO', 'USO INTERNO', 'VENDIDO'])) {
-                return redirect()->back()->withErrors(['second_partida_id' => 'La segunda cámara seleccionada no se encuentra disponible (Estatus: ' . $secondPartida->status . ').']);
-            }
-        }
-
-        $partida = \App\Models\Inventario::findOrFail($request->partida_id);
-        if ($partida->status === 'INOPERATIVO-DESARMADO' || $partida->status === 'USO INTERNO') {
-            return redirect()->back()->withErrors(['partida_id' => 'No se puede facturar un ítem inoperativo, desarmado o de uso interno.']);
-        }
-
         $cedulaFilePath = null;
         if ($request->hasFile('client_cedula_file')) {
             $cedulaFilePath = \App\Helpers\ImageHelper::compressAndStore($request->file('client_cedula_file'), 'billing_captures');
         }
 
-        $billingRequest = BillingRequest::create([
-            'partida_id' => $request->partida_id,
-            'second_partida_id' => $request->second_partida_id,
-            'user_id' => auth()->id(),
-            'quantity' => $request->quantity,
-            'price' => $request->price,
-            'tasa_bcv' => $request->tasa_bcv,
-            'fecha_tasa_bcv' => $request->fecha_tasa_bcv,
-            'client_name' => $request->client_name ? strip_tags($request->client_name) : null,
-            'client_cedula' => $request->client_cedula ? strip_tags($request->client_cedula) : null,
-            'client_cedula_file' => $cedulaFilePath,
-            'client_phone' => $request->client_phone ? strip_tags($request->client_phone) : null,
-            'client_address' => $request->client_address ? strip_tags($request->client_address) : null,
-            'client_email' => $request->client_email ? strip_tags($request->client_email) : null,
-            'status' => 'pending',
-            'observation' => $request->observation ? strip_tags($request->observation) : null,
-        ]);
+        $serialPath = null;
+        if ($request->hasFile('serial_file')) {
+            $serialPath = \App\Helpers\ImageHelper::compressAndStore($request->file('serial_file'), 'serial_captures');
+        }
 
-        $partida = \App\Models\Inventario::find($request->partida_id);
-        if ($partida) {
+        $txResult = \Illuminate\Support\Facades\DB::transaction(function () use ($request, $cedulaFilePath, $serialPath) {
+            $partida = \App\Models\Inventario::where('id', $request->partida_id)->lockForUpdate()->firstOrFail();
+
+            if (in_array($partida->status, ['INOPERATIVO-DESARMADO', 'USO INTERNO'], true)) {
+                return ['error_field' => 'partida_id', 'error_msg' => 'No se puede facturar un ítem inoperativo, desarmado o de uso interno.'];
+            }
+
+            if ($partida->status === 'VENDIDO') {
+                return ['error_field' => 'partida_id', 'error_msg' => 'Este artículo ya fue vendido anteriormente.'];
+            }
+
+            $hasPendingRequest = BillingRequest::where('status', 'pending')
+                ->where(function ($q) use ($partida) {
+                    $q->where('partida_id', $partida->id)
+                      ->orWhere('second_partida_id', $partida->id);
+                })
+                ->exists();
+
+            if ($hasPendingRequest) {
+                return ['error_field' => 'partida_id', 'error_msg' => 'Ya existe una solicitud de facturación pendiente para este artículo.'];
+            }
+
+            $hasActiveBilling = \App\Models\Billing::where(function ($q) use ($partida) {
+                    $q->where('partida_id', $partida->id)
+                      ->orWhere('second_partida_id', $partida->id);
+                })
+                ->where(function ($q) {
+                    $q->whereNull('status')->orWhere('status', '!=', 'ANULADA');
+                })
+                ->exists();
+
+            if ($hasActiveBilling) {
+                return ['error_field' => 'partida_id', 'error_msg' => 'Este artículo ya tiene una venta activa registrada.'];
+            }
+
+            $secondPartida = null;
+            if ($request->filled('second_partida_id')) {
+                $secondPartida = \App\Models\Inventario::where('id', $request->second_partida_id)->lockForUpdate()->first();
+                if ($secondPartida && in_array($secondPartida->status, ['INOPERATIVO-DESARMADO', 'USO INTERNO', 'VENDIDO'], true)) {
+                    return ['error_field' => 'second_partida_id', 'error_msg' => 'La segunda cámara seleccionada no se encuentra disponible (Estatus: ' . $secondPartida->status . ').'];
+                }
+                if ($secondPartida) {
+                    $secondHasPending = BillingRequest::where('status', 'pending')
+                        ->where(function ($q) use ($secondPartida) {
+                            $q->where('partida_id', $secondPartida->id)
+                              ->orWhere('second_partida_id', $secondPartida->id);
+                        })
+                        ->exists();
+                    if ($secondHasPending) {
+                        return ['error_field' => 'second_partida_id', 'error_msg' => 'La segunda cámara seleccionada ya tiene una solicitud de facturación pendiente.'];
+                    }
+                }
+            }
+
+            $billingRequest = BillingRequest::create([
+                'partida_id' => $request->partida_id,
+                'second_partida_id' => $request->second_partida_id,
+                'user_id' => auth()->id(),
+                'quantity' => $request->quantity,
+                'price' => $request->price,
+                'tasa_bcv' => $request->tasa_bcv,
+                'fecha_tasa_bcv' => $request->fecha_tasa_bcv,
+                'client_name' => $request->client_name ? strip_tags($request->client_name) : null,
+                'client_cedula' => $request->client_cedula ? strip_tags($request->client_cedula) : null,
+                'client_cedula_file' => $cedulaFilePath,
+                'client_phone' => $request->client_phone ? strip_tags($request->client_phone) : null,
+                'client_address' => $request->client_address ? strip_tags($request->client_address) : null,
+                'client_email' => $request->client_email ? strip_tags($request->client_email) : null,
+                'status' => 'pending',
+                'observation' => $request->observation ? strip_tags($request->observation) : null,
+            ]);
+
             $partida->price_sale = $request->price;
             if ($request->filled('serial')) {
                 $cleanSerial = strip_tags($request->serial);
@@ -114,12 +158,25 @@ class BillingRequestController extends Controller
                     $partida->serial = $cleanSerial;
                 }
             }
-            if ($request->hasFile('serial_file')) {
-                $serialPath = \App\Helpers\ImageHelper::compressAndStore($request->file('serial_file'), 'serial_captures');
+            if ($serialPath) {
                 $partida->serial_image_path = $serialPath;
             }
             $partida->saveQuietly();
+
+            return [
+                'billingRequest' => $billingRequest,
+                'partida' => $partida,
+                'secondPartida' => $secondPartida,
+            ];
+        });
+
+        if (!empty($txResult['error_field'])) {
+            return redirect()->back()->withErrors([$txResult['error_field'] => $txResult['error_msg']]);
         }
+
+        $billingRequest = $txResult['billingRequest'];
+        $partida = $txResult['partida'];
+        $secondPartida = $txResult['secondPartida'];
 
         // Notify billing and admin users
         $usersToNotify = \App\Models\User::all()->filter(function ($u) {
@@ -208,58 +265,82 @@ class BillingRequestController extends Controller
         $createdWarrantyIds = [];
 
         foreach ($request->request_ids as $id) {
-            $billingRequest = BillingRequest::with(['inventario', 'partida'])->find($id);
-            $partida = $billingRequest->inventario;
+            $processedItem = \Illuminate\Support\Facades\DB::transaction(function () use ($id) {
+                $billingRequest = BillingRequest::where('id', $id)->lockForUpdate()->first();
+                if (!$billingRequest || $billingRequest->status !== 'pending') {
+                    return null;
+                }
 
-            if ($partida->status === 'VENDIDO' || $partida->status === 'INOPERATIVO-DESARMADO' || $partida->status === 'USO INTERNO') {
-                continue; // Skip if already sold, inoperative/disassembled or internal use
-            }
+                $partida = \App\Models\Inventario::where('id', $billingRequest->partida_id)->lockForUpdate()->first();
+                if (!$partida) {
+                    return null;
+                }
 
-            // 1. Create Billing Record (Sale Log)
-            // Mapping fields from request/partida to Billing
-            $newBill = \App\Models\Billing::create([
-                'fecha' => now()->format('Y-m-d'),
-                'hora' => now()->format('H:i:s'),
-                'partida_id' => $partida->id,
-                'second_partida_id' => $billingRequest->second_partida_id,
-                'precio_total' => $billingRequest->price, // Storing unit price as total for now, logic might differ if qty > 1
-                'user_id' => auth()->id(), // Processed by current user (Accountant)
-                'client_name' => $billingRequest->client_name,
-                'client_cedula' => $billingRequest->client_cedula,
-                'client_phone' => $billingRequest->client_phone,
-                'client_address' => $billingRequest->client_address,
-                'client_email' => $billingRequest->client_email,
-                'bs' => 0, // Default values if needed
-                'divisa' => $billingRequest->price * $billingRequest->quantity, // Total amount
-                'observaciones' => $billingRequest->observation,
-            ]);
+                $hasActiveBilling = \App\Models\Billing::where(function ($q) use ($partida) {
+                        $q->where('partida_id', $partida->id)
+                          ->orWhere('second_partida_id', $partida->id);
+                    })
+                    ->where(function ($q) {
+                        $q->whereNull('status')->orWhere('status', '!=', 'ANULADA');
+                    })
+                    ->exists();
 
-            // 2. Update Partida Status
-            // Logic: If stock reaches 0, mark as sold. 
-            // However, user asked "cambia el estatus de disponible a vendido".
-            // Assuming 1-to-1 relationship for engines ("Motor") or singular items.
-            // For bulk items, we might check stock.
-            if ($partida->stock >= $billingRequest->quantity) {
-                // $partida->decrement('stock', $billingRequest->quantity); 
-                // If item is unique (Engine/Box/Camera), mark as VENDIDO
-                if ($partida->stock <= $billingRequest->quantity) {
+                if ($hasActiveBilling || in_array($partida->status, ['VENDIDO', 'INOPERATIVO-DESARMADO', 'USO INTERNO'], true)) {
+                    return null; // Skip if already sold, inoperative/disassembled or internal use
+                }
+
+                // 1. Create Billing Record (Sale Log)
+                $newBill = \App\Models\Billing::create([
+                    'fecha' => now()->format('Y-m-d'),
+                    'hora' => now()->format('H:i:s'),
+                    'partida_id' => $partida->id,
+                    'second_partida_id' => $billingRequest->second_partida_id,
+                    'precio_total' => $billingRequest->price,
+                    'user_id' => auth()->id(),
+                    'client_name' => $billingRequest->client_name,
+                    'client_cedula' => $billingRequest->client_cedula,
+                    'client_phone' => $billingRequest->client_phone,
+                    'client_address' => $billingRequest->client_address,
+                    'client_email' => $billingRequest->client_email,
+                    'bs' => 0,
+                    'divisa' => $billingRequest->price * $billingRequest->quantity,
+                    'observaciones' => $billingRequest->observation,
+                ]);
+
+                // 2. Update Partida Status
+                if ($partida->stock >= $billingRequest->quantity) {
+                    if ($partida->stock <= $billingRequest->quantity) {
+                        $partida->update(['status' => 'VENDIDO']);
+                    }
+                } else {
                     $partida->update(['status' => 'VENDIDO']);
                 }
-            } else {
-                // Force sold if no stock tracking?
-                $partida->update(['status' => 'VENDIDO']);
-            }
 
-            // If it was a pair of cameras, mark the second camera as VENDIDO as well!
-            if ($billingRequest->second_partida_id) {
-                $secondPartida = \App\Models\Inventario::find($billingRequest->second_partida_id);
-                if ($secondPartida && $secondPartida->status !== 'VENDIDO') {
-                    $secondPartida->update(['status' => 'VENDIDO', 'price_sale' => 0]);
+                // If it was a pair of cameras, mark the second camera as VENDIDO as well!
+                if ($billingRequest->second_partida_id) {
+                    $secondPartida = \App\Models\Inventario::where('id', $billingRequest->second_partida_id)->lockForUpdate()->first();
+                    if ($secondPartida && $secondPartida->status !== 'VENDIDO') {
+                        $secondPartida->update(['status' => 'VENDIDO', 'price_sale' => 0]);
+                    }
                 }
+
+                // 3. Mark Request as Processed
+                $billingRequest->update(['status' => 'processed']);
+
+                return [
+                    'billingRequest' => $billingRequest,
+                    'partida' => $partida,
+                    'newBill' => $newBill,
+                ];
+            });
+
+            if (!$processedItem) {
+                continue;
             }
 
-            // 3. Mark Request as Processed
-            $billingRequest->update(['status' => 'processed']);
+            $billingRequest = $processedItem['billingRequest'];
+            $partida = $processedItem['partida'];
+            $newBill = $processedItem['newBill'];
 
             // Mark pending request notifications as read for all users
             \Illuminate\Support\Facades\DB::table('notifications')

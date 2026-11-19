@@ -369,7 +369,7 @@ const goToCreateBilling = (id, requestId) => {
                                                     <!-- Two items side tags -->
                                                     <span class="px-1.5 py-0.5 rounded bg-blue-600 text-white text-[9px] font-black">L</span>
                                                     <span class="px-1.5 py-0.5 rounded bg-amber-500 text-black text-[9px] font-black">R</span>
-                                                    <span class="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 text-[9px] font-bold tracking-tighter" title="Garantía exclusiva de motores">
+                                                    <span class="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 text-[9px] font-bold tracking-tighter" title="Garantía de 30 días disponible únicamente desde Historial de Ventas">
                                                         <i class="fa-solid fa-file-invoice text-[8px] mr-0.5"></i>SOLO FACTURA
                                                     </span>
                                                 </div>
@@ -405,7 +405,7 @@ const goToCreateBilling = (id, requestId) => {
                                                         <span class="text-[8px] opacity-80">({{ getSideIndicator(req) === 'L' ? 'IZQ' : 'DER' }})</span>
                                                     </span>
                                                     <!-- Warranty badge for non-motors -->
-                                                    <span v-if="!isMotorReq(req)" class="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 text-[9px] font-bold tracking-tighter" title="Garantía exclusiva de motores">
+                                                    <span v-if="!isMotorReq(req)" class="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300 text-[9px] font-bold tracking-tighter" title="Para cajas (60 días) y cámaras (30 días), la garantía se emite únicamente desde Historial de Ventas">
                                                         <i class="fa-solid fa-file-invoice text-[8px] mr-0.5"></i>SOLO FACTURA
                                                     </span>
                                                 </div>

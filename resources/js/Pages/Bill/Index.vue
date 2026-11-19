@@ -399,6 +399,46 @@ const visualizeWarranty = (id) => {
     window.open(route('billing.warranty', { id }), '_blank');
 };
 
+const getWarrantyInfo = (factura) => {
+    if (!factura) return { allowed: false, title: '' };
+    const item = getItem(factura);
+
+    if (isPairFactura(factura) || item.is_camara) {
+        return { allowed: true, title: 'Póliza de Garantía - Cámara (30 días)' };
+    }
+    if (item.is_caja) {
+        return { allowed: true, title: 'Póliza de Garantía - Caja (60 días)' };
+    }
+    if (item.is_motor) {
+        return { allowed: true, title: 'Póliza de Garantía - Motor (90 días)' };
+    }
+
+    const raw = `${factura.tipo_item || ''} ${item.tipo || ''} ${item.item || ''}`
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toUpperCase();
+
+    if (raw.includes('MOTOR')) {
+        return { allowed: true, title: 'Póliza de Garantía - Motor (90 días)' };
+    }
+    if (raw.includes('CAJA') || raw.includes('TRANSMIS')) {
+        return { allowed: true, title: 'Póliza de Garantía - Caja (60 días)' };
+    }
+    if (raw.includes('CAMARA') || raw.includes('CULATA')) {
+        return { allowed: true, title: 'Póliza de Garantía - Cámara (30 días)' };
+    }
+
+    return { allowed: false, title: '' };
+};
+
+const flashError = ref('');
+const flashSuccess = ref('');
+
+watch(() => page.props.flash, (newFlash) => {
+    flashError.value = newFlash?.error || '';
+    flashSuccess.value = newFlash?.success || '';
+}, { immediate: true, deep: true });
+
 const buildQueryString = () => {
     const params = new URLSearchParams();
     if (startDate.value) params.append('fecha_inicio', startDate.value);
@@ -438,6 +478,26 @@ const exportPdf = () => {
 
         <div class="py-8 bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
             <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+
+                <!-- Flash Alerts -->
+                <div v-if="flashError" class="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 text-rose-700 dark:text-rose-300 flex items-center justify-between gap-4 shadow-sm">
+                    <div class="flex items-center gap-3 text-sm font-bold">
+                        <i class="fa-solid fa-triangle-exclamation text-rose-500 text-lg"></i>
+                        <span>{{ flashError }}</span>
+                    </div>
+                    <button @click="flashError = ''" class="text-rose-400 hover:text-rose-600 transition-colors">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div v-if="flashSuccess" class="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-between gap-4 shadow-sm">
+                    <div class="flex items-center gap-3 text-sm font-bold">
+                        <i class="fa-solid fa-circle-check text-emerald-500 text-lg"></i>
+                        <span>{{ flashSuccess }}</span>
+                    </div>
+                    <button @click="flashSuccess = ''" class="text-emerald-400 hover:text-emerald-600 transition-colors">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
                 
                 <!-- Quick Actions / Live Stats Banner -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -868,7 +928,7 @@ const exportPdf = () => {
                                             <a :href="route('billing.pdf', { id: factura.id })" target="_blank" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-indigo-500 hover:shadow-xl hover:shadow-indigo-500/20 transition-all transform hover:scale-110 active:scale-95" title="Ver Detalle">
                                                 <i class="fa-solid fa-eye text-sm"></i>
                                             </a>
-                                            <a v-if="(factura.tipo_item && String(factura.tipo_item).toUpperCase().includes('MOTOR')) || (getItem(factura).tipo && String(getItem(factura).tipo).toUpperCase().includes('MOTOR'))" :href="route('billing.warranty', { id: factura.id })" target="_blank" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-amber-500 hover:shadow-xl hover:shadow-amber-500/20 transition-all transform hover:scale-110 active:scale-95" title="Póliza de Garantía">
+                                            <a v-if="getWarrantyInfo(factura).allowed" :href="route('billing.warranty', { id: factura.id })" target="_blank" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-amber-500 hover:shadow-xl hover:shadow-amber-500/20 transition-all transform hover:scale-110 active:scale-95" :title="getWarrantyInfo(factura).title">
                                                 <i class="fa-solid fa-shield-halved text-sm"></i>
                                             </a>
                                             <Link v-if="!isReadOnly && factura.status !== 'ANULADA'" :href="route('editBilling', { id: factura.id })" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-blue-500 hover:shadow-xl hover:shadow-blue-500/20 transition-all transform hover:scale-110 active:scale-95" title="Editar">

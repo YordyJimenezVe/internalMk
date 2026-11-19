@@ -476,6 +476,8 @@ const closeCamera = () => {
 };
 
 const submitBilling = () => {
+    if (form.processing) return;
+
     if (isPairCamera.value && !form.second_partida_id) {
         alert('Has marcado la venta del par de cámaras. Por favor selecciona o busca la segunda cámara complementaria antes de enviar.');
         return;
@@ -1049,11 +1051,18 @@ const submitBilling = () => {
                                     </div>
 
                                     <!-- Warranty disclaimer for non-motors -->
-                                    <div v-if="!isMotor" class="p-3.5 bg-amber-500/20 border border-amber-400/40 rounded-2xl flex items-center gap-3 text-xs text-amber-100">
+                                    <div v-if="!isMotor && (isCaja || isCamara)" class="p-3.5 bg-amber-500/20 border border-amber-400/40 rounded-2xl flex items-center gap-3 text-xs text-amber-100">
                                         <i class="fa-solid fa-shield-halved text-amber-300 text-lg flex-shrink-0"></i>
                                         <div>
-                                            <span class="font-bold uppercase tracking-wider block text-[11px] text-amber-200">Garantía Exclusiva para Motores</span>
-                                            <span class="text-[11px] text-white/80">Este ítem ({{ isCamara ? 'Cámara' : (isCaja ? 'Caja' : 'Repuesto') }}) no genera Póliza de Garantía. Solo se emitirá la factura fiscal/comercial.</span>
+                                            <span class="font-bold uppercase tracking-wider block text-[11px] text-amber-200">Garantía de {{ isCamara ? 'Cámara (30 días)' : 'Caja (60 días)' }}</span>
+                                            <span class="text-[11px] text-white/80">No se genera automáticamente al facturar. Podrá emitir su Póliza de Garantía únicamente desde la sección de <strong>Historial de Ventas</strong>.</span>
+                                        </div>
+                                    </div>
+                                    <div v-else-if="!isMotor" class="p-3.5 bg-amber-500/20 border border-amber-400/40 rounded-2xl flex items-center gap-3 text-xs text-amber-100">
+                                        <i class="fa-solid fa-shield-halved text-amber-300 text-lg flex-shrink-0"></i>
+                                        <div>
+                                            <span class="font-bold uppercase tracking-wider block text-[11px] text-amber-200">Sin Póliza de Garantía</span>
+                                            <span class="text-[11px] text-white/80">Este ítem (Repuesto) no genera Póliza de Garantía. Solo se emitirá la factura fiscal/comercial.</span>
                                         </div>
                                     </div>
                                     

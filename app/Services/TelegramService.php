@@ -24,7 +24,7 @@ class TelegramService
         }
 
         try {
-            $response = Http::post("https://api.telegram.org/bot{$token}/sendMessage", [
+            $response = Http::connectTimeout(3)->timeout(5)->post("https://api.telegram.org/bot{$token}/sendMessage", [
                 'chat_id' => $chatId,
                 'text' => $message,
                 'parse_mode' => 'HTML',

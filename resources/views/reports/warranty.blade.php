@@ -132,17 +132,37 @@
 <body>
 
     @php
+        $warrantyCategory = $warrantyCategory ?? 'MOTOR';
+        $warrantyDays = (int) ($warrantyDays ?? ($warrantyCategory === 'MOTOR' ? 90 : ($warrantyCategory === 'CAJA' ? 60 : 30)));
+
         $fechaInicio = date('d/m/Y', strtotime($bill->fecha));
-        $fechaFin = date('d/m/Y', strtotime($bill->fecha . ' + 90 days'));
-        
-        $tipoMotor = strtoupper($bill->tipo_item ?? ($bill->partida->tipo ?? 'MOTOR'));
+        $fechaFin = date('d/m/Y', strtotime($bill->fecha . ' + ' . $warrantyDays . ' days'));
+
+        $tipoItem = strtoupper($bill->tipo_item ?? ($bill->partida->tipo ?? $warrantyCategory));
+        $marcaModelo = trim(strtoupper(($bill->partida->marca ?? '') . ' ' . ($bill->partida->modelo ?? '')));
+        $anio = $bill->partida->año ?? 'N/A';
 
         $serial = trim($bill->partida->serial ?? '');
-        $hasNoSerial = empty($serial) || in_array(strtoupper($serial), ['S/N', 'SIN SERIAL', 'NO POSEE', 'N/A']);
+        $hasNoSerial = empty($serial) || in_array(strtoupper($serial), ['S/N', 'SIN SERIAL', 'NO POSEE', 'N/A', 'S/S', 'NO APARENTA SERIAL', 'NO APARENTE SERIAL']);
         if ($hasNoSerial) {
             $serialDisplay = 'SIN SERIAL / NO POSEE';
         } else {
             $serialDisplay = strtoupper($serial);
+        }
+
+        // Identificador de inventario para Cajas y Cámaras (incluye par L + R)
+        $codInvMain = strtoupper($bill->partida->codInv ?? ('#' . ($bill->partida->id ?? $bill->partida_id)));
+        if ($warrantyCategory === 'CAMARA') {
+            $sideMain = $bill->partida->camera_side ?? null;
+            if ($bill->secondPartida) {
+                $codInvSecond = strtoupper($bill->secondPartida->codInv ?? ('#' . $bill->secondPartida->id));
+                $sideSecond = $bill->secondPartida->camera_side ?? null;
+                $codDisplay = $codInvMain . ($sideMain ? " ({$sideMain})" : '') . ' / ' . $codInvSecond . ($sideSecond ? " ({$sideSecond})" : '');
+            } else {
+                $codDisplay = $codInvMain . ($sideMain ? " (LADO {$sideMain})" : '');
+            }
+        } else {
+            $codDisplay = $codInvMain . (!$hasNoSerial ? " | SERIAL: {$serialDisplay}" : '');
         }
     @endphp
 
@@ -155,7 +175,15 @@
                 <p class="company-info">AV LIBERTADOR ENTRE CALLES 50 Y 51 LOCAL S/Nº SECTOR SIMON RODRIGUEZ BARQUISIMETO LARA ZONA POSTAL 3001</p>
             </td>
             <td style="width: 45%; vertical-align: top; text-align: right;">
-                <h2 class="doc-title">PÓLIZA DE GARANTÍA</h2>
+                <h2 class="doc-title">
+                    @if($warrantyCategory === 'CAJA')
+                        PÓLIZA DE GARANTÍA DE CAJA
+                    @elseif($warrantyCategory === 'CAMARA')
+                        PÓLIZA DE GARANTÍA DE CÁMARA
+                    @else
+                        PÓLIZA DE GARANTÍA
+                    @endif
+                </h2>
                 <p style="margin: 2px 0 0 0; font-size: 9px; color: #555;">N° de Factura: <strong>{{ str_pad($bill->id, 6, '0', STR_PAD_LEFT) }}</strong></p>
             </td>
         </tr>
@@ -172,45 +200,125 @@
         </table>
     </div>
 
-    <div class="content-block">
-        <strong>MAIKEL CARS. C.A</strong> GARANTIZA EL MOTOR EN SUS INSTALACIONES CONTRA DEFECTOS EN MATERIALES O EN MANO DE OBRA, SIEMPRE Y CUANDO SE INSTALE CORRECTAMENTE, Y SE LE DE USO NORMAL Y SE LE DE UN MANTENIMIENTO ADECUADO DURANTE EL PERIODO DE GARANTIA. SI EL MOTOR FALLARA COMO RESULTADO DE UN DEFECTO DURANTE EL PERIODO DE GARANTIA ESPECIFICADO QUE INICIA DESDE LA FECHA DE COMPRAVENTA, ESTE COMPROMISO APLICA A: <strong>AUTOMÓVILES (90 DÍAS PARA MOTOR)</strong>. GARANTÍA EFECTIVA PARA EVALUAR LOS COMPONENTES Y VERIFICAR LA FALLA, REPARAR O EN SU DEFECTO REEMPLAZAR.
-    </div>
+    @if($warrantyCategory === 'CAJA')
+        <div class="content-block">
+            <strong>MAIKEL CARS. C.A</strong> GARANTIZA LA CAJA DE CAMBIOS EN SUS INSTALACIONES CONTRA DEFECTOS EN MATERIALES O EN MANO DE OBRA, SIEMPRE Y CUANDO SE INSTALE CORRECTAMENTE, SE LE DÉ USO NORMAL Y UN MANTENIMIENTO ADECUADO DURANTE EL PERÍODO DE GARANTÍA. SI LA CAJA FALLARA COMO RESULTADO DE UN DEFECTO DURANTE EL PERÍODO DE GARANTÍA ESPECIFICADO QUE INICIA DESDE LA FECHA DE COMPRAVENTA, ESTE COMPROMISO APLICA A: <strong>AUTOMÓVILES ({{ $warrantyDays }} DÍAS PARA CAJA DE CAMBIOS)</strong>. GARANTÍA EFECTIVA PARA EVALUAR LOS COMPONENTES Y VERIFICAR LA FALLA, REPARAR O EN SU DEFECTO REEMPLAZAR.
+        </div>
 
-    <div class="section-title">Procedimiento de la Garantía de Motor</div>
-    <div class="content-block">
-        INMEDIATAMENTE QUE DESCUBRAS UN DEFECTO POTENCIAL Y ANTES DE HACER CUALQUIER PROCEDIMIENTO USTED DEBE LLAMAR AL DEPARTAMENTO DE SERVICIO AL CLIENTE <strong>(0424-5213994)</strong>, ENVIAR FOTO DE LA FACTURA Y GARANTÍA MEDIANTE WHATSAPP, ENVIAR FOTO Y VIDEO DE LA FALLA QUE ESTÁ PRESENTANDO. SE LE BRINDARÁ UN ASESORAMIENTO TÉCNICO PARA RESOLVER LA FALLA, SU TÉCNICO DEBE ESTAR DISPUESTO A BRINDAR SU COLABORACIÓN, PARA SER EFECTIVOS EN LA INSTALACIÓN Y EL FUNCIONAMIENTO.
-    </div>
+        <div class="section-title">Procedimiento de la Garantía de Caja de Cambios</div>
+        <div class="content-block">
+            INMEDIATAMENTE QUE DESCUBRAS UN DEFECTO POTENCIAL Y ANTES DE HACER CUALQUIER PROCEDIMIENTO USTED DEBE LLAMAR AL DEPARTAMENTO DE SERVICIO AL CLIENTE <strong>(0424-5213994)</strong>, ENVIAR FOTO DE LA FACTURA Y GARANTÍA MEDIANTE WHATSAPP, ENVIAR FOTO Y VIDEO DE LA FALLA QUE ESTÁ PRESENTANDO. SE LE BRINDARÁ UN ASESORAMIENTO TÉCNICO PARA RESOLVER LA FALLA, SU TÉCNICO DEBE ESTAR DISPUESTO A BRINDAR SU COLABORACIÓN, PARA SER EFECTIVOS EN LA INSTALACIÓN Y EL FUNCIONAMIENTO.
+        </div>
 
-    <div class="section-title">La Garantía NO Aplica Cuando:</div>
-    <ol class="list-style">
-        <li>Cuando no presente factura y garantía como antes mencionado.</li>
-        <li>Se instale en vehículos de carreras o se modifique para un alto desempeño.</li>
-        <li>Se manipule, destape o abuse, se instale de manera incorrecta, si sufre daños por accidentes, fuego, negligencia, mal uso, sobrecalentamiento, si se utilizan componentes defectuosos o incorrectos que se conecten al motor, o si se instalan accesorios no autorizados por el fabricante.</li>
-        <li>Si se instala el motor en un vehículo para el cual no ha sido diseñado.</li>
-        <li>Colocación de aceite no recomendado o combustible no adecuado.</li>
-        <li>Que el motor no esté contaminado por dentro con partículas o cosas extrañas en la culata.</li>
-    </ol>
+        <div class="section-title">La Garantía NO Aplica Cuando:</div>
+        <ol class="list-style">
+            <li>Cuando no presente factura y garantía como antes mencionado.</li>
+            <li>Se instale en vehículos de carreras, carga excesiva o se modifique para un alto desempeño.</li>
+            <li>Se manipule, destape o abuse, se instale de manera incorrecta (incluyendo mal acople de la turbina o convertidor de par), si sufre daños por accidentes, fuego, negligencia, mal uso, sobrecalentamiento o fallas en conexiones eléctricas/hidráulicas externas.</li>
+            <li>Si se instala la caja en un vehículo para el cual no ha sido diseñada.</li>
+            <li>Uso de aceite de transmisión (ATF / valvulina) no recomendado por el fabricante, nivel incorrecto o falta de lubricación.</li>
+            <li>Que la caja presente contaminación interna con agua, refrigerante o partículas metálicas por no limpiar el enfriador o serpentín de aceite.</li>
+        </ol>
 
-    <div class="section-title">La Garantía NO Incluye:</div>
-    <ol class="list-style">
-        <li>Cancelación de transporte, gastos de hoteles, viáticos, mano de obra, consumibles.</li>
-        <li>Cualquier cargo por inconveniente, daños indirectos o de privación del uso del vehículo.</li>
-        <li>Costo de mano de obra por desinstalar o instalar el motor.</li>
-        <li>Costos de componentes que se hayan reemplazado sin previa autorización.</li>
-        <li>No aplica si el cliente no realiza las recomendaciones de instalación dadas.</li>
-    </ol>
+        <div class="section-title">La Garantía NO Incluye:</div>
+        <ol class="list-style">
+            <li>Cancelación de transporte, gastos de hoteles, viáticos, mano de obra, consumibles.</li>
+            <li>Cualquier cargo por inconveniente, daños indirectos o de privación del uso del vehículo.</li>
+            <li>Costo de mano de obra por desinstalar o instalar la caja de cambios.</li>
+            <li>Costos de componentes que se hayan reemplazado sin previa autorización.</li>
+            <li>No aplica si el cliente no realiza las recomendaciones de instalación dadas.</li>
+        </ol>
 
-    <div class="section-title">Recomendaciones para la Instalación</div>
-    <ol class="list-style">
-        <li>Mantenimiento al radiador.</li>
-        <li>Mantenimiento al sistema de inyección.</li>
-        <li>Mantenimiento al tanque de gasolina y conjunto (opcional).</li>
-        <li>Cambio del sistema de enfriamiento de aceite (en caso de usar).</li>
-        <li>Evaluación o cambio del funcionamiento de los catalizadores.</li>
-        <li>1er cambio de aceite a los 1.500 kilómetros.</li>
-        <li>2do cambio de aceite cada 4.000 kilómetros.</li>
-        <li>Purgar el motor en la instalación, catalizadores en buen estado y sistema de enfriamiento.</li>
-    </ol>
+        <div class="section-title">Recomendaciones para la Instalación</div>
+        <ol class="list-style">
+            <li>Limpieza profunda o reemplazo del enfriador / serpentín de aceite de la caja y sus tuberías.</li>
+            <li>Verificar el correcto acople de la turbina (convertidor de par) antes de fijar la caja al motor.</li>
+            <li>Reemplazo del filtro de transmisión y empacadura del cárter (si aplica).</li>
+            <li>Utilizar exclusivamente el aceite de transmisión (ATF / fluido) especificado por el fabricante y medir el nivel a temperatura de operación.</li>
+            <li>Revisar estoperas (retenes), soportes (bases) de caja y sensores / conectores eléctricos.</li>
+            <li>Calibrar la guaya o varillaje selector y realizar escaneo/adaptación electrónica (si aplica) tras la instalación.</li>
+            <li>Verificar el óptimo funcionamiento del sistema de enfriamiento del motor para prevenir sobrecalentamiento de la transmisión.</li>
+        </ol>
+    @elseif($warrantyCategory === 'CAMARA')
+        <div class="content-block">
+            <strong>MAIKEL CARS. C.A</strong> GARANTIZA LA CÁMARA (CULATA) EN SUS INSTALACIONES CONTRA DEFECTOS EN MATERIALES O EN MANO DE OBRA, SIEMPRE Y CUANDO SE INSTALE CORRECTAMENTE, SE LE DÉ USO NORMAL Y UN MANTENIMIENTO ADECUADO DURANTE EL PERÍODO DE GARANTÍA. SI LA CÁMARA FALLARA COMO RESULTADO DE UN DEFECTO DURANTE EL PERÍODO DE GARANTÍA ESPECIFICADO QUE INICIA DESDE LA FECHA DE COMPRAVENTA, ESTE COMPROMISO APLICA A: <strong>AUTOMÓVILES ({{ $warrantyDays }} DÍAS PARA CÁMARA / CULATA)</strong>. GARANTÍA EFECTIVA PARA EVALUAR LOS COMPONENTES Y VERIFICAR LA FALLA, REPARAR O EN SU DEFECTO REEMPLAZAR.
+        </div>
+
+        <div class="section-title">Procedimiento de la Garantía de Cámara</div>
+        <div class="content-block">
+            INMEDIATAMENTE QUE DESCUBRAS UN DEFECTO POTENCIAL Y ANTES DE HACER CUALQUIER PROCEDIMIENTO USTED DEBE LLAMAR AL DEPARTAMENTO DE SERVICIO AL CLIENTE <strong>(0424-5213994)</strong>, ENVIAR FOTO DE LA FACTURA Y GARANTÍA MEDIANTE WHATSAPP, ENVIAR FOTO Y VIDEO DE LA FALLA QUE ESTÁ PRESENTANDO. SE LE BRINDARÁ UN ASESORAMIENTO TÉCNICO PARA RESOLVER LA FALLA, SU TÉCNICO DEBE ESTAR DISPUESTO A BRINDAR SU COLABORACIÓN, PARA SER EFECTIVOS EN LA INSTALACIÓN Y EL FUNCIONAMIENTO.
+        </div>
+
+        <div class="section-title">La Garantía NO Aplica Cuando:</div>
+        <ol class="list-style">
+            <li>Cuando no presente factura y garantía como antes mencionado.</li>
+            <li>Se instale en vehículos de carreras o se modifique para un alto desempeño.</li>
+            <li>Se manipule, rectifique sin autorización, destape o abuse, se instale de manera incorrecta (torque inadecuado o fuera de secuencia), si sufre daños por accidentes, fuego, negligencia, mal uso o sobrecalentamiento del motor.</li>
+            <li>Si se instala la cámara en un vehículo o motor para el cual no ha sido diseñada.</li>
+            <li>Colocación de aceite o refrigerante no recomendado, deficiencia en presión de lubricación o contaminación interna con agua o partículas extrañas.</li>
+            <li>Daños ocasionados por rotura o salto de correa/cadena de tiempo (válvulas dobladas) o mala sincronización del tiempo del motor.</li>
+        </ol>
+
+        <div class="section-title">La Garantía NO Incluye:</div>
+        <ol class="list-style">
+            <li>Cancelación de transporte, gastos de hoteles, viáticos, mano de obra, consumibles.</li>
+            <li>Cualquier cargo por inconveniente, daños indirectos o de privación del uso del vehículo.</li>
+            <li>Costo de mano de obra por desinstalar o instalar la cámara (culata).</li>
+            <li>Costos de componentes que se hayan reemplazado sin previa autorización.</li>
+            <li>No aplica si el cliente no realiza las recomendaciones de instalación dadas.</li>
+        </ol>
+
+        <div class="section-title">Recomendaciones para la Instalación</div>
+        <ol class="list-style">
+            <li>Verificar la planitud de la superficie del bloque del motor antes del montaje.</li>
+            <li>Instalar empacadura de cámara nueva de buena calidad y tornillos nuevos (o verificados según especificación del fabricante).</li>
+            <li>Aplicar estrictamente el torque y la secuencia de apriete recomendados por el fabricante.</li>
+            <li>Realizar mantenimiento al sistema de enfriamiento (radiador, termostato, bomba de agua, electroventilador y mangueras).</li>
+            <li>Verificar presión y conductos de lubricación para asegurar correcta lubricación en árboles de levas y taquetes.</li>
+            <li>Revisar el kit de tiempo (correa/cadena, tensores y poleas) y verificar la sincronización antes del encendido.</li>
+            <li>Purgar completamente el sistema de enfriamiento y realizar cambio de aceite y filtro tras la instalación.</li>
+        </ol>
+    @else
+        <div class="content-block">
+            <strong>MAIKEL CARS. C.A</strong> GARANTIZA EL MOTOR EN SUS INSTALACIONES CONTRA DEFECTOS EN MATERIALES O EN MANO DE OBRA, SIEMPRE Y CUANDO SE INSTALE CORRECTAMENTE, Y SE LE DE USO NORMAL Y SE LE DE UN MANTENIMIENTO ADECUADO DURANTE EL PERIODO DE GARANTIA. SI EL MOTOR FALLARA COMO RESULTADO DE UN DEFECTO DURANTE EL PERIODO DE GARANTIA ESPECIFICADO QUE INICIA DESDE LA FECHA DE COMPRAVENTA, ESTE COMPROMISO APLICA A: <strong>AUTOMÓVILES ({{ $warrantyDays }} DÍAS PARA MOTOR)</strong>. GARANTÍA EFECTIVA PARA EVALUAR LOS COMPONENTES Y VERIFICAR LA FALLA, REPARAR O EN SU DEFECTO REEMPLAZAR.
+        </div>
+
+        <div class="section-title">Procedimiento de la Garantía de Motor</div>
+        <div class="content-block">
+            INMEDIATAMENTE QUE DESCUBRAS UN DEFECTO POTENCIAL Y ANTES DE HACER CUALQUIER PROCEDIMIENTO USTED DEBE LLAMAR AL DEPARTAMENTO DE SERVICIO AL CLIENTE <strong>(0424-5213994)</strong>, ENVIAR FOTO DE LA FACTURA Y GARANTÍA MEDIANTE WHATSAPP, ENVIAR FOTO Y VIDEO DE LA FALLA QUE ESTÁ PRESENTANDO. SE LE BRINDARÁ UN ASESORAMIENTO TÉCNICO PARA RESOLVER LA FALLA, SU TÉCNICO DEBE ESTAR DISPUESTO A BRINDAR SU COLABORACIÓN, PARA SER EFECTIVOS EN LA INSTALACIÓN Y EL FUNCIONAMIENTO.
+        </div>
+
+        <div class="section-title">La Garantía NO Aplica Cuando:</div>
+        <ol class="list-style">
+            <li>Cuando no presente factura y garantía como antes mencionado.</li>
+            <li>Se instale en vehículos de carreras o se modifique para un alto desempeño.</li>
+            <li>Se manipule, destape o abuse, se instale de manera incorrecta, si sufre daños por accidentes, fuego, negligencia, mal uso, sobrecalentamiento, si se utilizan componentes defectuosos o incorrectos que se conecten al motor, o si se instalan accesorios no autorizados por el fabricante.</li>
+            <li>Si se instala el motor en un vehículo para el cual no ha sido diseñado.</li>
+            <li>Colocación de aceite no recomendado o combustible no adecuado.</li>
+            <li>Que el motor no esté contaminado por dentro con partículas o cosas extrañas en la culata.</li>
+        </ol>
+
+        <div class="section-title">La Garantía NO Incluye:</div>
+        <ol class="list-style">
+            <li>Cancelación de transporte, gastos de hoteles, viáticos, mano de obra, consumibles.</li>
+            <li>Cualquier cargo por inconveniente, daños indirectos o de privación del uso del vehículo.</li>
+            <li>Costo de mano de obra por desinstalar o instalar el motor.</li>
+            <li>Costos de componentes que se hayan reemplazado sin previa autorización.</li>
+            <li>No aplica si el cliente no realiza las recomendaciones de instalación dadas.</li>
+        </ol>
+
+        <div class="section-title">Recomendaciones para la Instalación</div>
+        <ol class="list-style">
+            <li>Mantenimiento al radiador.</li>
+            <li>Mantenimiento al sistema de inyección.</li>
+            <li>Mantenimiento al tanque de gasolina y conjunto (opcional).</li>
+            <li>Cambio del sistema de enfriamiento de aceite (en caso de usar).</li>
+            <li>Evaluación o cambio del funcionamiento de los catalizadores.</li>
+            <li>1er cambio de aceite a los 1.500 kilómetros.</li>
+            <li>2do cambio de aceite cada 4.000 kilómetros.</li>
+            <li>Purgar el motor en la instalación, catalizadores en buen estado y sistema de enfriamiento.</li>
+        </ol>
+    @endif
 
     <div style="margin-top: 10px; font-weight: bold; text-align: center; text-transform: uppercase;">
         Recibe conforme y se compromete a seguir las condiciones de garantía mencionadas.
@@ -237,14 +345,29 @@
                         <td class="info-value">{{ $bill->numero_factura ?? str_pad($bill->id, 6, '0', STR_PAD_LEFT) }}</td>
                     </tr>
                     <tr>
-                        <td class="info-label">TIPO DE MOTOR:</td>
-                        <td class="info-value">{{ $tipoMotor }} {{ strtoupper($bill->partida->marca ?? '') }} {{ strtoupper($bill->partida->modelo ?? '') }} (AÑO: {{ $bill->partida->año ?? 'N/A' }})</td>
+                        <td class="info-label">
+                            @if($warrantyCategory === 'CAJA')
+                                TIPO DE CAJA:
+                            @elseif($warrantyCategory === 'CAMARA')
+                                TIPO DE CÁMARA:
+                            @else
+                                TIPO DE MOTOR:
+                            @endif
+                        </td>
+                        <td class="info-value">{{ $tipoItem }} {{ $marcaModelo }} (AÑO: {{ $anio }})</td>
                     </tr>
                     <tr>
-                        <td class="info-label">SERIAL:</td>
-                        <td class="info-value @if($hasNoSerial) no-serial @endif">
-                            {{ $serialDisplay }}
-                        </td>
+                        @if($warrantyCategory === 'MOTOR')
+                            <td class="info-label">SERIAL:</td>
+                            <td class="info-value @if($hasNoSerial) no-serial @endif">
+                                {{ $serialDisplay }}
+                            </td>
+                        @else
+                            <td class="info-label">CÓD. INVENTARIO:</td>
+                            <td class="info-value">
+                                {{ $codDisplay }}
+                            </td>
+                        @endif
                     </tr>
                 </table>
             </td>
