@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Schema;
 use App\Models\Inventario;
 use App\Models\BillingRequest;
 use App\Models\User;
@@ -12,9 +13,16 @@ class Billing extends Model
 {
     use HasFactory;
 
+    public const MIN_WARRANTY_MONTHS = 1;
+    public const MAX_WARRANTY_MONTHS = 4;
+
     protected $appends = [
         'tipo_item',
         'is_pair_camera',
+    ];
+
+    protected $casts = [
+        'warranty_months' => 'integer',
     ];
 
     protected $fillable = [
@@ -41,7 +49,77 @@ class Billing extends Model
         'total',
         'status',
         'observaciones',
+        'warranty_months',
     ];
+
+    public static function hasWarrantyMonthsColumn(): bool
+    {
+        try {
+            return Schema::hasColumn((new static())->getTable(), 'warranty_months');
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    public static function clampWarrantyMonths(int $months): int
+    {
+        return max(self::MIN_WARRANTY_MONTHS, min(self::MAX_WARRANTY_MONTHS, $months));
+    }
+
+    public function resolveWarrantyCategory(): ?string
+    {
+        if ($this->is_pair_camera || !empty($this->second_partida_id)) {
+            return 'CAMARA';
+        }
+        if ($this->partida && $this->partida->is_camara) {
+            return 'CAMARA';
+        }
+        if ($this->partida && $this->partida->is_caja) {
+            return 'CAJA';
+        }
+        if ($this->partida && $this->partida->is_motor) {
+            return 'MOTOR';
+        }
+
+        $tipoRaw = ($this->tipo_item ?? '') . ' ' . ($this->partida->tipo ?? '');
+        $tipoNormalized = strtoupper(iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $tipoRaw) ?: $tipoRaw);
+
+        if (str_contains($tipoNormalized, 'MOTOR')) {
+            return 'MOTOR';
+        }
+        if (str_contains($tipoNormalized, 'CAJA') || str_contains($tipoNormalized, 'TRANSMIS')) {
+            return 'CAJA';
+        }
+        if (str_contains($tipoNormalized, 'CAMARA') || str_contains($tipoNormalized, 'CULATA')) {
+            return 'CAMARA';
+        }
+
+        return null;
+    }
+
+    public function defaultWarrantyMonths(?string $category = null): int
+    {
+        $category = $category ?? $this->resolveWarrantyCategory();
+
+        return match ($category) {
+            'CAMARA' => 1,
+            'CAJA' => 2,
+            default => 3,
+        };
+    }
+
+    public function effectiveWarrantyMonths(?int $overrideMonths = null, ?string $category = null): int
+    {
+        if ($overrideMonths !== null) {
+            return self::clampWarrantyMonths($overrideMonths);
+        }
+
+        if ($this->warranty_months !== null && (int) $this->warranty_months > 0) {
+            return self::clampWarrantyMonths((int) $this->warranty_months);
+        }
+
+        return $this->defaultWarrantyMonths($category);
+    }
 
     public function getIsPairCameraAttribute()
     {

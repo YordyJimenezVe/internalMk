@@ -222,6 +222,27 @@ const formatSerial = (serial, imageUrl = null, tipo = '') => {
                                             </template>
                                         </select>
                                     </div>
+                                    <div v-if="isWarrantyEligible" class="p-4 bg-amber-50/60 dark:bg-amber-950/20 rounded-2xl border border-amber-200/70 dark:border-amber-800/40 space-y-2">
+                                        <div class="flex items-center justify-between gap-2">
+                                            <label class="block text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-wider ml-1" for="warranty_months">
+                                                <i class="fa-solid fa-shield-halved mr-1"></i>Vencimiento de Póliza de Garantía (Máx. 4 meses)
+                                            </label>
+                                            <span v-if="warrantyExpiryPreview" class="text-[10px] font-black text-rose-600 dark:text-rose-400 bg-white/80 dark:bg-gray-900/70 px-2 py-0.5 rounded-lg border border-amber-200/60 dark:border-amber-800/40">
+                                                Vence: {{ warrantyExpiryPreview }}
+                                            </span>
+                                        </div>
+                                        <select
+                                            id="warranty_months"
+                                            name="warranty_months"
+                                            v-model.number="warrantyMonths"
+                                            class="block w-full bg-white dark:bg-gray-900 text-gray-800 dark:text-white border border-amber-200 dark:border-amber-800 rounded-xl py-3 px-4 focus:ring-2 focus:ring-amber-500 transition-all font-bold text-sm"
+                                        >
+                                            <option :value="1">1 mes (30 días)</option>
+                                            <option :value="2">2 meses (60 días)</option>
+                                            <option :value="3">3 meses (90 días)</option>
+                                            <option :value="4">4 meses (120 días)</option>
+                                        </select>
+                                    </div>
                                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                         <div>
                                             <label class="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mb-2 ml-1" for="client_name">Nombre de Cliente</label>
@@ -400,6 +421,7 @@ export default {
             fecha: '',
             hora: '',
             observaciones: '',
+            warrantyMonths: 3,
             formData: {
                 partida: {
                     value: '0',
@@ -415,6 +437,36 @@ export default {
                 // numero_factura_afect: '',
             },
         };
+    },
+    computed: {
+        isWarrantyEligible() {
+            const raw = String(this.data?.tipo || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toUpperCase();
+            return Boolean(
+                this.data?.is_motor ||
+                this.data?.is_caja ||
+                this.data?.is_camara ||
+                raw.includes('MOTOR') ||
+                raw.includes('CAJA') ||
+                raw.includes('TRANSMIS') ||
+                raw.includes('CAMARA') ||
+                raw.includes('CULATA')
+            );
+        },
+        warrantyExpiryPreview() {
+            if (!this.fecha) return '';
+            const months = Math.min(4, Math.max(1, parseInt(this.warrantyMonths, 10) || 1));
+            const parts = String(this.fecha).substring(0, 10).split('-').map(Number);
+            if (parts.length !== 3 || parts.some(isNaN)) return '';
+            const dt = new Date(parts[0], parts[1] - 1, parts[2]);
+            dt.setDate(dt.getDate() + months * 30);
+            const dd = String(dt.getDate()).padStart(2, '0');
+            const mm = String(dt.getMonth() + 1).padStart(2, '0');
+            const yyyy = dt.getFullYear();
+            return `${dd}/${mm}/${yyyy}`;
+        },
     },
     watch: {
         bsAmount(newValue){
@@ -458,7 +510,8 @@ export default {
         const tipoUpper = (this.data.tipo || '').toUpperCase();
         const obsUpper = (this.data['observation'] || '').trim().toUpperCase();
         const isCamaraItem = tipoUpper.includes('CÁMARA') || tipoUpper.includes('CAMARA') || tipoUpper.includes('CULATA');
-        const isCajaItem = tipoUpper.includes('CAJA');
+        const isCajaItem = tipoUpper.includes('CAJA') || tipoUpper.includes('TRANSMIS');
+        this.warrantyMonths = isCamaraItem ? 1 : (isCajaItem ? 2 : 3);
 
         const validOptions = ['MOTOR COMPLETO', 'MOTOR 7/8', 'MOTOR 3/4', 'CAJA COMPLETA', 'CAJA SIN TURBINA'];
         const matched = validOptions.find(opt => obsUpper === opt || obsUpper.includes(opt));

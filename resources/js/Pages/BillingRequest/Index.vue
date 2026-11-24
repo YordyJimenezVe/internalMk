@@ -2,6 +2,7 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, Link, useForm, router, usePage } from '@inertiajs/vue3';
 import { ref, reactive, computed, onMounted, watch } from 'vue';
+import axios from 'axios';
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
@@ -40,8 +41,44 @@ const docModal = ref({
     warrantyIds: []
 });
 
+const warrantyMonthOptions = [
+    { value: 1, label: '1 mes (30 días)' },
+    { value: 2, label: '2 meses (60 días)' },
+    { value: 3, label: '3 meses (90 días)' },
+    { value: 4, label: '4 meses (120 días)' },
+];
+
+const docModalWarrantyMonths = ref({});
+
+const clampWarrantyMonths = (val, fallback = 3) => {
+    const parsed = parseInt(val, 10);
+    if (isNaN(parsed) || parsed < 1) return fallback;
+    return Math.min(4, Math.max(1, parsed));
+};
+
 const closeDocModal = () => {
     docModal.value = { show: false, billingIds: [], warrantyIds: [] };
+    docModalWarrantyMonths.value = {};
+};
+
+const openDocWarrantyPdf = async (id) => {
+    const months = clampWarrantyMonths(docModalWarrantyMonths.value[id], 3);
+    const pdfUrl = route('billing.warranty', { id, months });
+    const pdfWin = window.open('about:blank', '_blank');
+
+    if (!isReadOnly.value) {
+        try {
+            await axios.post(route('billing.warranty.update', { id }), { warranty_months: months });
+        } catch (e) {
+            // Still open PDF with selected months
+        }
+    }
+
+    if (pdfWin) {
+        pdfWin.location.href = pdfUrl;
+    } else {
+        window.open(pdfUrl, '_blank');
+    }
 };
 
 const openAllDocs = () => {
@@ -53,7 +90,8 @@ const openAllDocs = () => {
     if (docModal.value.warrantyIds.length > 0) {
         setTimeout(() => {
             docModal.value.warrantyIds.forEach(id => {
-                window.open(route('billing.warranty', id), '_blank');
+                const months = clampWarrantyMonths(docModalWarrantyMonths.value[id], 3);
+                window.open(route('billing.warranty', { id, months }), '_blank');
             });
         }, 300);
     }
@@ -64,6 +102,12 @@ const checkAndOpenDocuments = () => {
     const warrantyIds = page.props?.flash?.warranty_ids || [];
 
     if (billingIds.length > 0 || warrantyIds.length > 0) {
+        const monthsMap = {};
+        warrantyIds.forEach(id => {
+            monthsMap[id] = 3;
+        });
+        docModalWarrantyMonths.value = monthsMap;
+
         docModal.value = {
             show: true,
             billingIds: [...billingIds],
@@ -711,16 +755,31 @@ const goToCreateBilling = (id, requestId) => {
                         </div>
 
                         <!-- Warranty Buttons -->
-                        <div v-for="id in docModal.warrantyIds" :key="'req-warranty-' + id" class="flex gap-2">
-                            <a 
-                                :href="route('billing.warranty', id)" 
-                                target="_blank"
+                        <div v-for="id in docModal.warrantyIds" :key="'req-warranty-' + id" class="space-y-2 p-3 rounded-2xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/70 dark:border-amber-800/40">
+                            <div class="flex items-center justify-between gap-2 text-left">
+                                <label :for="'req-doc-warranty-months-' + id" class="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                                    <i class="fa-solid fa-calendar-check mr-1"></i>Vigencia (1 a 4 meses)
+                                </label>
+                                <select
+                                    :id="'req-doc-warranty-months-' + id"
+                                    v-model.number="docModalWarrantyMonths[id]"
+                                    :disabled="isReadOnly"
+                                    class="bg-white dark:bg-gray-900 text-gray-800 dark:text-white border border-amber-200 dark:border-amber-800 rounded-xl py-1.5 px-3 text-xs font-bold focus:ring-2 focus:ring-amber-500 outline-none"
+                                >
+                                    <option v-for="opt in warrantyMonthOptions" :key="opt.value" :value="opt.value">
+                                        {{ opt.label }}
+                                    </option>
+                                </select>
+                            </div>
+                            <button
+                                type="button"
+                                @click="openDocWarrantyPdf(id)"
                                 class="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-amber-500/20 transition-all transform active:scale-98 text-sm"
                             >
                                 <i class="fa-solid fa-shield-halved text-lg"></i>
                                 <span>Ver / Imprimir Póliza de Garantía</span>
                                 <i class="fa-solid fa-arrow-up-right-from-square text-xs opacity-70 ml-1"></i>
-                            </a>
+                            </button>
                         </div>
 
                         <!-- Open All Button if both exist -->

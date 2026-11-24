@@ -30,9 +30,17 @@ class ReportsController extends Controller
      */
     public function index()
     {
-        $motorBillings = \App\Models\Billing::with('partida')
-            ->whereHas('partida', function($query) {
-                $query->where('tipo', 'LIKE', '%MOTOR%');
+        $motorBillings = \App\Models\Billing::with(['partida', 'secondPartida', 'billingRequests'])
+            ->where(function ($q) {
+                $q->whereNotNull('second_partida_id')
+                  ->orWhereHas('partida', function ($query) {
+                      $query->where('tipo', 'LIKE', '%MOTOR%')
+                            ->orWhere('tipo', 'LIKE', '%CAJA%')
+                            ->orWhere('tipo', 'LIKE', '%TRANSMIS%')
+                            ->orWhere('tipo', 'LIKE', '%CAMARA%')
+                            ->orWhere('tipo', 'LIKE', '%CÁMARA%')
+                            ->orWhere('tipo', 'LIKE', '%CULATA%');
+                  });
             })
             ->orderBy('id', 'desc')
             ->get();

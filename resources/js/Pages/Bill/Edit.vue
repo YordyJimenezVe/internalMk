@@ -127,6 +127,14 @@ const assignItem = (item) => {
 
     selectedItem.value = item;
     form.partida_id = item.id;
+    const newDefaultMonths = getDefaultWarrantyMonthsForItem(item, Boolean(props.bill.second_partida_id || props.bill.is_pair_camera));
+    if (newDefaultMonths !== null) {
+        if (!form.warranty_months || form.warranty_months < 1 || form.warranty_months > 4) {
+            form.warranty_months = newDefaultMonths;
+        }
+    } else {
+        form.warranty_months = null;
+    }
     searchQuery.value = '';
     lookupResult.value = null;
     lookupError.value = '';
@@ -137,10 +145,39 @@ const assignItem = (item) => {
 const revertItem = () => {
     selectedItem.value = originalItem.value;
     form.partida_id = originalItem.value ? originalItem.value.id : null;
+    form.warranty_months = initialWarrantyMonths;
     lookupError.value = '';
     lookupResult.value = null;
     searchQuery.value = '';
 };
+
+const getDefaultWarrantyMonthsForItem = (item, isPairCamera = false) => {
+    if (isPairCamera || item?.is_camara) return 1;
+    if (item?.is_caja) return 2;
+    if (item?.is_motor) return 3;
+    const raw = String(item?.tipo || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toUpperCase();
+    if (raw.includes('CAMARA') || raw.includes('CULATA')) return 1;
+    if (raw.includes('CAJA') || raw.includes('TRANSMIS')) return 2;
+    if (raw.includes('MOTOR')) return 3;
+    return null;
+};
+
+const isSelectedItemWarrantyEligible = computed(() => {
+    if (props.bill.second_partida_id || props.bill.is_pair_camera) return true;
+    return getDefaultWarrantyMonthsForItem(selectedItem.value, false) !== null;
+});
+
+const initialWarrantyDefault = getDefaultWarrantyMonthsForItem(
+    props.bill.inventario || null,
+    Boolean(props.bill.second_partida_id || props.bill.is_pair_camera)
+);
+
+const initialWarrantyMonths = props.bill.warranty_months
+    ? Math.min(4, Math.max(1, parseInt(props.bill.warranty_months, 10) || (initialWarrantyDefault ?? 3)))
+    : initialWarrantyDefault;
 
 const form = useForm({
     partida_id: props.bill.partida_id,
@@ -163,6 +200,24 @@ const form = useForm({
     client_address: props.bill.client_address,
     client_email: props.bill.client_email,
     observaciones: props.bill.observaciones,
+    warranty_months: initialWarrantyMonths,
+});
+
+const warrantyExpiryPreview = computed(() => {
+    if (!form.fecha || !form.warranty_months) return '';
+    const months = Math.min(4, Math.max(1, parseInt(form.warranty_months, 10) || 1));
+    const raw = String(form.fecha).trim();
+    let dt = null;
+    if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
+        const [y, m, d] = raw.substring(0, 10).split('-').map(Number);
+        dt = new Date(y, m - 1, d);
+    } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) {
+        const [d, m, y] = raw.split('/').map(Number);
+        dt = new Date(y, m - 1, d);
+    }
+    if (!dt || isNaN(dt.getTime())) return '';
+    dt.setDate(dt.getDate() + months * 30);
+    return `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()}`;
 });
 
 const submitForm = () => {
@@ -588,6 +643,29 @@ const submitForm = () => {
                                         </option>
                                     </template>
                                 </select>
+                            </div>
+                            <div v-if="isSelectedItemWarrantyEligible" class="p-5 rounded-2xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/70 dark:border-amber-800/40 space-y-2">
+                                <div class="flex flex-wrap items-center justify-between gap-2">
+                                    <label class="block text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-wider ml-1" for="edit-warranty-months">
+                                        <i class="fa-solid fa-shield-halved mr-1"></i>Vencimiento de Póliza de Garantía (1 a 4 meses máx.)
+                                    </label>
+                                    <span v-if="warrantyExpiryPreview" class="text-[11px] font-black text-rose-600 dark:text-rose-400 bg-white/80 dark:bg-gray-900/70 px-2.5 py-0.5 rounded-lg border border-amber-200/60 dark:border-amber-800/40">
+                                        Vence: {{ warrantyExpiryPreview }}
+                                    </span>
+                                </div>
+                                <select
+                                    id="edit-warranty-months"
+                                    v-model.number="form.warranty_months"
+                                    class="block w-full bg-white dark:bg-gray-900/80 text-gray-800 dark:text-white border border-amber-200 dark:border-amber-800 rounded-2xl py-3.5 px-4 focus:ring-2 focus:ring-amber-500 transition-all font-bold text-sm"
+                                >
+                                    <option :value="1">1 mes (30 días)</option>
+                                    <option :value="2">2 meses (60 días)</option>
+                                    <option :value="3">3 meses (90 días)</option>
+                                    <option :value="4">4 meses (120 días)</option>
+                                </select>
+                                <p v-if="form.errors.warranty_months" class="text-xs font-bold text-rose-600 dark:text-rose-400 ml-1">
+                                    {{ form.errors.warranty_months }}
+                                </p>
                             </div>
                         </div>
 

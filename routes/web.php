@@ -135,6 +135,7 @@ Route::middleware([
         Route::get('/billing/edit/{bill}', 'App\Http\Controllers\BillingsController@edit')->name('editBilling');
         Route::post('/billing/store', 'App\Http\Controllers\BillingsController@store')->name('storeBilling');
         Route::post('/billing/update/{id}', 'App\Http\Controllers\BillingsController@update')->name('updateBilling');
+        Route::post('/billing/warranty/{id}/update', 'App\Http\Controllers\BillingsController@updateWarranty')->name('billing.warranty.update');
         Route::delete('/billing/delete/{id}', 'App\Http\Controllers\BillingsController@destroy')->name('deleteBilling');
         Route::get('/billing/return/{id}', 'App\Http\Controllers\BillingsController@return')->name('returnBilling');
         Route::post('/billing/returnSubmit/{id}', 'App\Http\Controllers\BillingsController@returnSubmit')->name('billing.returnSubmit');

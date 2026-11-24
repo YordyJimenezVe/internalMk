@@ -1,6 +1,7 @@
 <script setup>
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { router } from '@inertiajs/vue3'
+import { router } from '@inertiajs/vue3';
+import axios from 'axios';
 </script>
 
 
@@ -69,22 +70,37 @@ import { router } from '@inertiajs/vue3'
                                         <i class="fa-solid fa-shield-halved mr-1.5 text-indigo-500"></i>Póliza de Garantía
                                     </h4>
                                     <p class="text-xs text-gray-500 dark:text-gray-400 mb-4 leading-relaxed">
-                                        Selecciona una factura de motor para visualizar el documento de garantía en PDF con los datos cargados automáticamente.
+                                        Selecciona una factura de motor, caja o cámara y elige la vigencia (de 1 a 4 meses máx.) para generar el documento de garantía en PDF.
                                     </p>
-                                    <div class="flex flex-col sm:flex-row gap-3">
-                                        <select v-model="selectedBillingId" class="flex-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 outline-none text-xs">
-                                            <option value="">Seleccione una factura de motor...</option>
+                                    <div class="space-y-3">
+                                        <select v-model="selectedBillingId" class="w-full bg-white dark:bg-gray-800 text-gray-700 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 outline-none text-xs">
+                                            <option value="">Seleccione una factura (motor, caja o cámara)...</option>
                                             <option v-for="bill in motorBillings" :key="bill.id" :value="bill.id">
-                                                Factura #{{ bill.numero_factura || String(bill.id).padStart(6, '0') }} - {{ bill.client_name }}
+                                                Factura #{{ bill.numero_factura || String(bill.id).padStart(6, '0') }} - {{ bill.client_name }} ({{ bill.tipo_item || bill.partida?.tipo || 'ÍTEM' }})
                                             </option>
                                         </select>
-                                        <button 
-                                            @click="viewWarrantyPDF" 
-                                            :disabled="!selectedBillingId"
-                                            class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-5 rounded-xl text-xs transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-md shadow-indigo-100 dark:shadow-none"
-                                        >
-                                            <i class="fa-solid fa-file-pdf"></i> Generar PDF
-                                        </button>
+                                        <div class="flex flex-col sm:flex-row gap-3">
+                                            <select
+                                                v-model.number="selectedWarrantyMonths"
+                                                :disabled="!selectedBillingId"
+                                                class="flex-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl py-3 px-4 focus:ring-2 focus:ring-indigo-500 outline-none text-xs font-bold disabled:opacity-50"
+                                            >
+                                                <option :value="1">1 mes (30 días)</option>
+                                                <option :value="2">2 meses (60 días)</option>
+                                                <option :value="3">3 meses (90 días)</option>
+                                                <option :value="4">4 meses (120 días)</option>
+                                            </select>
+                                            <button 
+                                                @click="viewWarrantyPDF" 
+                                                :disabled="!selectedBillingId"
+                                                class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-5 rounded-xl text-xs transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 shadow-md shadow-indigo-100 dark:shadow-none"
+                                            >
+                                                <i class="fa-solid fa-file-pdf"></i> Generar PDF
+                                            </button>
+                                        </div>
+                                        <p v-if="selectedWarrantyExpiry" class="text-[11px] font-semibold text-gray-500 dark:text-gray-400">
+                                            Vencimiento estimado: <span class="font-bold text-rose-600 dark:text-rose-400">{{ selectedWarrantyExpiry }}</span> (máx. 4 meses)
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -215,12 +231,60 @@ export default {
     data() {
         return {
             selectedBillingId: '',
+            selectedWarrantyMonths: 3,
             form: {
                 tipo: 'partidas', // partidas (inventario), facturas (ventas)
                 start_date: '',
                 end_date: '',
                 status: 'DISPONIBLE', // For Inventory: DISPONIBLE, VENDIDO, ALL
                 format: 'excel',
+            }
+        }
+    },
+    computed: {
+        selectedWarrantyBill() {
+            if (!this.selectedBillingId) return null;
+            return (this.motorBillings || []).find(b => Number(b.id) === Number(this.selectedBillingId)) || null;
+        },
+        selectedWarrantyExpiry() {
+            const bill = this.selectedWarrantyBill;
+            if (!bill || !bill.fecha) return '';
+            const months = Math.min(4, Math.max(1, parseInt(this.selectedWarrantyMonths, 10) || 1));
+            const raw = String(bill.fecha).trim();
+            let dt = null;
+            if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
+                const [y, m, d] = raw.substring(0, 10).split('-').map(Number);
+                dt = new Date(y, m - 1, d);
+            } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) {
+                const [d, m, y] = raw.split('/').map(Number);
+                dt = new Date(y, m - 1, d);
+            }
+            if (!dt || isNaN(dt.getTime())) return '';
+            dt.setDate(dt.getDate() + months * 30);
+            return `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()}`;
+        },
+    },
+    watch: {
+        selectedBillingId(newId) {
+            const bill = (this.motorBillings || []).find(b => Number(b.id) === Number(newId));
+            if (!bill) {
+                this.selectedWarrantyMonths = 3;
+                return;
+            }
+            if (bill.warranty_months) {
+                this.selectedWarrantyMonths = Math.min(4, Math.max(1, parseInt(bill.warranty_months, 10) || 3));
+                return;
+            }
+            const raw = `${bill.tipo_item || ''} ${bill.partida?.tipo || ''}`
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toUpperCase();
+            if (bill.second_partida_id || bill.is_pair_camera || bill.partida?.is_camara || raw.includes('CAMARA') || raw.includes('CULATA')) {
+                this.selectedWarrantyMonths = 1;
+            } else if (bill.partida?.is_caja || raw.includes('CAJA') || raw.includes('TRANSMIS')) {
+                this.selectedWarrantyMonths = 2;
+            } else {
+                this.selectedWarrantyMonths = 3;
             }
         }
     },
@@ -241,9 +305,27 @@ export default {
         downloadManualTemplate() {
             window.open(route('reports.manual-template'), '_blank');
         },
-        viewWarrantyPDF() {
-            if (this.selectedBillingId) {
-                window.open(route('billing.warranty', { id: this.selectedBillingId }), '_blank');
+        async viewWarrantyPDF() {
+            if (!this.selectedBillingId) return;
+            const months = Math.min(4, Math.max(1, parseInt(this.selectedWarrantyMonths, 10) || 3));
+            const pdfUrl = route('billing.warranty', { id: this.selectedBillingId, months });
+            const pdfWin = window.open('about:blank', '_blank');
+
+            try {
+                await axios.post(route('billing.warranty.update', { id: this.selectedBillingId }), {
+                    warranty_months: months,
+                });
+                if (this.selectedWarrantyBill) {
+                    this.selectedWarrantyBill.warranty_months = months;
+                }
+            } catch (e) {
+                // If user only has view reports permission, still open PDF with chosen months
+            }
+
+            if (pdfWin) {
+                pdfWin.location.href = pdfUrl;
+            } else {
+                window.open(pdfUrl, '_blank');
             }
         },
         generateReport() {

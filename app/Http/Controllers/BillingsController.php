@@ -256,6 +256,10 @@ class BillingsController extends Controller
     {
         $request->validate([
             'partida_id' => 'required|integer|exists:inventarios,id',
+            'warranty_months' => 'nullable|integer|min:' . Billing::MIN_WARRANTY_MONTHS . '|max:' . Billing::MAX_WARRANTY_MONTHS,
+        ], [
+            'warranty_months.min' => 'La vigencia mínima de la póliza de garantía es de 1 mes.',
+            'warranty_months.max' => 'La vigencia máxima de la póliza de garantía no puede exceder los 4 meses.',
         ]);
 
         $idempotencyKey = trim((string) $request->input('idempotency_key', ''));
@@ -358,7 +362,14 @@ class BillingsController extends Controller
             }
 
             $partida = new Billing();
-            $partida->fill($request->except(['idempotency_key']));
+            $excludeOnStore = ['idempotency_key'];
+            if (!Billing::hasWarrantyMonthsColumn()) {
+                $excludeOnStore[] = 'warranty_months';
+            }
+            $partida->fill($request->except($excludeOnStore));
+            if (Billing::hasWarrantyMonthsColumn() && $request->filled('warranty_months')) {
+                $partida->warranty_months = Billing::clampWarrantyMonths((int) $request->input('warranty_months'));
+            }
 
             $numericDivisa = $cleanNumeric($valorD);
             $partida->divisa = $numericDivisa;
@@ -502,6 +513,13 @@ class BillingsController extends Controller
      */
     public function update(Request $request, int $id)
     {
+        $request->validate([
+            'warranty_months' => 'nullable|integer|min:' . Billing::MIN_WARRANTY_MONTHS . '|max:' . Billing::MAX_WARRANTY_MONTHS,
+        ], [
+            'warranty_months.min' => 'La vigencia mínima de la póliza de garantía es de 1 mes.',
+            'warranty_months.max' => 'La vigencia máxima de la póliza de garantía no puede exceder los 4 meses.',
+        ]);
+
         $billing = Billing::with(['inventario', 'secondInventario'])->findOrFail($id);
 
         // --- Verificación y cambio de Ítem (partida_id) ---
@@ -597,7 +615,16 @@ class BillingsController extends Controller
         }
 
         $originalValues = $billing->getOriginal();
-        $campos = $request->except(['partida_id', 'second_partida_id']);
+        $excludeOnUpdate = ['partida_id', 'second_partida_id'];
+        if (!Billing::hasWarrantyMonthsColumn()) {
+            $excludeOnUpdate[] = 'warranty_months';
+        }
+        $campos = $request->except($excludeOnUpdate);
+        if (array_key_exists('warranty_months', $campos)) {
+            $campos['warranty_months'] = ($campos['warranty_months'] !== null && $campos['warranty_months'] !== '')
+                ? Billing::clampWarrantyMonths((int) $campos['warranty_months'])
+                : null;
+        }
         $coleccionA = collect($originalValues);
         $coleccionB = collect($campos);
         $indicesComunes = $coleccionA->intersectByKeys($coleccionB)->keys();
@@ -911,51 +938,98 @@ class BillingsController extends Controller
     }
 
     /**
-     * Genera y transmite el PDF de la Póliza de Garantía (Motor 90 días, Caja 60 días, Cámara 30 días) utilizando DomPDF.
+     * Actualiza la duración (en meses, de 1 a 4) de la póliza de garantía de una factura
+     * de motor, caja o cámara y registra el cambio en la Bitácora.
      *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
+     */
+    public function updateWarranty(Request $request, int $id)
+    {
+        $validated = $request->validate([
+            'warranty_months' => 'required|integer|min:' . Billing::MIN_WARRANTY_MONTHS . '|max:' . Billing::MAX_WARRANTY_MONTHS,
+        ], [
+            'warranty_months.required' => 'Debe seleccionar la vigencia de la póliza de garantía.',
+            'warranty_months.integer' => 'La vigencia de la póliza debe ser un número entero de meses.',
+            'warranty_months.min' => 'La vigencia mínima de la póliza de garantía es de 1 mes.',
+            'warranty_months.max' => 'La vigencia máxima de la póliza de garantía no puede exceder los 4 meses.',
+        ]);
+
+        $bill = Billing::with(['partida', 'secondPartida', 'billingRequests'])->findOrFail($id);
+        $warrantyCategory = $bill->resolveWarrantyCategory();
+
+        if (!$warrantyCategory) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'La póliza de garantía solo aplica para motores, cajas y cámaras.',
+                ], 422);
+            }
+            return redirect()->back()->with('error', 'La póliza de garantía solo aplica para motores, cajas y cámaras.');
+        }
+
+        $months = Billing::clampWarrantyMonths((int) $validated['warranty_months']);
+        $persisted = false;
+
+        if (Billing::hasWarrantyMonthsColumn()) {
+            $oldMonths = $bill->effectiveWarrantyMonths(null, $warrantyCategory);
+            if ((int) $bill->warranty_months !== $months) {
+                $bill->warranty_months = $months;
+                $bill->save();
+
+                $oldLabel = $oldMonths === 1 ? '1 mes' : "{$oldMonths} meses";
+                $newLabel = $months === 1 ? '1 mes' : "{$months} meses";
+                $this->createBitacoraEntry(
+                    'UPDATE',
+                    $bill->numero_factura ?? $bill->id,
+                    'warranty_months',
+                    "Valor Original: {$oldLabel}",
+                    "Valor Nuevo: {$newLabel}"
+                );
+            }
+            $persisted = true;
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'warranty_months' => $months,
+                'warranty_days' => $months * 30,
+                'warranty_category' => $warrantyCategory,
+                'persisted' => $persisted,
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Vigencia de póliza de garantía actualizada.');
+    }
+
+    /**
+     * Genera y transmite el PDF de la Póliza de Garantía (editable de 1 a 4 meses; por defecto: Motor 3m/90d, Caja 2m/60d, Cámara 1m/30d) utilizando DomPDF.
+     *
+     * @param  \Illuminate\Http\Request  $request
      * @param  string|int  $id  Identificador único de la factura.
      * @return \Illuminate\Http\Response|\Illuminate\Http\RedirectResponse
      */
-    public function warrantyPdf($id)
+    public function warrantyPdf(Request $request, $id)
     {
         $bill = Billing::with(['partida', 'secondPartida', 'billingRequests'])->findOrFail($id);
 
-        $warrantyCategory = null;
-        $warrantyDays = 90;
-
-        if ($bill->is_pair_camera || !empty($bill->second_partida_id)) {
-            $warrantyCategory = 'CAMARA';
-            $warrantyDays = 30;
-        } elseif ($bill->partida && $bill->partida->is_camara) {
-            $warrantyCategory = 'CAMARA';
-            $warrantyDays = 30;
-        } elseif ($bill->partida && $bill->partida->is_caja) {
-            $warrantyCategory = 'CAJA';
-            $warrantyDays = 60;
-        } elseif ($bill->partida && $bill->partida->is_motor) {
-            $warrantyCategory = 'MOTOR';
-            $warrantyDays = 90;
-        } else {
-            $tipoRaw = ($bill->tipo_item ?? '') . ' ' . ($bill->partida->tipo ?? '');
-            $tipoNormalized = strtoupper(iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $tipoRaw) ?: $tipoRaw);
-
-            if (str_contains($tipoNormalized, 'MOTOR')) {
-                $warrantyCategory = 'MOTOR';
-                $warrantyDays = 90;
-            } elseif (str_contains($tipoNormalized, 'CAJA') || str_contains($tipoNormalized, 'TRANSMIS')) {
-                $warrantyCategory = 'CAJA';
-                $warrantyDays = 60;
-            } elseif (str_contains($tipoNormalized, 'CAMARA') || str_contains($tipoNormalized, 'CULATA')) {
-                $warrantyCategory = 'CAMARA';
-                $warrantyDays = 30;
-            }
-        }
+        $warrantyCategory = $bill->resolveWarrantyCategory();
 
         if (!$warrantyCategory) {
             return redirect()->back()->with('error', 'La póliza de garantía solo aplica para motores, cajas y cámaras.');
         }
 
-        $pdf = \PDF::loadView('reports.warranty', compact('bill', 'warrantyCategory', 'warrantyDays'));
+        $overrideMonths = null;
+        if ($request->filled('months') && is_numeric($request->query('months'))) {
+            $overrideMonths = (int) $request->query('months');
+        }
+
+        $warrantyMonths = $bill->effectiveWarrantyMonths($overrideMonths, $warrantyCategory);
+        $warrantyDays = $warrantyMonths * 30;
+
+        $pdf = \PDF::loadView('reports.warranty', compact('bill', 'warrantyCategory', 'warrantyDays', 'warrantyMonths'));
         $pdf->setPaper('letter', 'portrait');
 
         return $pdf->stream('Garantia-' . str_pad($bill->id, 6, '0', STR_PAD_LEFT) . '.pdf');

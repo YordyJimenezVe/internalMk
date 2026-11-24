@@ -5,6 +5,7 @@ import { library } from '@fortawesome/fontawesome-svg-core';
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import { fas } from '@fortawesome/free-solid-svg-icons';
 import { router, usePage, Link } from '@inertiajs/vue3';
+import axios from 'axios';
 
 library.add(fas);
 
@@ -38,6 +39,63 @@ const docModal = ref({
     warrantyIds: []
 });
 
+const warrantyMonthOptions = [
+    { value: 1, label: '1 mes (30 días)' },
+    { value: 2, label: '2 meses (60 días)' },
+    { value: 3, label: '3 meses (90 días)' },
+    { value: 4, label: '4 meses (120 días)' },
+];
+
+const docModalWarrantyMonths = ref({});
+
+const warrantyModal = ref({
+    show: false,
+    factura: null,
+    categoryLabel: '',
+    defaultMonths: 3,
+    months: 3,
+    saving: false,
+    error: '',
+});
+
+const clampWarrantyMonths = (val, fallback = 3) => {
+    const parsed = parseInt(val, 10);
+    if (isNaN(parsed) || parsed < 1) return fallback;
+    return Math.min(4, Math.max(1, parsed));
+};
+
+const formatDateDMY = (dateStr) => {
+    if (!dateStr) return 'N/A';
+    const raw = String(dateStr).trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
+        const [y, m, d] = raw.substring(0, 10).split('-');
+        return `${d}/${m}/${y}`;
+    }
+    return raw;
+};
+
+const calculateWarrantyExpiry = (dateStr, months) => {
+    if (!dateStr) return 'N/A';
+    const clamped = clampWarrantyMonths(months, 1);
+    let dt = null;
+    const raw = String(dateStr).trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
+        const [y, m, d] = raw.substring(0, 10).split('-').map(Number);
+        dt = new Date(y, m - 1, d);
+    } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) {
+        const [d, m, y] = raw.split('/').map(Number);
+        dt = new Date(y, m - 1, d);
+    } else {
+        dt = new Date(raw);
+    }
+    if (!dt || isNaN(dt.getTime())) return 'N/A';
+    dt.setDate(dt.getDate() + clamped * 30);
+    const dd = String(dt.getDate()).padStart(2, '0');
+    const mm = String(dt.getMonth() + 1).padStart(2, '0');
+    const yyyy = dt.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+};
+
 const openDeleteModal = (id) => {
     deleteModal.value = { show: true, id, processing: false };
 };
@@ -69,6 +127,40 @@ const isAdvancedFiltersOpen = ref(false);
 
 const closeDocModal = () => {
     docModal.value = { show: false, billingIds: [], warrantyIds: [] };
+    docModalWarrantyMonths.value = {};
+};
+
+const getDocWarrantyMonths = (id) => {
+    if (docModalWarrantyMonths.value[id]) {
+        return clampWarrantyMonths(docModalWarrantyMonths.value[id], 3);
+    }
+    const found = (props.Facturas || []).find(f => Number(f.id) === Number(id));
+    if (found) {
+        return getWarrantyInfo(found).months;
+    }
+    return 3;
+};
+
+const openDocWarrantyPdf = async (id) => {
+    const months = getDocWarrantyMonths(id);
+    const pdfUrl = route('billing.warranty', { id, months });
+    const pdfWin = window.open('about:blank', '_blank');
+
+    if (!isReadOnly.value) {
+        try {
+            await axios.post(route('billing.warranty.update', { id }), { warranty_months: months });
+            const found = (props.Facturas || []).find(f => Number(f.id) === Number(id));
+            if (found) found.warranty_months = months;
+        } catch (e) {
+            // Even if persistence fails, still show the PDF with selected months
+        }
+    }
+
+    if (pdfWin) {
+        pdfWin.location.href = pdfUrl;
+    } else {
+        window.open(pdfUrl, '_blank');
+    }
 };
 
 const openAllDocs = () => {
@@ -80,7 +172,8 @@ const openAllDocs = () => {
     if (docModal.value.warrantyIds.length > 0) {
         setTimeout(() => {
             docModal.value.warrantyIds.forEach(id => {
-                window.open(route('billing.warranty', id), '_blank');
+                const months = getDocWarrantyMonths(id);
+                window.open(route('billing.warranty', { id, months }), '_blank');
             });
         }, 300);
     }
@@ -91,6 +184,13 @@ const checkAndOpenDocuments = () => {
     const warrantyIds = page.props?.flash?.warranty_ids || [];
 
     if (billingIds.length > 0 || warrantyIds.length > 0) {
+        const monthsMap = {};
+        warrantyIds.forEach(id => {
+            const found = (props.Facturas || []).find(f => Number(f.id) === Number(id));
+            monthsMap[id] = found ? getWarrantyInfo(found).months : 3;
+        });
+        docModalWarrantyMonths.value = monthsMap;
+
         docModal.value = {
             show: true,
             billingIds: [...billingIds],
@@ -395,40 +495,138 @@ const visualizeFact = (id) => {
     window.open(route('billing.pdf', { id }), '_blank');
 };
 
-const visualizeWarranty = (id) => {
-    window.open(route('billing.warranty', { id }), '_blank');
+const visualizeWarranty = (id, months = null) => {
+    const params = months ? { id, months: clampWarrantyMonths(months) } : { id };
+    window.open(route('billing.warranty', params), '_blank');
 };
 
 const getWarrantyInfo = (factura) => {
-    if (!factura) return { allowed: false, title: '' };
+    if (!factura) return { allowed: false, category: null, categoryLabel: '', defaultMonths: 3, months: 3, title: '' };
     const item = getItem(factura);
 
+    let category = null;
+    let categoryLabel = '';
+    let defaultMonths = 3;
+
     if (isPairFactura(factura) || item.is_camara) {
-        return { allowed: true, title: 'Póliza de Garantía - Cámara (30 días)' };
-    }
-    if (item.is_caja) {
-        return { allowed: true, title: 'Póliza de Garantía - Caja (60 días)' };
-    }
-    if (item.is_motor) {
-        return { allowed: true, title: 'Póliza de Garantía - Motor (90 días)' };
+        category = 'CAMARA';
+        categoryLabel = 'Cámara';
+        defaultMonths = 1;
+    } else if (item.is_caja) {
+        category = 'CAJA';
+        categoryLabel = 'Caja';
+        defaultMonths = 2;
+    } else if (item.is_motor) {
+        category = 'MOTOR';
+        categoryLabel = 'Motor';
+        defaultMonths = 3;
+    } else {
+        const raw = `${factura.tipo_item || ''} ${item.tipo || ''} ${item.item || ''}`
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toUpperCase();
+
+        if (raw.includes('MOTOR')) {
+            category = 'MOTOR';
+            categoryLabel = 'Motor';
+            defaultMonths = 3;
+        } else if (raw.includes('CAJA') || raw.includes('TRANSMIS')) {
+            category = 'CAJA';
+            categoryLabel = 'Caja';
+            defaultMonths = 2;
+        } else if (raw.includes('CAMARA') || raw.includes('CULATA')) {
+            category = 'CAMARA';
+            categoryLabel = 'Cámara';
+            defaultMonths = 1;
+        }
     }
 
-    const raw = `${factura.tipo_item || ''} ${item.tipo || ''} ${item.item || ''}`
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toUpperCase();
-
-    if (raw.includes('MOTOR')) {
-        return { allowed: true, title: 'Póliza de Garantía - Motor (90 días)' };
-    }
-    if (raw.includes('CAJA') || raw.includes('TRANSMIS')) {
-        return { allowed: true, title: 'Póliza de Garantía - Caja (60 días)' };
-    }
-    if (raw.includes('CAMARA') || raw.includes('CULATA')) {
-        return { allowed: true, title: 'Póliza de Garantía - Cámara (30 días)' };
+    if (!category) {
+        return { allowed: false, category: null, categoryLabel: '', defaultMonths: 3, months: 3, title: '' };
     }
 
-    return { allowed: false, title: '' };
+    const months = factura.warranty_months
+        ? clampWarrantyMonths(factura.warranty_months, defaultMonths)
+        : defaultMonths;
+    const monthsText = months === 1 ? '1 mes' : `${months} meses`;
+    const daysText = `${months * 30} días`;
+
+    return {
+        allowed: true,
+        category,
+        categoryLabel,
+        defaultMonths,
+        months,
+        title: `Póliza de Garantía - ${categoryLabel} (${monthsText} / ${daysText})`,
+    };
+};
+
+const openWarrantyModal = (factura) => {
+    const info = getWarrantyInfo(factura);
+    if (!info.allowed) return;
+
+    warrantyModal.value = {
+        show: true,
+        factura,
+        categoryLabel: info.categoryLabel,
+        defaultMonths: info.defaultMonths,
+        months: info.months,
+        saving: false,
+        error: '',
+    };
+};
+
+const closeWarrantyModal = () => {
+    warrantyModal.value = {
+        show: false,
+        factura: null,
+        categoryLabel: '',
+        defaultMonths: 3,
+        months: 3,
+        saving: false,
+        error: '',
+    };
+};
+
+const saveAndOpenWarrantyPdf = async () => {
+    const factura = warrantyModal.value.factura;
+    if (!factura || warrantyModal.value.saving) return;
+
+    const months = clampWarrantyMonths(warrantyModal.value.months, warrantyModal.value.defaultMonths);
+    warrantyModal.value.months = months;
+    warrantyModal.value.error = '';
+
+    const pdfUrl = route('billing.warranty', { id: factura.id, months });
+
+    if (isReadOnly.value) {
+        window.open(pdfUrl, '_blank');
+        closeWarrantyModal();
+        return;
+    }
+
+    const pdfWin = window.open('about:blank', '_blank');
+    warrantyModal.value.saving = true;
+
+    try {
+        await axios.post(route('billing.warranty.update', { id: factura.id }), {
+            warranty_months: months,
+        });
+        factura.warranty_months = months;
+        if (pdfWin) {
+            pdfWin.location.href = pdfUrl;
+        } else {
+            window.open(pdfUrl, '_blank');
+        }
+        closeWarrantyModal();
+    } catch (err) {
+        if (pdfWin) pdfWin.close();
+        warrantyModal.value.error =
+            err?.response?.data?.errors?.warranty_months?.[0] ||
+            err?.response?.data?.message ||
+            'No se pudo actualizar la vigencia de la póliza de garantía.';
+    } finally {
+        warrantyModal.value.saving = false;
+    }
 };
 
 const flashError = ref('');
@@ -928,9 +1126,9 @@ const exportPdf = () => {
                                             <a :href="route('billing.pdf', { id: factura.id })" target="_blank" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-indigo-500 hover:shadow-xl hover:shadow-indigo-500/20 transition-all transform hover:scale-110 active:scale-95" title="Ver Detalle">
                                                 <i class="fa-solid fa-eye text-sm"></i>
                                             </a>
-                                            <a v-if="getWarrantyInfo(factura).allowed" :href="route('billing.warranty', { id: factura.id })" target="_blank" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-amber-500 hover:shadow-xl hover:shadow-amber-500/20 transition-all transform hover:scale-110 active:scale-95" :title="getWarrantyInfo(factura).title">
+                                            <button v-if="getWarrantyInfo(factura).allowed" type="button" @click="openWarrantyModal(factura)" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-amber-500 hover:shadow-xl hover:shadow-amber-500/20 transition-all transform hover:scale-110 active:scale-95" :title="getWarrantyInfo(factura).title">
                                                 <i class="fa-solid fa-shield-halved text-sm"></i>
-                                            </a>
+                                            </button>
                                             <Link v-if="!isReadOnly && factura.status !== 'ANULADA'" :href="route('editBilling', { id: factura.id })" class="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-900/50 text-gray-500 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700 hover:text-blue-500 hover:shadow-xl hover:shadow-blue-500/20 transition-all transform hover:scale-110 active:scale-95" title="Editar">
                                                 <i class="fa-solid fa-pen-to-square text-sm"></i>
                                             </Link>
@@ -1029,16 +1227,31 @@ const exportPdf = () => {
                                 </div>
 
                                 <!-- Warranty Buttons -->
-                                <div v-for="id in docModal.warrantyIds" :key="'warranty-' + id" class="flex gap-2">
-                                    <a 
-                                        :href="route('billing.warranty', id)" 
-                                        target="_blank"
+                                <div v-for="id in docModal.warrantyIds" :key="'warranty-' + id" class="space-y-2 p-3 rounded-2xl bg-amber-50/70 dark:bg-amber-950/20 border border-amber-200/70 dark:border-amber-800/40">
+                                    <div class="flex items-center justify-between gap-2 text-left">
+                                        <label :for="'doc-warranty-months-' + id" class="text-[10px] font-black uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                                            <i class="fa-solid fa-calendar-check mr-1"></i>Vigencia (1 a 4 meses)
+                                        </label>
+                                        <select
+                                            :id="'doc-warranty-months-' + id"
+                                            v-model.number="docModalWarrantyMonths[id]"
+                                            :disabled="isReadOnly"
+                                            class="bg-white dark:bg-gray-900 text-gray-800 dark:text-white border border-amber-200 dark:border-amber-800 rounded-xl py-1.5 px-3 text-xs font-bold focus:ring-2 focus:ring-amber-500 outline-none"
+                                        >
+                                            <option v-for="opt in warrantyMonthOptions" :key="opt.value" :value="opt.value">
+                                                {{ opt.label }}
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        @click="openDocWarrantyPdf(id)"
                                         class="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-amber-500/20 transition-all transform active:scale-98 text-sm"
                                     >
                                         <i class="fa-solid fa-shield-halved text-lg"></i>
                                         <span>Ver / Imprimir Póliza de Garantía</span>
                                         <i class="fa-solid fa-arrow-up-right-from-square text-xs opacity-70 ml-1"></i>
-                                    </a>
+                                    </button>
                                 </div>
 
                                 <!-- Open All Button if both exist -->
@@ -1059,6 +1272,95 @@ const exportPdf = () => {
                             >
                                 Listo, Continuar
                             </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Warranty Policy Expiration Modal -->
+                <div v-if="warrantyModal.show && warrantyModal.factura" class="fixed inset-0 z-[115] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md transition-all animate-in fade-in duration-300">
+                    <div class="bg-white dark:bg-gray-800 rounded-[2.5rem] w-full max-w-md shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden transform animate-in zoom-in-95 duration-300">
+                        <div class="p-8 space-y-6">
+                            <div class="text-center">
+                                <div class="h-16 w-16 bg-amber-50 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-500 border-4 border-amber-100 dark:border-amber-900/30">
+                                    <i class="fa-solid fa-shield-halved text-2xl"></i>
+                                </div>
+                                <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 text-[10px] font-black uppercase tracking-widest mb-2">
+                                    <span>{{ warrantyModal.categoryLabel }}</span>
+                                    <span>•</span>
+                                    <span>Factura #{{ warrantyModal.factura.numero_factura || String(warrantyModal.factura.id).padStart(6, '0') }}</span>
+                                </div>
+                                <h3 class="text-xl font-black text-gray-800 dark:text-white uppercase tracking-tight">
+                                    Póliza de Garantía
+                                </h3>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium">
+                                    {{ warrantyModal.factura.client_name || 'Cliente Genérico' }}
+                                </p>
+                            </div>
+
+                            <!-- Duration Selector (1 to 4 months max) -->
+                            <div class="space-y-2">
+                                <label for="warranty-months-select" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 ml-1">
+                                    <i class="fa-solid fa-calendar-days text-amber-500 mr-1"></i>Vencimiento de la Póliza (Máx. 4 meses)
+                                </label>
+                                <select
+                                    id="warranty-months-select"
+                                    v-model.number="warrantyModal.months"
+                                    :disabled="isReadOnly || warrantyModal.saving"
+                                    class="w-full bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-white border border-gray-200 dark:border-gray-700 rounded-2xl py-3.5 px-4 font-bold text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                                >
+                                    <option v-for="opt in warrantyMonthOptions" :key="opt.value" :value="opt.value">
+                                        {{ opt.label }}
+                                    </option>
+                                </select>
+                                <p class="text-[11px] text-gray-400 dark:text-gray-500 ml-1">
+                                    Estándar para {{ warrantyModal.categoryLabel }}:
+                                    <span class="font-bold text-gray-600 dark:text-gray-300">
+                                        {{ warrantyModal.defaultMonths === 1 ? '1 mes (30 días)' : `${warrantyModal.defaultMonths} meses (${warrantyModal.defaultMonths * 30} días)` }}
+                                    </span>.
+                                </p>
+                            </div>
+
+                            <!-- Live Dates Preview -->
+                            <div class="grid grid-cols-2 gap-3 p-4 rounded-2xl bg-gray-50 dark:bg-gray-900/60 border border-gray-100 dark:border-gray-700/60 text-center">
+                                <div>
+                                    <span class="block text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500">Inicio (Compra)</span>
+                                    <span class="text-sm font-black text-indigo-600 dark:text-indigo-400 mt-0.5 block">
+                                        {{ formatDateDMY(warrantyModal.factura.fecha) }}
+                                    </span>
+                                </div>
+                                <div class="border-l border-gray-200 dark:border-gray-700">
+                                    <span class="block text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500">Vencimiento</span>
+                                    <span class="text-sm font-black text-rose-600 dark:text-rose-400 mt-0.5 block">
+                                        {{ calculateWarrantyExpiry(warrantyModal.factura.fecha, warrantyModal.months) }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div v-if="warrantyModal.error" class="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center gap-2">
+                                <i class="fa-solid fa-circle-exclamation text-rose-500"></i>
+                                <span>{{ warrantyModal.error }}</span>
+                            </div>
+
+                            <div class="flex flex-col gap-3">
+                                <button
+                                    type="button"
+                                    @click="saveAndOpenWarrantyPdf"
+                                    :disabled="warrantyModal.saving"
+                                    class="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-black py-3.5 px-6 rounded-2xl shadow-lg shadow-amber-500/20 transition-all transform active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2 text-sm"
+                                >
+                                    <i v-if="warrantyModal.saving" class="fa-solid fa-circle-notch fa-spin"></i>
+                                    <i v-else class="fa-solid fa-file-pdf"></i>
+                                    <span>{{ warrantyModal.saving ? 'GUARDANDO...' : (isReadOnly ? 'VER / GENERAR PDF' : 'GUARDAR Y GENERAR PDF') }}</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    @click="closeWarrantyModal"
+                                    :disabled="warrantyModal.saving"
+                                    class="w-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-bold py-3.5 rounded-2xl transition-all text-sm"
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
