@@ -949,11 +949,15 @@ class BillingsController extends Controller
     {
         $validated = $request->validate([
             'warranty_months' => 'required|integer|min:' . Billing::MIN_WARRANTY_MONTHS . '|max:' . Billing::MAX_WARRANTY_MONTHS,
+            'start_mode' => 'nullable|in:original,today,saved',
+            'warranty_start_date' => 'nullable|date_format:Y-m-d',
         ], [
             'warranty_months.required' => 'Debe seleccionar la vigencia de la póliza de garantía.',
             'warranty_months.integer' => 'La vigencia de la póliza debe ser un número entero de meses.',
             'warranty_months.min' => 'La vigencia mínima de la póliza de garantía es de 1 mes.',
             'warranty_months.max' => 'La vigencia máxima de la póliza de garantía no puede exceder los 4 meses.',
+            'start_mode.in' => 'La opción de fecha de inicio seleccionada no es válida.',
+            'warranty_start_date.date_format' => 'La fecha de inicio de la garantía debe tener el formato YYYY-MM-DD.',
         ]);
 
         $bill = Billing::with(['partida', 'secondPartida', 'billingRequests'])->findOrFail($id);
@@ -971,12 +975,31 @@ class BillingsController extends Controller
 
         $months = Billing::clampWarrantyMonths((int) $validated['warranty_months']);
         $persisted = false;
+        $hasChanges = false;
+        $startMode = $validated['start_mode'] ?? null;
+
+        $effectiveStartDate = !empty($bill->warranty_start_date) ? (string) $bill->warranty_start_date : (string) $bill->fecha;
+        $storedStartDate = $bill->warranty_start_date ?? null;
+
+        if ($startMode === 'today') {
+            $today = now()->format('Y-m-d');
+            $effectiveStartDate = $today;
+            $storedStartDate = $today;
+        } elseif ($startMode === 'original') {
+            $effectiveStartDate = (string) $bill->fecha;
+            $storedStartDate = null;
+        } elseif (!empty($validated['warranty_start_date'])) {
+            $effectiveStartDate = $validated['warranty_start_date'];
+            $storedStartDate = ($validated['warranty_start_date'] === (string) $bill->fecha)
+                ? null
+                : $validated['warranty_start_date'];
+        }
 
         if (Billing::hasWarrantyMonthsColumn()) {
             $oldMonths = $bill->effectiveWarrantyMonths(null, $warrantyCategory);
             if ((int) $bill->warranty_months !== $months) {
                 $bill->warranty_months = $months;
-                $bill->save();
+                $hasChanges = true;
 
                 $oldLabel = $oldMonths === 1 ? '1 mes' : "{$oldMonths} meses";
                 $newLabel = $months === 1 ? '1 mes' : "{$months} meses";
@@ -991,12 +1014,36 @@ class BillingsController extends Controller
             $persisted = true;
         }
 
+        if (Billing::hasWarrantyStartDateColumn() && ($startMode !== null || array_key_exists('warranty_start_date', $validated))) {
+            $oldStoredStart = $bill->warranty_start_date ? (string) $bill->warranty_start_date : null;
+            if ($oldStoredStart !== $storedStartDate) {
+                $oldDisplay = $oldStoredStart ?: (string) $bill->fecha;
+                $newDisplay = $storedStartDate ?: (string) $bill->fecha;
+                $bill->warranty_start_date = $storedStartDate;
+                $hasChanges = true;
+
+                $this->createBitacoraEntry(
+                    'UPDATE',
+                    $bill->numero_factura ?? $bill->id,
+                    'warranty_start_date',
+                    "Valor Original: {$oldDisplay}",
+                    "Valor Nuevo: {$newDisplay}"
+                );
+            }
+        }
+
+        if ($hasChanges) {
+            $bill->save();
+        }
+
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
                 'warranty_months' => $months,
                 'warranty_days' => $months * 30,
                 'warranty_category' => $warrantyCategory,
+                'warranty_start_date' => $effectiveStartDate,
+                'stored_start_date' => $storedStartDate,
                 'persisted' => $persisted,
             ]);
         }
@@ -1029,7 +1076,19 @@ class BillingsController extends Controller
         $warrantyMonths = $bill->effectiveWarrantyMonths($overrideMonths, $warrantyCategory);
         $warrantyDays = $warrantyMonths * 30;
 
-        $pdf = \PDF::loadView('reports.warranty', compact('bill', 'warrantyCategory', 'warrantyDays', 'warrantyMonths'));
+        $warrantyStartDate = !empty($bill->warranty_start_date) ? (string) $bill->warranty_start_date : (string) $bill->fecha;
+        $startDateParam = trim((string) $request->query('start_date', ''));
+        $startModeParam = trim((string) $request->query('start_mode', ''));
+
+        if ($startDateParam !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $startDateParam)) {
+            $warrantyStartDate = $startDateParam;
+        } elseif ($startModeParam === 'today') {
+            $warrantyStartDate = now()->format('Y-m-d');
+        } elseif ($startModeParam === 'original') {
+            $warrantyStartDate = (string) $bill->fecha;
+        }
+
+        $pdf = \PDF::loadView('reports.warranty', compact('bill', 'warrantyCategory', 'warrantyDays', 'warrantyMonths', 'warrantyStartDate'));
         $pdf->setPaper('letter', 'portrait');
 
         return $pdf->stream('Garantia-' . str_pad($bill->id, 6, '0', STR_PAD_LEFT) . '.pdf');

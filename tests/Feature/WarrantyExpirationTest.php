@@ -186,4 +186,56 @@ class WarrantyExpirationTest extends TestCase
         $response->assertOk();
         $this->assertStringContainsString('application/pdf', (string) $response->headers->get('content-type'));
     }
+
+    public function test_update_warranty_start_date_supports_today_and_reverting_to_original(): void
+    {
+        $motorBill = $this->makeBillForType('MOTOR', '2026-10-01');
+        $today = now()->format('Y-m-d');
+
+        // 1. Set start date to today
+        $this->actingAs($this->admin)
+            ->postJson(route('billing.warranty.update', $motorBill->id), [
+                'warranty_months' => 3,
+                'start_mode' => 'today',
+            ])
+            ->assertOk()
+            ->assertJson([
+                'success' => true,
+                'warranty_months' => 3,
+                'warranty_start_date' => $today,
+                'stored_start_date' => $today,
+            ]);
+
+        $this->assertEquals($today, $motorBill->fresh()->warranty_start_date);
+        // Fiscal bill fecha remains untouched
+        $this->assertEquals('2026-10-01', $motorBill->fresh()->fecha);
+
+        // Verify Blade renders today's start date + 90 days
+        $htmlToday = view('reports.warranty', [
+            'bill' => $motorBill->fresh()->load(['partida', 'secondPartida']),
+            'warrantyCategory' => 'MOTOR',
+            'warrantyMonths' => 3,
+            'warrantyDays' => 90,
+            'warrantyStartDate' => $today,
+        ])->render();
+
+        $this->assertStringContainsString(date('d/m/Y', strtotime($today)), $htmlToday);
+        $this->assertStringContainsString(date('d/m/Y', strtotime($today . ' + 90 days')), $htmlToday);
+
+        // 2. Revert back to original purchase date
+        $this->actingAs($this->admin)
+            ->postJson(route('billing.warranty.update', $motorBill->id), [
+                'warranty_months' => 3,
+                'start_mode' => 'original',
+            ])
+            ->assertOk()
+            ->assertJson([
+                'success' => true,
+                'warranty_months' => 3,
+                'warranty_start_date' => '2026-10-01',
+                'stored_start_date' => null,
+            ]);
+
+        $this->assertNull($motorBill->fresh()->warranty_start_date);
+    }
 }

@@ -138,8 +138,12 @@
         $warrantyDays = (int) ($warrantyDays ?? ($warrantyMonths * 30));
         $warrantyMonthsLabel = $warrantyMonths === 1 ? '1 MES' : "{$warrantyMonths} MESES";
 
-        $fechaInicio = date('d/m/Y', strtotime($bill->fecha));
-        $fechaFin = date('d/m/Y', strtotime($bill->fecha . ' + ' . $warrantyDays . ' days'));
+        $baseStartDate = !empty($warrantyStartDate)
+            ? $warrantyStartDate
+            : (!empty($bill->warranty_start_date) ? $bill->warranty_start_date : $bill->fecha);
+
+        $fechaInicio = date('d/m/Y', strtotime($baseStartDate));
+        $fechaFin = date('d/m/Y', strtotime($baseStartDate . ' + ' . $warrantyDays . ' days'));
 
         $tipoItem = strtoupper($bill->tipo_item ?? ($bill->partida->tipo ?? $warrantyCategory));
         $marcaModelo = trim(strtoupper(($bill->partida->marca ?? '') . ' ' . ($bill->partida->modelo ?? '')));

@@ -50,12 +50,22 @@ class Billing extends Model
         'status',
         'observaciones',
         'warranty_months',
+        'warranty_start_date',
     ];
 
     public static function hasWarrantyMonthsColumn(): bool
     {
         try {
             return Schema::hasColumn((new static())->getTable(), 'warranty_months');
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    public static function hasWarrantyStartDateColumn(): bool
+    {
+        try {
+            return Schema::hasColumn((new static())->getTable(), 'warranty_start_date');
         } catch (\Throwable $e) {
             return false;
         }

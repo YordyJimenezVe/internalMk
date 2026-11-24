@@ -54,8 +54,39 @@ const warrantyModal = ref({
     categoryLabel: '',
     defaultMonths: 3,
     months: 3,
+    startMode: 'original', // 'original' | 'today' | 'saved'
+    savedStartDate: null,
     saving: false,
     error: '',
+});
+
+const getTodayYMD = () => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+};
+
+const normalizeDateYMD = (dateStr) => {
+    if (!dateStr) return '';
+    const raw = String(dateStr).trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
+        return raw.substring(0, 10);
+    }
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) {
+        const [d, m, y] = raw.split('/');
+        return `${y}-${m}-${d}`;
+    }
+    return raw;
+};
+
+const warrantyModalEffectiveStartDate = computed(() => {
+    const modal = warrantyModal.value;
+    if (!modal.factura) return '';
+    if (modal.startMode === 'today') return getTodayYMD();
+    if (modal.startMode === 'saved' && modal.savedStartDate) return modal.savedStartDate;
+    return normalizeDateYMD(modal.factura.fecha);
 });
 
 const clampWarrantyMonths = (val, fallback = 3) => {
@@ -565,12 +596,23 @@ const openWarrantyModal = (factura) => {
     const info = getWarrantyInfo(factura);
     if (!info.allowed) return;
 
+    const today = getTodayYMD();
+    const originalDate = normalizeDateYMD(factura.fecha);
+    const savedDate = factura.warranty_start_date ? normalizeDateYMD(factura.warranty_start_date) : null;
+
+    let initialStartMode = 'original';
+    if (savedDate && savedDate !== originalDate) {
+        initialStartMode = savedDate === today ? 'today' : 'saved';
+    }
+
     warrantyModal.value = {
         show: true,
         factura,
         categoryLabel: info.categoryLabel,
         defaultMonths: info.defaultMonths,
         months: info.months,
+        startMode: initialStartMode,
+        savedStartDate: savedDate && savedDate !== originalDate && savedDate !== today ? savedDate : null,
         saving: false,
         error: '',
     };
@@ -583,6 +625,8 @@ const closeWarrantyModal = () => {
         categoryLabel: '',
         defaultMonths: 3,
         months: 3,
+        startMode: 'original',
+        savedStartDate: null,
         saving: false,
         error: '',
     };
@@ -593,10 +637,16 @@ const saveAndOpenWarrantyPdf = async () => {
     if (!factura || warrantyModal.value.saving) return;
 
     const months = clampWarrantyMonths(warrantyModal.value.months, warrantyModal.value.defaultMonths);
+    const startMode = warrantyModal.value.startMode || 'original';
+    const effectiveStartDate = warrantyModalEffectiveStartDate.value;
     warrantyModal.value.months = months;
     warrantyModal.value.error = '';
 
-    const pdfUrl = route('billing.warranty', { id: factura.id, months });
+    const pdfUrl = route('billing.warranty', {
+        id: factura.id,
+        months,
+        ...(effectiveStartDate ? { start_date: effectiveStartDate } : {}),
+    });
 
     if (isReadOnly.value) {
         window.open(pdfUrl, '_blank');
@@ -608,10 +658,15 @@ const saveAndOpenWarrantyPdf = async () => {
     warrantyModal.value.saving = true;
 
     try {
-        await axios.post(route('billing.warranty.update', { id: factura.id }), {
+        const res = await axios.post(route('billing.warranty.update', { id: factura.id }), {
             warranty_months: months,
+            start_mode: startMode,
+            ...(effectiveStartDate ? { warranty_start_date: effectiveStartDate } : {}),
         });
         factura.warranty_months = months;
+        if (res?.data && 'stored_start_date' in res.data) {
+            factura.warranty_start_date = res.data.stored_start_date;
+        }
         if (pdfWin) {
             pdfWin.location.href = pdfUrl;
         } else {
@@ -622,6 +677,7 @@ const saveAndOpenWarrantyPdf = async () => {
         if (pdfWin) pdfWin.close();
         warrantyModal.value.error =
             err?.response?.data?.errors?.warranty_months?.[0] ||
+            err?.response?.data?.errors?.warranty_start_date?.[0] ||
             err?.response?.data?.message ||
             'No se pudo actualizar la vigencia de la póliza de garantía.';
     } finally {
@@ -1297,6 +1353,66 @@ const exportPdf = () => {
                                 </p>
                             </div>
 
+                            <!-- Start Date Selector (Original vs Today) -->
+                            <div class="space-y-2">
+                                <label class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 ml-1">
+                                    <i class="fa-solid fa-calendar-day text-indigo-500 mr-1"></i>Fecha de Inicio de la Compra
+                                </label>
+                                <div class="grid grid-cols-2 gap-2.5">
+                                    <button
+                                        type="button"
+                                        @click="!isReadOnly && !warrantyModal.saving && (warrantyModal.startMode = 'original')"
+                                        :disabled="isReadOnly || warrantyModal.saving"
+                                        :class="[
+                                            'p-3 rounded-2xl border text-left transition-all',
+                                            warrantyModal.startMode === 'original'
+                                                ? 'bg-indigo-50 dark:bg-indigo-950/50 border-indigo-400 dark:border-indigo-500 ring-2 ring-indigo-500/20'
+                                                : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-700'
+                                        ]"
+                                    >
+                                        <span class="block text-[10px] font-black uppercase tracking-wider" :class="warrantyModal.startMode === 'original' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-gray-500'">
+                                            <i class="fa-solid fa-clock-rotate-left mr-1"></i>Fecha Original
+                                        </span>
+                                        <span class="block text-xs font-black text-gray-800 dark:text-white mt-0.5">
+                                            {{ formatDateDMY(warrantyModal.factura.fecha) }}
+                                        </span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        @click="!isReadOnly && !warrantyModal.saving && (warrantyModal.startMode = 'today')"
+                                        :disabled="isReadOnly || warrantyModal.saving"
+                                        :class="[
+                                            'p-3 rounded-2xl border text-left transition-all',
+                                            warrantyModal.startMode === 'today'
+                                                ? 'bg-amber-50 dark:bg-amber-950/50 border-amber-400 dark:border-amber-500 ring-2 ring-amber-500/20'
+                                                : 'bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 hover:border-amber-300 dark:hover:border-amber-700'
+                                        ]"
+                                    >
+                                        <span class="block text-[10px] font-black uppercase tracking-wider" :class="warrantyModal.startMode === 'today' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-400 dark:text-gray-500'">
+                                            <i class="fa-solid fa-calendar-check mr-1"></i>Día Actual (Hoy)
+                                        </span>
+                                        <span class="block text-xs font-black text-gray-800 dark:text-white mt-0.5">
+                                            {{ formatDateDMY(getTodayYMD()) }}
+                                        </span>
+                                    </button>
+                                </div>
+                                <button
+                                    v-if="warrantyModal.savedStartDate"
+                                    type="button"
+                                    @click="!isReadOnly && !warrantyModal.saving && (warrantyModal.startMode = 'saved')"
+                                    :disabled="isReadOnly || warrantyModal.saving"
+                                    :class="[
+                                        'w-full px-3 py-2 rounded-xl border text-left text-xs font-bold transition-all flex items-center justify-between',
+                                        warrantyModal.startMode === 'saved'
+                                            ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-400 dark:border-emerald-600 text-emerald-700 dark:text-emerald-300'
+                                            : 'bg-gray-50 dark:bg-gray-900/40 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400'
+                                    ]"
+                                >
+                                    <span><i class="fa-solid fa-bookmark mr-1.5"></i>Mantener fecha guardada previamente</span>
+                                    <span class="font-black">{{ formatDateDMY(warrantyModal.savedStartDate) }}</span>
+                                </button>
+                            </div>
+
                             <!-- Duration Selector (1 to 4 months max) -->
                             <div class="space-y-2">
                                 <label for="warranty-months-select" class="block text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-gray-400 ml-1">
@@ -1325,13 +1441,13 @@ const exportPdf = () => {
                                 <div>
                                     <span class="block text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500">Inicio (Compra)</span>
                                     <span class="text-sm font-black text-indigo-600 dark:text-indigo-400 mt-0.5 block">
-                                        {{ formatDateDMY(warrantyModal.factura.fecha) }}
+                                        {{ formatDateDMY(warrantyModalEffectiveStartDate) }}
                                     </span>
                                 </div>
                                 <div class="border-l border-gray-200 dark:border-gray-700">
                                     <span class="block text-[10px] font-black uppercase tracking-wider text-gray-400 dark:text-gray-500">Vencimiento</span>
                                     <span class="text-sm font-black text-rose-600 dark:text-rose-400 mt-0.5 block">
-                                        {{ calculateWarrantyExpiry(warrantyModal.factura.fecha, warrantyModal.months) }}
+                                        {{ calculateWarrantyExpiry(warrantyModalEffectiveStartDate, warrantyModal.months) }}
                                     </span>
                                 </div>
                             </div>
