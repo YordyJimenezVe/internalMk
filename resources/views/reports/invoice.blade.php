@@ -60,8 +60,8 @@
             <tr style="background-color: #1E3A8A; color: white;">
                 <th style="padding: 10px; text-align: center; border: 1px solid #000;">CANT</th>
                 <th style="padding: 10px; text-align: left; border: 1px solid #000;">DESCRIPCIÓN</th>
-                <th style="padding: 10px; text-align: right; border: 1px solid #000;">PRECIO UNIT ($)</th>
-                <th style="padding: 10px; text-align: right; border: 1px solid #000;">TOTAL ($)</th>
+                <th style="padding: 10px; text-align: right; border: 1px solid #000;">PRECIO UNIT</th>
+                <th style="padding: 10px; text-align: right; border: 1px solid #000;">TOTAL</th>
             </tr>
         </thead>
         <tbody>
@@ -132,7 +132,7 @@
                     <tr style="background-color: #10B981; color: white;">
                         <td style="padding: 10px; font-weight: bold; border: 1px solid #000;">TOTAL A PAGAR:</td>
                         <td style="padding: 10px; text-align: right; font-weight: bold; border: 1px solid #000;">
-                            $ {{ number_format($bill->divisa, 2) }}
+                            {{ number_format($bill->divisa, 2) }}
                         </td>
                     </tr>
                 </table>
